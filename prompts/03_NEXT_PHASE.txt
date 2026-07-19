@@ -1,0 +1,5 @@
+AGENTS.md, START_HERE_CODEX.md, DECISIONS.md, PROJECT_STATUS.md, .agent/PLANS.md ve [FAZ_DOSYASI] dosyasını oku.
+
+Mevcut repoyu ve önceki fazın test durumunu doğrula. Yalnız [FAZ_DOSYASI] kapsamını uygula; sonraki faza geçme. .agent/execplan.md dosyasını bu faz için güncelle. Kod, migration, seed, test ve dokümantasyonu birlikte tamamla. Lint, typecheck, ilgili testler ve build başarılı olmadan fazı tamamlanmış sayma.
+
+Son raporda kanıtları, çalıştırma/deneme adımlarını, bilinen eksikleri ve önerilen sonraki fazı yaz.

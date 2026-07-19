@@ -1,0 +1,122 @@
+[
+  {
+    "path": ".agent/PLANS.md",
+    "bytes": 1583,
+    "sha256": "361c27cb4e8be8d4091c8f03482630f8856456e1e60acfa832c23b7766dcb12b"
+  },
+  {
+    "path": "00_BURADAN_BASLA.md",
+    "bytes": 4243,
+    "sha256": "e8fbbc24ce1a376ecc0247fadb60f0c8066564af4c9f57b133a9b8d5bdc6346a"
+  },
+  {
+    "path": "AGENTS.md",
+    "bytes": 4058,
+    "sha256": "4f33b8c5b1cbd9574e3d71cc7ae33bf928a97d4bcd3297556ece6393be16fcfe"
+  },
+  {
+    "path": "CODEX_TEK_DOSYA_BASLATICI.md",
+    "bytes": 2009,
+    "sha256": "751ae4a078f4b36b7548569ced3e11ad018200c621f9fffa677699c9ebfc76a8"
+  },
+  {
+    "path": "DECISIONS.md",
+    "bytes": 2203,
+    "sha256": "7f4f23edd42f4680da6c2d90b0870f9506a539a1f0aa49ce7c0bf1ec4ff10d48"
+  },
+  {
+    "path": "PROJECT_STATUS.md",
+    "bytes": 607,
+    "sha256": "3d8ef653d4f015203aef93f107e1c9aaad939d3187c1b23bf4421fe1074f40eb"
+  },
+  {
+    "path": "START_HERE_CODEX.md",
+    "bytes": 1399,
+    "sha256": "64f6d7dde6e0f5cf7c5447b47a204d04a4b21a2bccb2a5ce2783ebe6ef3d48b0"
+  },
+  {
+    "path": "docs/ACCEPTANCE_AND_TEST_MATRIX.md",
+    "bytes": 1774,
+    "sha256": "3253fee8cc43549f0f5a234285ad25e1c6338491df59caf51d7a97712a9dad3e"
+  },
+  {
+    "path": "docs/PRODUCT_AND_TECH_SPEC.md",
+    "bytes": 69262,
+    "sha256": "04cb71536cf24ce6696b32b899173d20f1ca14863ffaf728e9eb727e2b03859c"
+  },
+  {
+    "path": "prompts/01_FIRST_RUN.txt",
+    "bytes": 848,
+    "sha256": "940cc48c39777b69179025f80ada6241f3e59e7009b47513aee277da59ccfee7"
+  },
+  {
+    "path": "prompts/01_FIRST_RUN_GOAL.txt",
+    "bytes": 377,
+    "sha256": "dcf6d288480caeb630597010a00acd4c3b08b91d9680a93e36b4baaca96c3995"
+  },
+  {
+    "path": "prompts/02_REVIEW_PHASE.txt",
+    "bytes": 669,
+    "sha256": "e368d9fe7a2de7a099d6a2e35168a4f5d81b263e7a3d27f8d6f8ce8b69efd1b0"
+  },
+  {
+    "path": "prompts/03_NEXT_PHASE.txt",
+    "bytes": 555,
+    "sha256": "9303ff8f1ddb0ae6b4c7d5da18163000df205959ec42933906f4a794ef66d65c"
+  },
+  {
+    "path": "prompts/04_FIX_QUALITY_GATE.txt",
+    "bytes": 449,
+    "sha256": "5cc58959ada41dd5611987452e16d05c1de68f06243a35961de6d456b88ddcc4"
+  },
+  {
+    "path": "research/SOURCES_AND_FRESHNESS.md",
+    "bytes": 1681,
+    "sha256": "ae3f2451c19ab095092f2ddf19c4577c339f2192d4d7d1c5c4a67d75e6f6f3c7"
+  },
+  {
+    "path": "tasks/PHASE_00_FOUNDATION.md",
+    "bytes": 1562,
+    "sha256": "3bba63e9850d4223f38f4f2f67a75307cf4f3adc5da825a92db837245721ad19"
+  },
+  {
+    "path": "tasks/PHASE_01_IDENTITY_ORGANIZATIONS.md",
+    "bytes": 1036,
+    "sha256": "49e2d9f9b43ac54d063ba9ad24a7f7f5dbe2c968fa3d6b35f96713ff6d8c3ee1"
+  },
+  {
+    "path": "tasks/PHASE_02_CATALOG_INVENTORY.md",
+    "bytes": 994,
+    "sha256": "5c688673e776b17607acdcf02956cb969ca6e37711c75cdda082976b7d3c97b4"
+  },
+  {
+    "path": "tasks/PHASE_03_RFQ_CART_PILOT_ORDER.md",
+    "bytes": 952,
+    "sha256": "519338dfb23f7b650673fa3e78cb55e3bf0294f46205e3141a02b7f824755201"
+  },
+  {
+    "path": "tasks/PHASE_04_ORDER_SHIPPING_NOTIFICATIONS.md",
+    "bytes": 846,
+    "sha256": "957cf39a07069d131dfe99ed53b1f205bef694fd22bac657edf158a17ac6f952"
+  },
+  {
+    "path": "tasks/PHASE_05_RETURNS_DISPUTES_MESSAGING.md",
+    "bytes": 678,
+    "sha256": "8bdf963deaea1d5f965ef5a98c3382b4e7d36a68548f9d8d970d6294f3868de8"
+  },
+  {
+    "path": "tasks/PHASE_06_ADMIN_ANALYTICS_PILOT.md",
+    "bytes": 769,
+    "sha256": "26772486df1f56b5a64fb06b5c3ef69740a82cfbe3fc8f70b95d5d657f447256"
+  },
+  {
+    "path": "tasks/PHASE_07_EXTERNAL_INTEGRATION_ADAPTERS.md",
+    "bytes": 1130,
+    "sha256": "29455c4591702ee580c73960785fc29f06965322335a159660da7ab702137a6f"
+  },
+  {
+    "path": "tasks/PHASE_08_SECURITY_LEGAL_DEPLOYMENT.md",
+    "bytes": 956,
+    "sha256": "b552de4f3cf67ab8e8d236a46401032de116143ad2899b1db4febe33486958e6"
+  }
+]

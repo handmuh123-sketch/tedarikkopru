@@ -1,0 +1,1 @@
+/goal Yalnız tasks/PHASE_00_FOUNDATION.md fazını tamamla. Başlamadan AGENTS.md, START_HERE_CODEX.md, DECISIONS.md, .agent/PLANS.md ve ilgili şartname bölümlerini oku; .agent/execplan.md oluştur/güncelle. Fazın kabul kriterleri, lint, typecheck, test ve build doğrulanmadan durma. Sonraki fazlara geçme, canlı servis/secret kullanma ve sonunda kanıtlı rapor ver.

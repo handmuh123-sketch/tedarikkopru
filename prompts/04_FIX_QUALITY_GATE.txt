@@ -1,0 +1,10 @@
+Mevcut repoda kalite kapısını çalıştır:
+
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm test:integration
+pnpm test:e2e
+pnpm build
+
+Başarısızlıkların kök nedenini bul ve düzelt. Testleri geçsin diye assertionları zayıflatma, testleri silme, lint/typecheck kurallarını kapatma veya gerçek davranışı mock'larla örtme. Yalnız mevcut fazın kapsamındaki düzeltmeleri yap. Sonunda her komutun sonucunu ve değişen dosyaları raporla.

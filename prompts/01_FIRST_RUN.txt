@@ -1,0 +1,7 @@
+AGENTS.md, START_HERE_CODEX.md, DECISIONS.md, .agent/PLANS.md, PROJECT_STATUS.md, tasks/PHASE_00_FOUNDATION.md ve bu fazın işaret ettiği ürün şartnamesi bölümlerini oku.
+
+Yalnız Faz 0'ı uygula; sonraki fazlara geçme.
+
+Önce repo ve çalışma ortamını incele. `.agent/execplan.md` oluştur ve yaşayan plan olarak güncelle. Teknik sürümleri resmi dokümanlardan doğrula ve birbirleriyle uyumlu kararlı sürümleri seç. Uygulamayı çalışan bir iskelet halinde kur, gerekli test/kalite komutlarını oluştur, çalıştır ve hataları düzelt. Kullanıcının mevcut dosyalarını silme. Canlı servis veya secret kullanma.
+
+Fazın kabul kriterleri sağlandığında dur. Son raporda yapılanları, değişen dosyaları, komut sonuçlarını, uygulamayı nasıl açacağımı, bilinen eksikleri ve önerilen sonraki fazı yaz.

@@ -1,0 +1,13 @@
+Mevcut fazın değişikliklerini bağımsız ve eleştirel biçimde incele. AGENTS.md, aktif tasks/PHASE_XX dosyası ve docs/ACCEPTANCE_AND_TEST_MATRIX.md ile karşılaştır.
+
+Özellikle:
+- org izolasyonu ve yetki açıkları,
+- veri kaybı/migration riski,
+- finans/stok hataları,
+- başarısız veya anlamsız testler,
+- secret/PII sızıntısı,
+- erişilebilirlik ve responsive sorunlar,
+- kapsam dışı gereksiz karmaşıklık
+ara.
+
+Önce bulguları önem sırasıyla raporla. Ardından yüksek ve orta riskli doğrulanmış bulguları düzelt, ilgili testleri çalıştır ve PROJECT_STATUS.md ile .agent/execplan.md dosyalarını güncelle. Yeni faza geçme.
