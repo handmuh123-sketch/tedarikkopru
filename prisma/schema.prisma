@@ -128,10 +128,13 @@ enum InventoryMovementType {
   IMPORT
   RESERVATION
   RESERVATION_RELEASE
+  SALE
 }
 
 enum CheckoutStatus {
   DRAFT
+  PAYMENT_PROCESSING
+  COMPLETED
   EXPIRED
   CANCELLED
 }
@@ -139,10 +142,31 @@ enum CheckoutStatus {
 enum StockReservationStatus {
   ACTIVE
   RELEASED
+  CONSUMED
 }
 
 enum OrderStatus {
   DRAFT
+  PAYMENT_PROCESSING
+  PAID
+  CANCELLED
+}
+
+enum PaymentProvider {
+  MOCK
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  EXPIRED
+}
+
+enum PaymentAttemptOutcome {
+  SUCCEEDED
+  DECLINED
   CANCELLED
 }
 
@@ -183,6 +207,9 @@ model User {
   inventoryMovements   InventoryMovement[]       @relation("InventoryMovementActor")
   productFavorites     ProductFavorite[]
   importJobs           ImportJob[]               @relation("ImportJobCreator")
+  paymentsInitiated    Payment[]                 @relation("PaymentInitiator")
+  paymentAttempts      PaymentAttempt[]          @relation("PaymentAttemptActor")
+  orderStatusChanges   OrderStatusHistory[]      @relation("OrderStatusActor")
 
   @@index([platformRole, status])
   @@map("user")
@@ -286,6 +313,7 @@ model Organization {
   supplierCheckouts        Checkout[]                @relation("SupplierCheckouts")
   buyerOrders              Order[]                   @relation("BuyerOrders")
   supplierOrders           Order[]                   @relation("SupplierOrders")
+  buyerPayments            Payment[]                 @relation("BuyerPayments")
 
   @@index([type, verificationStatus])
   @@index([status, updatedAt])
@@ -671,6 +699,7 @@ model Checkout {
   supplierOrganization    Organization       @relation("SupplierCheckouts", fields: [supplierOrganizationId], references: [id], onDelete: Restrict)
   reservations            StockReservation[]
   order                   Order?
+  payments                Payment[]
 
   @@unique([buyerOrganizationId, idempotencyKey])
   @@index([buyerOrganizationId, status, expiresAt])
@@ -686,6 +715,7 @@ model StockReservation {
   status      StockReservationStatus @default(ACTIVE)
   expiresAt   DateTime               @map("expires_at") @db.Timestamptz(3)
   releasedAt  DateTime?              @map("released_at") @db.Timestamptz(3)
+  consumedAt  DateTime?              @map("consumed_at") @db.Timestamptz(3)
   createdAt   DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
   checkout    Checkout               @relation(fields: [checkoutId], references: [id], onDelete: Restrict)
   inventory   Inventory              @relation(fields: [inventoryId], references: [id], onDelete: Restrict)
@@ -697,24 +727,26 @@ model StockReservation {
 }
 
 model Order {
-  id                      String       @id @default(cuid()) @db.VarChar(36)
-  publicNumber            String       @unique @map("public_number") @db.VarChar(32)
-  checkoutId              String       @unique @map("checkout_id") @db.VarChar(36)
-  buyerOrganizationId     String       @map("buyer_organization_id") @db.VarChar(36)
-  supplierOrganizationId  String       @map("supplier_organization_id") @db.VarChar(36)
-  status                  OrderStatus  @default(DRAFT)
-  currency                String       @default("TRY") @db.Char(3)
-  subtotalAmountMinor     Int          @map("subtotal_amount_minor")
-  vatAmountMinor          Int          @map("vat_amount_minor")
-  totalAmountMinor        Int          @map("total_amount_minor")
-  deliveryAddressSnapshot Json         @map("delivery_address_snapshot")
-  invoiceAddressSnapshot  Json         @map("invoice_address_snapshot")
-  createdAt               DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt               DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
-  checkout                Checkout     @relation(fields: [checkoutId], references: [id], onDelete: Restrict)
-  buyerOrganization       Organization @relation("BuyerOrders", fields: [buyerOrganizationId], references: [id], onDelete: Restrict)
-  supplierOrganization    Organization @relation("SupplierOrders", fields: [supplierOrganizationId], references: [id], onDelete: Restrict)
+  id                      String               @id @default(cuid()) @db.VarChar(36)
+  publicNumber            String               @unique @map("public_number") @db.VarChar(32)
+  checkoutId              String               @unique @map("checkout_id") @db.VarChar(36)
+  buyerOrganizationId     String               @map("buyer_organization_id") @db.VarChar(36)
+  supplierOrganizationId  String               @map("supplier_organization_id") @db.VarChar(36)
+  status                  OrderStatus          @default(DRAFT)
+  currency                String               @default("TRY") @db.Char(3)
+  subtotalAmountMinor     Int                  @map("subtotal_amount_minor")
+  vatAmountMinor          Int                  @map("vat_amount_minor")
+  totalAmountMinor        Int                  @map("total_amount_minor")
+  deliveryAddressSnapshot Json                 @map("delivery_address_snapshot")
+  invoiceAddressSnapshot  Json                 @map("invoice_address_snapshot")
+  createdAt               DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt               DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  checkout                Checkout             @relation(fields: [checkoutId], references: [id], onDelete: Restrict)
+  buyerOrganization       Organization         @relation("BuyerOrders", fields: [buyerOrganizationId], references: [id], onDelete: Restrict)
+  supplierOrganization    Organization         @relation("SupplierOrders", fields: [supplierOrganizationId], references: [id], onDelete: Restrict)
   items                   OrderItem[]
+  payments                Payment[]
+  statusHistory           OrderStatusHistory[]
 
   @@index([buyerOrganizationId, createdAt])
   @@index([supplierOrganizationId, createdAt])
@@ -742,4 +774,67 @@ model OrderItem {
 
   @@index([orderId])
   @@map("order_items")
+}
+
+model OrderStatusHistory {
+  id         String         @id @default(cuid()) @db.VarChar(36)
+  orderId    String         @map("order_id") @db.VarChar(36)
+  fromStatus OrderStatus?   @map("from_status")
+  toStatus   OrderStatus    @map("to_status")
+  reasonCode String         @map("reason_code") @db.VarChar(80)
+  actorType  AuditActorType @map("actor_type")
+  actorId    String?        @map("actor_id") @db.VarChar(36)
+  metadata   Json           @default("{}")
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  order      Order          @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  actor      User?          @relation("OrderStatusActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([orderId, createdAt])
+  @@map("order_status_history")
+}
+
+model Payment {
+  id                       String           @id @default(cuid()) @db.VarChar(36)
+  orderId                  String           @unique @map("order_id") @db.VarChar(36)
+  checkoutId               String           @map("checkout_id") @db.VarChar(36)
+  buyerOrganizationId      String           @map("buyer_organization_id") @db.VarChar(36)
+  provider                 PaymentProvider  @default(MOCK)
+  mockReference            String           @unique @map("mock_reference") @db.VarChar(64)
+  status                   PaymentStatus    @default(PENDING)
+  currency                 String           @default("TRY") @db.Char(3)
+  amountMinor              Int              @map("amount_minor")
+  initiationIdempotencyKey String           @map("initiation_idempotency_key") @db.VarChar(128)
+  initiationRequestHash    String           @map("initiation_request_hash") @db.VarChar(64)
+  initiatedByUserId        String           @map("initiated_by_user_id") @db.VarChar(36)
+  paidAt                   DateTime?        @map("paid_at") @db.Timestamptz(3)
+  failedAt                 DateTime?        @map("failed_at") @db.Timestamptz(3)
+  failureCode              String?          @map("failure_code") @db.VarChar(80)
+  createdAt                DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  order                    Order            @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  checkout                 Checkout         @relation(fields: [checkoutId], references: [id], onDelete: Restrict)
+  buyerOrganization        Organization     @relation("BuyerPayments", fields: [buyerOrganizationId], references: [id], onDelete: Restrict)
+  initiatedBy              User             @relation("PaymentInitiator", fields: [initiatedByUserId], references: [id], onDelete: Restrict)
+  attempts                 PaymentAttempt[]
+
+  @@unique([buyerOrganizationId, initiationIdempotencyKey])
+  @@index([buyerOrganizationId, createdAt])
+  @@index([checkoutId, status])
+  @@map("payments")
+}
+
+model PaymentAttempt {
+  id             String                @id @default(cuid()) @db.VarChar(36)
+  paymentId      String                @unique @map("payment_id") @db.VarChar(36)
+  idempotencyKey String                @map("idempotency_key") @db.VarChar(128)
+  requestHash    String                @map("request_hash") @db.VarChar(64)
+  outcome        PaymentAttemptOutcome
+  actorUserId    String                @map("actor_user_id") @db.VarChar(36)
+  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  payment        Payment               @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  actorUser      User                  @relation("PaymentAttemptActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@unique([paymentId, idempotencyKey])
+  @@index([actorUserId, createdAt])
+  @@map("payment_attempts")
 }

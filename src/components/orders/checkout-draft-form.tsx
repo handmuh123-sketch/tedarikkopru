@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 type AddressOption = { id: string; title: string; city: string; district: string; type: string };
@@ -8,7 +9,7 @@ type CheckoutResult = {
   status: string;
   expiresAt: string;
   totalAmountMinor: number;
-  order: { publicNumber: string; status: string } | null;
+  order: { id: string; publicNumber: string; status: string } | null;
 };
 
 export function CheckoutDraftForm({
@@ -69,6 +70,11 @@ export function CheckoutDraftForm({
           Sipariş: <strong>{result.order?.publicNumber}</strong>
         </p>
         <p>Rezervasyon bitişi: {new Date(result.expiresAt).toLocaleString("tr-TR")}</p>
+        {result.order && (
+          <Link className="button button-primary" href={`/panel/siparisler/${result.order.id}`}>
+            Sipariş ve ödeme detayına git
+          </Link>
+        )}
         {result.status === "DRAFT" && (
           <button
             className="button button-secondary"

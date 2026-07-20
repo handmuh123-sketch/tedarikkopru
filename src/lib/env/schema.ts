@@ -64,6 +64,7 @@ function createServerEnvSchema(validationContext: "runtime" | "build") {
       PAYTR_MERCHANT_SALT: optionalString,
 
       FEATURE_LIVE_PAYMENTS: booleanFromEnvironment.default(false),
+      FEATURE_MOCK_PAYMENTS: booleanFromEnvironment.default(false),
       FEATURE_DROPSHIPPING: booleanFromEnvironment.default(false),
       FEATURE_MARKETPLACE_TRENDYOL: booleanFromEnvironment.default(false),
       FEATURE_MARKETPLACE_HEPSIBURADA: booleanFromEnvironment.default(false),

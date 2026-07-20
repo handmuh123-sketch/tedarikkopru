@@ -17,6 +17,8 @@ export const serverEnvironment = result.data;
 
 export const featureFlags = Object.freeze({
   livePayments: serverEnvironment.FEATURE_LIVE_PAYMENTS,
+  mockPayments:
+    serverEnvironment.FEATURE_MOCK_PAYMENTS || serverEnvironment.NODE_ENV !== "production",
   dropshipping: serverEnvironment.FEATURE_DROPSHIPPING,
   marketplaceTrendyol: serverEnvironment.FEATURE_MARKETPLACE_TRENDYOL,
   marketplaceHepsiburada: serverEnvironment.FEATURE_MARKETPLACE_HEPSIBURADA,

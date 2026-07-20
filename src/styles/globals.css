@@ -856,6 +856,72 @@ h2 {
   gap: 0.7rem;
 }
 
+.order-list,
+.mock-payment,
+.status-history {
+  display: grid;
+  gap: 1rem;
+}
+
+.order-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.order-card h2 {
+  margin-top: 0.7rem;
+  font-size: 1.45rem;
+}
+
+.order-card > div:last-child {
+  text-align: right;
+}
+
+.order-card a {
+  color: var(--color-brand-strong);
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.order-detail {
+  display: grid;
+  align-content: start;
+  gap: 1.25rem;
+}
+
+.order-detail .dashboard-header {
+  margin-bottom: 1rem;
+}
+
+.order-detail address {
+  margin-block: 0.7rem 1.4rem;
+  font-style: normal;
+}
+
+.mock-payment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.status-history {
+  margin: 1rem 0 0;
+  padding-left: 1.3rem;
+}
+
+.status-history li {
+  padding-left: 0.4rem;
+}
+
+.status-history span {
+  display: block;
+  color: var(--color-ink-soft);
+  font-size: 0.86rem;
+}
+
 .import-workspace {
   display: grid;
   gap: 1.5rem;
@@ -1184,6 +1250,20 @@ td {
   .cart-row,
   .cart-item-actions {
     grid-template-columns: 1fr;
+  }
+
+  .order-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .order-card > div:last-child {
+    text-align: left;
+  }
+
+  .mock-payment-actions,
+  .mock-payment-actions .button {
+    width: 100%;
   }
 
   .cart-row img {

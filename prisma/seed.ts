@@ -64,8 +64,8 @@ async function main() {
 
   await database.systemSetting.upsert({
     where: { key: "orders.version" },
-    update: { value: { phase: "3A", status: "ready" } },
-    create: { key: "orders.version", value: { phase: "3A", status: "ready" } },
+    update: { value: { phase: "3B-1", status: "ready" } },
+    create: { key: "orders.version", value: { phase: "3B-1", status: "ready" } },
   });
 
   await database.systemSetting.upsert({
@@ -495,7 +495,9 @@ async function main() {
 
 try {
   await main();
-  console.info("Faz 3A teknik ayarlar, katalog ve güvenli alıcı/tedarikçi demo seed'i tamamlandı.");
+  console.info(
+    "Faz 3B-1 teknik ayarlar, katalog ve güvenli alıcı/tedarikçi demo seed'i tamamlandı.",
+  );
 } finally {
   await database.$disconnect();
 }

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createHash, randomBytes } from "node:crypto";
+import { createHash } from "node:crypto";
 
 import { Prisma } from "@/generated/prisma/client";
 import { database } from "@/lib/db/client";
@@ -13,6 +13,7 @@ import {
   meetsMinimumOrder,
   sumOrderAmounts,
 } from "@/modules/orders/domain/cart-rules";
+import { createPublicOrderNumber } from "@/modules/orders/domain/order-number";
 
 const RESERVATION_MINUTES = 15;
 
@@ -275,11 +276,6 @@ function checkoutRequestHash(deliveryAddressId: string, invoiceAddressId: string
     .digest("hex");
 }
 
-function publicOrderNumber(now: Date): string {
-  const day = now.toISOString().slice(0, 10).replaceAll("-", "");
-  return `TK-${day}-${randomBytes(4).toString("hex").toUpperCase()}`;
-}
-
 const checkoutResultInclude = {
   order: { include: { items: true } },
   reservations: { select: { id: true, quantity: true, status: true, expiresAt: true } },
@@ -447,7 +443,7 @@ export async function createCheckoutDraft(input: CheckoutInput) {
 
         const order = await transaction.order.create({
           data: {
-            publicNumber: publicOrderNumber(now),
+            publicNumber: createPublicOrderNumber(now),
             checkoutId: checkout.id,
             buyerOrganizationId: input.buyerOrganizationId,
             supplierOrganizationId: cart.supplierOrganizationId,
@@ -485,6 +481,17 @@ export async function createCheckoutDraft(input: CheckoutInput) {
             },
           });
         }
+        await transaction.orderStatusHistory.create({
+          data: {
+            orderId: order.id,
+            fromStatus: null,
+            toStatus: "DRAFT",
+            reasonCode: "checkout_draft_created",
+            actorType: "USER",
+            actorId: input.actorUserId,
+            metadata: { checkoutId: checkout.id },
+          },
+        });
         await transaction.cartItem.deleteMany({ where: { cartId: cart.id } });
         await transaction.cart.update({
           where: { id: cart.id },
@@ -530,7 +537,9 @@ export async function createCheckoutDraft(input: CheckoutInput) {
     if (
       transactionError.code === "P2034" ||
       databaseCode === "40001" ||
-      /could not serialize|serialization failure|write conflict/i.test(transactionError.message ?? "")
+      /could not serialize|serialization failure|write conflict/i.test(
+        transactionError.message ?? "",
+      )
     ) {
       throw new HttpError(
         409,
@@ -542,7 +551,7 @@ export async function createCheckoutDraft(input: CheckoutInput) {
   }
 }
 
-async function releaseCheckoutInTransaction(
+export async function releaseCheckoutInTransaction(
   transaction: Prisma.TransactionClient,
   checkoutId: string,
   now: Date,
@@ -553,9 +562,9 @@ async function releaseCheckoutInTransaction(
 ) {
   const checkout = await transaction.checkout.findUnique({
     where: { id: checkoutId },
-    include: { reservations: true },
+    include: { reservations: true, order: true },
   });
-  if (!checkout || checkout.status !== "DRAFT") return false;
+  if (!checkout || !["DRAFT", "PAYMENT_PROCESSING"].includes(checkout.status)) return false;
   if (!manual && checkout.expiresAt > now) return false;
 
   let releasedCount = 0;
@@ -600,9 +609,30 @@ async function releaseCheckoutInTransaction(
     where: { id: checkout.id },
     data: { status: manual ? "CANCELLED" : "EXPIRED" },
   });
-  await transaction.order.updateMany({
-    where: { checkoutId: checkout.id, status: "DRAFT" },
+  const orderChanged = await transaction.order.updateMany({
+    where: { checkoutId: checkout.id, status: { in: ["DRAFT", "PAYMENT_PROCESSING"] } },
     data: { status: "CANCELLED" },
+  });
+  if (orderChanged.count === 1 && checkout.order) {
+    await transaction.orderStatusHistory.create({
+      data: {
+        orderId: checkout.order.id,
+        fromStatus: checkout.order.status,
+        toStatus: "CANCELLED",
+        reasonCode: manual ? "reservation_cancelled" : "reservation_expired",
+        actorType: actorUserId ? "USER" : "SYSTEM",
+        actorId: actorUserId,
+        metadata: { releasedCount },
+      },
+    });
+  }
+  await transaction.payment.updateMany({
+    where: { checkoutId: checkout.id, status: "PENDING" },
+    data: {
+      status: manual ? "CANCELLED" : "EXPIRED",
+      failedAt: now,
+      failureCode: manual ? "RESERVATION_CANCELLED" : "RESERVATION_EXPIRED",
+    },
   });
   await transaction.auditLog.create({
     data: buildAuditLogData({
@@ -621,7 +651,7 @@ async function releaseCheckoutInTransaction(
 
 export async function releaseExpiredReservations(now = new Date()) {
   const expired = await database.checkout.findMany({
-    where: { status: "DRAFT", expiresAt: { lte: now } },
+    where: { status: { in: ["DRAFT", "PAYMENT_PROCESSING"] }, expiresAt: { lte: now } },
     select: { id: true },
     orderBy: { expiresAt: "asc" },
     take: 100,

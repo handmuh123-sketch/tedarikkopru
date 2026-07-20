@@ -1,12 +1,18 @@
 # PROJECT STATUS
 
-**Durum:** Faz 3A hızlı tek tedarikçili sepet ve checkout taslağı pilotu tamamlandı
+**Durum:** Faz 3B-1 mock ödeme ve alıcı siparişleri pilotu tamamlandı
 
-**Aktif faz:** Faz 3A — Sepet, checkout taslağı ve stok rezervasyonu (Faz 3B başlatılmadı)
+**Aktif faz:** Faz 3B-1 — Mock ödeme ve alıcı siparişleri (Faz 3B-2 başlatılmadı)
 
-**Son güncelleme:** 20 Temmuz 2026, 20:10 +03:00
+**Son güncelleme:** 20 Temmuz 2026, 23:34 +03:00
 
 ## Tamamlananlar
+
+- `Payment`, immutable `PaymentAttempt` ve append-only `OrderStatusHistory` modelleri; forward migration, mevcut `DRAFT` siparişler için history backfill'i ve immutable DB trigger'ları eklendi.
+- Mock ödeme başlatma/tamamlama merkezi state machine üzerinden çalışır: ayrı başlangıç/tamamlama `Idempotency-Key`'leri aynı isteği tekrarlar, farklı gövdeyi 409 ile reddeder ve sipariş başına tek Payment oluşturur.
+- `SUCCEEDED` sonucu ACTIVE rezervasyonu atomik olarak `CONSUMED` yapar; `onHand` ve `reserved` değerlerini düşürür, immutable `SALE` movement ve redacted audit üretir. `DECLINED`, `CANCELLED` ve timeout tek kez release eder; `PENDING` rezervasyonu korur.
+- Alıcı organizasyonu kendi siparişlerini `/panel/siparisler` altında listeleyip immutable satır, adres snapshot'ı, ödeme ve durum geçmişiyle görüntüler; mock ödeme UI'sı yalnız server-side POST state transition kullanır.
+- Mock ödeme development/testte `PAYMENT_PROVIDER=mock` ile, production'da yalnız açık `FEATURE_MOCK_PAYMENTS` bayrağıyla erişilebilir; kart, CVV veya provider secret alınmaz.
 
 - Alıcı organizasyonu başına tek sepet ve tek tedarikçi kuralı UI + org-scoped API tarafında tamamlandı; ürün ekleme, miktar güncelleme ve silme MOQ/quantity-step doğrulamasıyla çalışır.
 - `Cart`, `CartItem`, `Checkout`, `StockReservation`, `Order` ve immutable `OrderItem` snapshot modelleri forward migration ile eklendi; tedarikçi minimum sipariş tutarı integer minor unit olarak saklanır.
@@ -52,6 +58,8 @@
 
 ## Çalışan özellikler
 
+- `/panel/siparisler` ve `/panel/siparisler/[orderId]` üzerinden alıcıya org-scoped sipariş listesi/detayı; mock ödeme başlatma ve başarılı/ret/iptal tamamlama akışı.
+
 - `/urunler/[slug]` üzerinden tek tedarikçili sepete ekleme; `/panel/sepet` miktar güncelleme/silme ve minimum tutar özeti.
 - `/panel/checkout` üzerinden teslimat/fatura adresi seçimi, 15 dakikalık stok rezervasyonu, `DRAFT` sipariş snapshot'ı ve rezervasyon release'i.
 
@@ -76,6 +84,12 @@
 - Lint, format, strict typecheck, unit, integration, E2E ve production build kalite komutları.
 
 ## Doğrulama özeti
+
+- Faz 3B-1 global strict `pnpm typecheck` ve Faz 3B-1 kaynak/test yollarındaki hedefli ESLint başarısız uyarı olmadan geçti.
+- Mock ödeme unit: 1 dosya, 3 test başarılı; sipariş numarası ve başarılı/ret/iptal state machine kuralları kapsandı.
+- Gerçek PostgreSQL integration: 1 dosya, 3 test başarılı; BOLA/RBAC, start/complete idempotency, tek Payment/Attempt, atomik SALE, decline/cancel release, timeout release ve immutable history/attempt doğrulandı.
+- Kritik Playwright: sistem Chrome kanalıyla masaüstü ve 360 px mobil projelerinde 2/2 başarılı; checkout taslağı → mock start → `PAID` → sipariş listesi ve yatay taşma akışı geçti.
+- Prisma schema doğrulandı, client üretildi; `20260720220000_phase_03b1_mock_payment_orders` migration kaydı PostgreSQL'de applied ve yeni payment/history tabloları mevcut. Faz 3B-1 seed'i başarıyla ve tekrar çalıştırılabilir biçimde tamamlandı.
 
 - Faz 3A hedefli ESLint ve global strict TypeScript typecheck başarılı.
 - Faz 3A unit: 1 dosya, 3 test başarılı; MOQ/quantity-step, BigInt minor-unit KDV/toplam yuvarlaması, integer sınırı ve minimum sipariş dahil.
@@ -122,7 +136,8 @@
 - MinIO'nun güvenlik yamalı son release'i resmi prebuilt image sunmadığı için ilk development build'i kaynak koddan yapılır ve bu makinede yaklaşık 11 dakika sürdü.
 - CSP şu an Faz 0 statik UI uyumluluğu için `style-src 'unsafe-inline'` içerir. Nonce/hash tabanlı sıkılaştırma sonraki UI güvenlik çalışmasında ele alınmalıdır; bu incelemede kapsam dışı karmaşıklık yaratmamak için değiştirilmedi.
 - `pnpm audit` yerel TLS zincirinde `UNABLE_TO_VERIFY_LEAF_SIGNATURE` ile tamamlanamadı; bu sonuç “açık yok” olarak yorumlanmadı ve CI/kurumsal güvenilir CA ortamında yeniden çalıştırılmalıdır.
-- Rezervasyonu satışa dönüştürme, canlı/mock ödeme, manuel banka transferi onayı, RFQ, tedarikçi sipariş kabulü, kargo, iade, dropshipping ve pazaryeri entegrasyonları bilinçli olarak yoktur; Faz 3B+ başlatılmadı.
+- Mock ödeme ile rezervasyonu satışa dönüştürme tamamlandı. Manuel banka transferi onayı, RFQ, tedarikçi sipariş kabulü, kargo, iade, dropshipping ve pazaryeri entegrasyonları bilinçli olarak yoktur; Faz 3B-2 başlatılmadı.
+- Bu Windows yerel ortamında `prisma migrate deploy` migration uygulandıktan sonra ayrıntısız `Schema engine error` ile non-zero döndü. `_prisma_migrations` applied kaydı, yeni tablolar, seed ve gerçek PostgreSQL integration testi şemanın uygulandığını doğruluyor; Prisma CLI teşhisi kurumsal/temiz ortamda ayrıca incelenmelidir.
 - Süresi dolmuş rezervasyonlar pilotta sepet/checkout erişiminde ve checkout oluşturmadan önce lazy release edilir; sürekli çalışan production scheduler/worker Faz 3A kapsamı dışındadır.
 - Import pilotu tek process içinde request-time parse/confirm kullanır; background worker, object-storage dosya saklama ve büyük batch ölçeklemesi kapsam dışıdır. Harici görsel URL'leri fetch edilmez.
 - Public arama temel PostgreSQL `ILIKE`/trigram indeks yaklaşımıdır; gelişmiş relevance, typo tolerance veya ayrı arama servisi yoktur.
@@ -136,6 +151,6 @@
 
 ## Önerilen sonraki faz
 
-Yeni ve açık bir kullanıcı talimatıyla Faz 3B ele alınabilir. RFQ, mock ödeme tamamlama veya manuel banka transferi ve tedarikçi sipariş kabulü mevcut immutable taslak/idempotency/rezervasyon temeli üzerine eklenmelidir. Bu çalışmada Faz 3B'ye geçilmedi.
+Yeni ve açık bir kullanıcı talimatıyla Faz 3B-2 ele alınabilir. Manuel banka transferi veya tedarikçi sipariş kabulü, mevcut immutable sipariş/idempotency/rezervasyon ve mock ödeme temeli üzerine eklenmelidir. Bu çalışmada Faz 3B-2'ye geçilmedi.
 
 > Codex her faz sonunda bu dosyayı gerçek durumla güncellemelidir.
