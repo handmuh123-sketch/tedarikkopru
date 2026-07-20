@@ -1,0 +1,14 @@
+packages:
+  - .
+
+# Lockfile bu repoda incelenip commit edilir; frozen kurulumlarda tekrar ağ doğrulaması yapılmaz.
+trustLockfile: true
+confirmModulesPurge: false
+verifyDepsBeforeRun: error
+
+allowBuilds:
+  "@prisma/engines": true
+  esbuild: true
+  prisma: true
+  sharp: true
+  unrs-resolver: true

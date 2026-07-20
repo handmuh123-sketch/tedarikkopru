@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  APP_URL: http://127.0.0.1:3000
+  APP_TIMEZONE: Europe/Istanbul
+  DATABASE_URL: postgresql://tedarikkopru:ci-only@127.0.0.1:5432/tedarikkopru_test?schema=public
+  DIRECT_URL: postgresql://tedarikkopru:ci-only@127.0.0.1:5432/tedarikkopru_test?schema=public
+  S3_ENDPOINT: http://127.0.0.1:9000
+  S3_REGION: auto
+  S3_BUCKET_PRIVATE: tedarikkopru-private
+  S3_BUCKET_PUBLIC: tedarikkopru-public
+  S3_ACCESS_KEY: ci-access
+  S3_SECRET_KEY: ci-secret-not-for-production
+  S3_FORCE_PATH_STYLE: "true"
+  EMAIL_PROVIDER: log
+  EMAIL_FROM: noreply@localhost
+  EMAIL_SMTP_HOST: 127.0.0.1
+  EMAIL_SMTP_PORT: "1025"
+  PAYMENT_PROVIDER: mock
+  FEATURE_LIVE_PAYMENTS: "false"
+  FEATURE_DROPSHIPPING: "false"
+  FEATURE_MARKETPLACE_TRENDYOL: "false"
+  FEATURE_MARKETPLACE_HEPSIBURADA: "false"
+  FEATURE_MARKETPLACE_AMAZON_TR: "false"
+  FEATURE_CARRIER_INTEGRATIONS: "false"
+  FEATURE_RFQ: "false"
+  FEATURE_REVIEWS: "false"
+  FEATURE_MULTI_SUPPLIER_CHECKOUT: "false"
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18.4-alpine
+        env:
+          POSTGRES_DB: tedarikkopru_test
+          POSTGRES_USER: tedarikkopru
+          POSTGRES_PASSWORD: ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tedarikkopru -d tedarikkopru_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm db:migrate
+      - run: pnpm db:seed
+      - run: pnpm services:validate
+      - run: pnpm openapi:generate
+      - run: git diff --exit-code -- docs/openapi.json
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm test:integration
+      - run: pnpm build
+        env:
+          NODE_ENV: production
+          APP_URL: https://ci.example.invalid
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18.4-alpine
+        env:
+          POSTGRES_DB: tedarikkopru_test
+          POSTGRES_USER: tedarikkopru
+          POSTGRES_PASSWORD: ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tedarikkopru -d tedarikkopru_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm db:migrate
+      - run: pnpm db:seed
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
