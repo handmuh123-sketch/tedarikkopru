@@ -123,6 +123,21 @@ enum ProductVariantStatus {
   INACTIVE
 }
 
+enum InventoryMovementType {
+  ADJUSTMENT
+  IMPORT
+}
+
+enum ImportJobType {
+  PRODUCT_CATALOG
+}
+
+enum ImportJobStatus {
+  PREVIEW_READY
+  APPLIED
+  FAILED
+}
+
 model User {
   id              String       @id @default(cuid()) @db.VarChar(36)
   name            String       @db.VarChar(120)
@@ -147,6 +162,9 @@ model User {
   applicationsReviewed VerificationApplication[] @relation("ApplicationReviewer")
   documentsReviewed    VerificationDocument[]    @relation("DocumentReviewer")
   auditLogs            AuditLog[]                @relation("AuditActor")
+  inventoryMovements   InventoryMovement[]       @relation("InventoryMovementActor")
+  productFavorites     ProductFavorite[]
+  importJobs           ImportJob[]               @relation("ImportJobCreator")
 
   @@index([platformRole, status])
   @@map("user")
@@ -241,6 +259,8 @@ model Organization {
   brands                   Brand[]
   products                 Product[]
   productVariants          ProductVariant[]
+  inventories              Inventory[]
+  importJobs               ImportJob[]
 
   @@index([type, verificationStatus])
   @@index([status, updatedAt])
@@ -415,30 +435,31 @@ model Brand {
 }
 
 model Product {
-  id                     String           @id @default(cuid()) @db.VarChar(36)
-  supplierOrganizationId String           @map("supplier_organization_id") @db.VarChar(36)
-  categoryId             String           @map("category_id") @db.VarChar(36)
-  brandId                String           @map("brand_id") @db.VarChar(36)
-  title                  String           @db.VarChar(180)
-  slug                   String           @unique @db.VarChar(180)
-  shortDescription       String           @map("short_description") @db.VarChar(320)
-  description            String           @db.Text
-  status                 ProductStatus    @default(DRAFT)
-  originCountry          String           @default("TR") @map("origin_country") @db.Char(2)
-  vatRateBasisPoints     Int              @default(2000) @map("vat_rate_basis_points")
-  warrantyMonths         Int?             @map("warranty_months")
-  handlingDays           Int              @default(2) @map("handling_days")
-  attributes             Json             @default("{}")
-  moderationNote         String?          @map("moderation_note") @db.Text
-  publishedAt            DateTime?        @map("published_at") @db.Timestamptz(3)
-  archivedAt             DateTime?        @map("archived_at") @db.Timestamptz(3)
-  createdAt              DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt              DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
-  supplierOrganization   Organization     @relation(fields: [supplierOrganizationId], references: [id], onDelete: Restrict)
-  category               Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  brand                  Brand            @relation(fields: [brandId], references: [id], onDelete: Restrict)
+  id                     String            @id @default(cuid()) @db.VarChar(36)
+  supplierOrganizationId String            @map("supplier_organization_id") @db.VarChar(36)
+  categoryId             String            @map("category_id") @db.VarChar(36)
+  brandId                String            @map("brand_id") @db.VarChar(36)
+  title                  String            @db.VarChar(180)
+  slug                   String            @unique @db.VarChar(180)
+  shortDescription       String            @map("short_description") @db.VarChar(320)
+  description            String            @db.Text
+  status                 ProductStatus     @default(DRAFT)
+  originCountry          String            @default("TR") @map("origin_country") @db.Char(2)
+  vatRateBasisPoints     Int               @default(2000) @map("vat_rate_basis_points")
+  warrantyMonths         Int?              @map("warranty_months")
+  handlingDays           Int               @default(2) @map("handling_days")
+  attributes             Json              @default("{}")
+  moderationNote         String?           @map("moderation_note") @db.Text
+  publishedAt            DateTime?         @map("published_at") @db.Timestamptz(3)
+  archivedAt             DateTime?         @map("archived_at") @db.Timestamptz(3)
+  createdAt              DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  supplierOrganization   Organization      @relation(fields: [supplierOrganizationId], references: [id], onDelete: Restrict)
+  category               Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  brand                  Brand             @relation(fields: [brandId], references: [id], onDelete: Restrict)
   variants               ProductVariant[]
   images                 ProductImage[]
+  favorites              ProductFavorite[]
 
   @@unique([id, supplierOrganizationId])
   @@index([supplierOrganizationId, status, updatedAt])
@@ -467,8 +488,10 @@ model ProductVariant {
   product                Product              @relation(fields: [productId, supplierOrganizationId], references: [id, supplierOrganizationId], onDelete: Restrict)
   supplierOrganization   Organization         @relation(fields: [supplierOrganizationId], references: [id], onDelete: Restrict)
   images                 ProductImage[]
+  inventory              Inventory?
 
   @@unique([supplierOrganizationId, sku])
+  @@unique([id, supplierOrganizationId])
   @@index([productId, status])
   @@index([barcode])
   @@map("product_variants")
@@ -489,4 +512,80 @@ model ProductImage {
   @@index([productId, sortOrder])
   @@index([variantId])
   @@map("product_images")
+}
+
+model Inventory {
+  id                     String              @id @default(cuid()) @db.VarChar(36)
+  variantId              String              @unique @map("variant_id") @db.VarChar(36)
+  supplierOrganizationId String              @map("supplier_organization_id") @db.VarChar(36)
+  onHand                 Int                 @default(0) @map("on_hand")
+  safetyStock            Int                 @default(0) @map("safety_stock")
+  version                Int                 @default(0)
+  updatedAt              DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  variant                ProductVariant      @relation(fields: [variantId, supplierOrganizationId], references: [id, supplierOrganizationId], onDelete: Restrict)
+  supplierOrganization   Organization        @relation(fields: [supplierOrganizationId], references: [id], onDelete: Restrict)
+  movements              InventoryMovement[]
+
+  @@unique([variantId, supplierOrganizationId])
+  @@index([supplierOrganizationId, updatedAt])
+  @@index([onHand, safetyStock])
+  @@map("inventories")
+}
+
+model InventoryMovement {
+  id               String                @id @default(cuid()) @db.VarChar(36)
+  inventoryId      String                @map("inventory_id") @db.VarChar(36)
+  type             InventoryMovementType
+  quantityDelta    Int                   @map("quantity_delta")
+  balanceAfter     Int                   @map("balance_after")
+  safetyStockAfter Int                   @map("safety_stock_after")
+  referenceType    String?               @map("reference_type") @db.VarChar(60)
+  referenceId      String?               @map("reference_id") @db.VarChar(80)
+  reason           String                @db.VarChar(240)
+  actorUserId      String                @map("actor_user_id") @db.VarChar(36)
+  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  inventory        Inventory             @relation(fields: [inventoryId], references: [id], onDelete: Restrict)
+  actorUser        User                  @relation("InventoryMovementActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([inventoryId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@map("inventory_movements")
+}
+
+model ProductFavorite {
+  id        String   @id @default(cuid()) @db.VarChar(36)
+  userId    String   @map("user_id") @db.VarChar(36)
+  productId String   @map("product_id") @db.VarChar(36)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, productId])
+  @@index([productId])
+  @@map("product_favorites")
+}
+
+model ImportJob {
+  id             String          @id @default(cuid()) @db.VarChar(36)
+  organizationId String          @map("organization_id") @db.VarChar(36)
+  type           ImportJobType   @default(PRODUCT_CATALOG)
+  status         ImportJobStatus @default(PREVIEW_READY)
+  fileName       String          @map("file_name") @db.VarChar(180)
+  fileType       String          @map("file_type") @db.VarChar(10)
+  contentHash    String          @map("content_hash") @db.VarChar(64)
+  totalRows      Int             @map("total_rows")
+  validRows      Int             @map("valid_rows")
+  invalidRows    Int             @map("invalid_rows")
+  previewRows    Json            @map("preview_rows")
+  rowErrors      Json            @map("row_errors")
+  createdById    String          @map("created_by_id") @db.VarChar(36)
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  completedAt    DateTime?       @map("completed_at") @db.Timestamptz(3)
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdBy      User            @relation("ImportJobCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, contentHash])
+  @@index([organizationId, createdAt])
+  @@index([status, createdAt])
+  @@map("import_jobs")
 }

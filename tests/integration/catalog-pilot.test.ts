@@ -229,6 +229,13 @@ describe("Faz 2A gerçek PostgreSQL katalog pilotu", () => {
       { params: Promise.resolve({ organizationId: orgA }) },
     );
     const product = (await created.json()).data as { id: string };
+    const inventory = await database.inventory.findFirstOrThrow({
+      where: { variant: { productId: product.id } },
+    });
+    await database.inventory.update({
+      where: { id: inventory.id },
+      data: { onHand: 100, safetyStock: 10 },
+    });
     const before = await listPublicProducts();
     expect(JSON.stringify((await before.json()).data)).not.toContain(body.slug);
     expect(

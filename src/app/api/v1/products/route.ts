@@ -1,45 +1,48 @@
-import { database } from "@/lib/db/client";
 import { errorResponse } from "@/lib/http/errors";
+import {
+  findPublicProducts,
+  parseTryFilterMinor,
+} from "@/modules/catalog/application/public-catalog";
+import { availableStock } from "@/modules/inventory/domain/inventory-rules";
 
-export async function GET() {
+export async function GET(request = new Request("http://localhost/api/v1/products")) {
   try {
-    const products = await database.product.findMany({
-      where: {
-        status: "ACTIVE",
-        supplierOrganization: { status: "ACTIVE", verificationStatus: "APPROVED" },
-      },
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        shortDescription: true,
-        publishedAt: true,
-        category: { select: { name: true, slug: true } },
-        brand: { select: { name: true, slug: true } },
-        supplierOrganization: { select: { tradeName: true, slug: true } },
-        variants: {
-          where: { status: "ACTIVE" },
-          orderBy: { createdAt: "asc" },
-          take: 1,
-          select: {
-            title: true,
-            priceAmountMinor: true,
-            currency: true,
-            moq: true,
-            quantityStep: true,
-          },
-        },
-        images: {
-          orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }],
-          take: 1,
-          select: { storageKey: true, altText: true },
-        },
-      },
-      orderBy: [{ publishedAt: "desc" }, { id: "desc" }],
-      take: 48,
+    const url = new URL(request.url);
+    const query = url.searchParams.get("q")?.trim().slice(0, 80) || undefined;
+    const products = await findPublicProducts({
+      query,
+      category: url.searchParams.get("category")?.trim() || undefined,
+      brand: url.searchParams.get("brand")?.trim() || undefined,
+      minPriceMinor: parseTryFilterMinor(url.searchParams.get("minPrice") ?? undefined),
+      maxPriceMinor: parseTryFilterMinor(url.searchParams.get("maxPrice") ?? undefined),
     });
+    const data = products.map((product) => ({
+      id: product.id,
+      title: product.title,
+      slug: product.slug,
+      shortDescription: product.shortDescription,
+      publishedAt: product.publishedAt,
+      category: { name: product.category.name, slug: product.category.slug },
+      brand: { name: product.brand.name, slug: product.brand.slug },
+      supplierOrganization: {
+        tradeName: product.supplierOrganization.tradeName,
+        slug: product.supplierOrganization.slug,
+      },
+      variants: product.variants.map((variant) => ({
+        title: variant.title,
+        priceAmountMinor: variant.priceAmountMinor,
+        currency: variant.currency,
+        moq: variant.moq,
+        quantityStep: variant.quantityStep,
+        availableStock: availableStock(variant.inventory!.onHand, variant.inventory!.safetyStock),
+      })),
+      images: product.images.map((image) => ({
+        storageKey: image.storageKey,
+        altText: image.altText,
+      })),
+    }));
     return Response.json(
-      { data: products },
+      { data },
       { headers: { "cache-control": "public, max-age=30, stale-while-revalidate=120" } },
     );
   } catch (error) {

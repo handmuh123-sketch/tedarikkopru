@@ -90,6 +90,16 @@ export async function POST(request: Request, context: Context) {
         },
         include: { category: true, brand: true, variants: true },
       });
+      const variant = created.variants[0];
+      if (!variant) throw new HttpError(409, "Ürün varyantı oluşturulamadı.", "VARIANT_MISSING");
+      await transaction.inventory.create({
+        data: {
+          variantId: variant.id,
+          supplierOrganizationId: organizationId,
+          onHand: 0,
+          safetyStock: 0,
+        },
+      });
       await transaction.auditLog.create({
         data: buildAuditLogData({
           actorId: user.id,
@@ -100,8 +110,8 @@ export async function POST(request: Request, context: Context) {
           after: {
             title: created.title,
             status: created.status,
-            sku: created.variants[0]?.sku,
-            priceAmountMinor: created.variants[0]?.priceAmountMinor,
+            sku: variant.sku,
+            priceAmountMinor: variant.priceAmountMinor,
           },
           ...auditContext,
         }),

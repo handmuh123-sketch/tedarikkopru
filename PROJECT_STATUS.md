@@ -1,12 +1,22 @@
 # PROJECT STATUS
 
-**Durum:** Faz 2A hızlı katalog pilotu tamamlandı
+**Durum:** Faz 2B hızlı stok ve katalog keşfi pilotu tamamlandı
 
-**Aktif faz:** Faz 2A — Katalog pilot çekirdeği (Faz 2B başlatılmadı)
+**Aktif faz:** Faz 2B — Stok, keşif, favori ve dosya import/export (Faz 3 başlatılmadı)
 
-**Son güncelleme:** 20 Temmuz 2026, 17:53 +03:00
+**Son güncelleme:** 20 Temmuz 2026, 18:55 +03:00
 
 ## Tamamlananlar
+
+- `Inventory`, immutable `InventoryMovement`, `ProductFavorite` ve önizleme kapılı `ImportJob` modelleri yeni forward migration ile eklendi.
+- Negatif stok/safety stock için application + PostgreSQL CHECK, stok hareketi UPDATE/DELETE yasağı için DB trigger ve optimistic `version` claim tamamlandı.
+- OWNER/ORG_ADMIN/WAREHOUSE_OPERATOR için org-scoped stok ekranı/API'si; yabancı tedarikçi ID'sinde 404, zorunlu neden, movement ve redacted audit aynı transaction'da çalışır.
+- Public katalog yalnız aktif ürün/varyant, aktif kategori/marka, doğrulanmış aktif tedarikçi ve `onHand > safetyStock` şartıyla görünür; public API explicit allowlist ile PII ve safety stock sızdırmaz.
+- PostgreSQL trigram indeksli temel arama; kategori, marka, TRY fiyat aralığı ve stok filtresi responsive katalog ekranına eklendi.
+- Kullanıcı-scoped ürün favorileme/kaldırma ve `/panel/favoriler` tamamlandı.
+- CSV/XLSX dosyaları 2 MB/500 satır/ZIP açılım sınırıyla parse edilir; önce ürün yazmadan önizleme ve satır hatası üretir, sonra transaction claim ile idempotent uygulanır.
+- Formula-injection güvenli CSV export ve yalnız katalog adminlerinin eriştiği `/admin/importlar` ekran/API'si tamamlandı.
+- Demo telefon aksesuarlarına safety stock üstü stok seed'i ve tedarikçi stok/import, alıcı favori kullanım akışları eklendi.
 
 - Kategori ve marka admin yönetimi; `Product`, `ProductVariant`, `ProductImage` veri modeli ve forward migration tamamlandı.
 - Doğrulanmış SUPPLIER/BOTH işletmesi için org-scoped ürün oluşturma, düzenleme ve moderasyona gönderme ekran/API'leri eklendi.
@@ -35,6 +45,10 @@
 
 ## Çalışan özellikler
 
+- `/tedarikci/stok` stok ve safety stock yönetimi; `/tedarikci/import` CSV/XLSX önizleme/onay ve güvenli CSV export.
+- `/urunler` üzerinde arama/kategori/marka/fiyat/stok filtresi; `/panel/favoriler` kullanıcı favorileri.
+- `/admin/importlar` platform katalog admini import iş kuyruğu.
+
 - `/urunler` public pilot ürün listesi ve `/urunler/[slug]` ürün detayı.
 - `/tedarikci/urunler`, `/tedarikci/urunler/yeni`, `/tedarikci/urunler/[id]` ürün oluşturma/düzenleme/submit akışı.
 - `/admin/urunler`, `/admin/kategoriler`, `/admin/markalar` moderasyon ve taksonomi yönetimi.
@@ -52,6 +66,13 @@
 - Lint, format, strict typecheck, unit, integration, E2E ve production build kalite komutları.
 
 ## Doğrulama özeti
+
+- Faz 2B hedefli ESLint ve global strict TypeScript typecheck başarılı.
+- Faz 2B unit: 1 dosya, 8 test başarılı; availability/negatif sınır, CSV/XLSX parse, satır hata ayrımı ve beş formula-injection başlangıcı dahil.
+- Gerçek PostgreSQL integration: Faz 2B 3/3 ve ilgili Faz 2A katalog regresyonu 3/3 başarılı. Org BOLA, eşzamanlı version claim (1 başarı/1 conflict), DB negatif stok CHECK, append-only movement, audit, public PII allowlist, arama/filtre, favori scope, preview-before-write, satır hatası, idempotent confirm, export ve admin RBAC doğrulandı.
+- Kritik Playwright spec'i masaüstü ve 360 px mobilde 6/6 başarılı: stok güncelleme, birleşik arama/filtre, favori ve CSV preview→hata raporu→confirm akışları.
+- `20260720184000_phase_02b_inventory_discovery` migration'ı PostgreSQL 18.4'e uygulandı; Faz 2B seed'i başarılı.
+- Dockerfile değişmedi; FAST PILOT talimatına göre Docker image build, production build ve tam sistem regresyonu çalıştırılmadı.
 
 - Faz 2A hedefli lint ve strict typecheck başarılı.
 - Katalog unit: 1 dosya, 2 test başarılı; minor-unit/MOQ/step ve deny-by-default state machine dahil.
@@ -84,7 +105,10 @@
 - MinIO'nun güvenlik yamalı son release'i resmi prebuilt image sunmadığı için ilk development build'i kaynak koddan yapılır ve bu makinede yaklaşık 11 dakika sürdü.
 - CSP şu an Faz 0 statik UI uyumluluğu için `style-src 'unsafe-inline'` içerir. Nonce/hash tabanlı sıkılaştırma sonraki UI güvenlik çalışmasında ele alınmalıdır; bu incelemede kapsam dışı karmaşıklık yaratmamak için değiştirilmedi.
 - `pnpm audit` yerel TLS zincirinde `UNABLE_TO_VERIFY_LEAF_SIGNATURE` ile tamamlanamadı; bu sonuç “açık yok” olarak yorumlanmadı ve CI/kurumsal güvenilir CA ortamında yeniden çalıştırılmalıdır.
-- Faz 2B stok/rezervasyon, kademe fiyat, gelişmiş arama, favoriler ve CSV/XLSX bilinçli olarak yoktur. Sepet, sipariş, ödeme, kargo ve entegrasyonlar da kapsam dışıdır.
+- Stok rezervasyonu, kademe fiyat, sepet, sipariş, ödeme, kargo, dropshipping ve pazaryeri entegrasyonları bilinçli olarak yoktur; Faz 3+ başlatılmadı.
+- Import pilotu tek process içinde request-time parse/confirm kullanır; background worker, object-storage dosya saklama ve büyük batch ölçeklemesi kapsam dışıdır. Harici görsel URL'leri fetch edilmez.
+- Public arama temel PostgreSQL `ILIKE`/trigram indeks yaklaşımıdır; gelişmiş relevance, typo tolerance veya ayrı arama servisi yoktur.
+- ExcelJS 4.4.0 resmi upstream kararlı latest sürümüdür ancak eski transitive paketler için pnpm uyarıları vardır; kurumsal CA ortamında `pnpm audit` ayrıca çalıştırılmalıdır.
 - Pilot `ProductImage` kayıtları güvenilir local seed görsellerini kullanır; tedarikçi görsel upload/medya moderasyonu henüz yoktur.
 - Demo malware tarama adaptörü Faz 1'de magic byte/MIME/boyut/checksum doğrulamasından sonra `CLEAN` sonucu verir; production antivirüs/karantina servisi seçimi yayın öncesi dış bağımlılıktır.
 - Yerel Playwright çalışması kurulu Microsoft Edge kanalını kullandı; CI temiz Linux ortamında resmi Playwright Chromium kurulumunu kullanır.
@@ -94,6 +118,6 @@
 
 ## Önerilen sonraki faz
 
-Yeni bir kullanıcı talimatıyla Faz 2B stok, fiyat kademesi ve kalan katalog kapsamı değerlendirilebilir. Bu çalışmada Faz 2B veya sonraki fazlara geçilmedi.
+Yeni bir kullanıcı talimatıyla Faz 3 sepet, checkout ve mock ödeme ele alınabilir. Stok rezervasyonu bu ticaret akışıyla birlikte atomik/idempotent tasarlanmalıdır. Bu çalışmada Faz 3'e geçilmedi.
 
 > Codex her faz sonunda bu dosyayı gerçek durumla güncellemelidir.

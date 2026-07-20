@@ -1,30 +1,29 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { FavoriteButton } from "@/components/catalog/favorite-button";
+import { getPageUser } from "@/lib/auth/page-session";
 import { database } from "@/lib/db/client";
+import { findPublicProductBySlug } from "@/modules/catalog/application/public-catalog";
 import { formatTryMinor } from "@/modules/catalog/domain/product-rules";
+import { availableStock } from "@/modules/inventory/domain/inventory-rules";
 
 export const dynamic = "force-dynamic";
 type Props = { params: Promise<{ slug: string }> };
 
 export default async function ProductDetailPage({ params }: Props) {
   const { slug } = await params;
-  const product = await database.product.findFirst({
-    where: {
-      slug,
-      status: "ACTIVE",
-      supplierOrganization: { status: "ACTIVE", verificationStatus: "APPROVED" },
-    },
-    include: {
-      category: true,
-      brand: true,
-      supplierOrganization: true,
-      variants: { where: { status: "ACTIVE" }, orderBy: { createdAt: "asc" } },
-      images: { orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }] },
-    },
-  });
+  const [product, pageUser] = await Promise.all([findPublicProductBySlug(slug), getPageUser()]);
   if (!product || product.variants.length === 0) notFound();
   const variant = product.variants[0]!;
+  const favorite = pageUser
+    ? Boolean(
+        await database.productFavorite.findUnique({
+          where: { userId_productId: { userId: pageUser.user.id, productId: product.id } },
+          select: { id: true },
+        }),
+      )
+    : false;
   const image = product.images[0];
   return (
     <main id="ana-icerik" className="catalog-page" tabIndex={-1}>
@@ -57,6 +56,11 @@ export default async function ProductDetailPage({ params }: Props) {
             {formatTryMinor(variant.priceAmountMinor)}
           </strong>
           <p>KDV hariç temel toptan fiyat · Para birimi {variant.currency}</p>
+          <p>
+            Kullanılabilir stok:{" "}
+            {availableStock(variant.inventory!.onHand, variant.inventory!.safetyStock)} adet
+          </p>
+          <FavoriteButton productId={product.id} initial={favorite} />
           <dl className="product-specs">
             <dt>Minimum sipariş</dt>
             <dd>{variant.moq} adet</dd>

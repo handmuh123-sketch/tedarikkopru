@@ -64,8 +64,8 @@ async function main() {
 
   await database.systemSetting.upsert({
     where: { key: "catalog.version" },
-    update: { value: { phase: "2A", status: "ready" } },
-    create: { key: "catalog.version", value: { phase: "2A", status: "ready" } },
+    update: { value: { phase: "2B", status: "ready" } },
+    create: { key: "catalog.version", value: { phase: "2B", status: "ready" } },
   });
 
   await database.systemSetting.upsert({
@@ -265,6 +265,8 @@ async function main() {
       price: 8990,
       moq: 10,
       step: 5,
+      stock: 140,
+      safetyStock: 15,
       image: "/demo-products/usb-c-kablo.svg",
       description:
         "Yoğun mağaza kullanımı için güçlendirilmiş örgü kaplamalı, 60W hızlı şarj destekli bir metre USB-C kablo.",
@@ -278,6 +280,8 @@ async function main() {
       price: 18990,
       moq: 6,
       step: 2,
+      stock: 72,
+      safetyStock: 8,
       image: "/demo-products/sarj-adaptoru.svg",
       description:
         "PD uyumlu kompakt gövde ve Avrupa tipi fişle mağaza rafına hazır 20W hızlı şarj adaptörü.",
@@ -291,6 +295,8 @@ async function main() {
       price: 7490,
       moq: 20,
       step: 10,
+      stock: 230,
+      safetyStock: 30,
       image: "/demo-products/seffaf-kilif.svg",
       description:
         "Köşe korumalı, sararmaya dirençli şeffaf TPU telefon kılıfı; pilot ürün standart ölçü varyantıdır.",
@@ -304,6 +310,8 @@ async function main() {
       price: 42990,
       moq: 4,
       step: 2,
+      stock: 48,
+      safetyStock: 6,
       image: "/demo-products/tws-kulaklik.svg",
       description:
         "Dokunmatik kontrollü, şarj kutulu ve günlük kullanım odaklı beyaz TWS kablosuz kulaklık.",
@@ -362,6 +370,16 @@ async function main() {
         status: "ACTIVE",
       },
     });
+    await database.inventory.upsert({
+      where: { variantId: variant.id },
+      update: { onHand: item.stock, safetyStock: item.safetyStock },
+      create: {
+        variantId: variant.id,
+        supplierOrganizationId: supplier.id,
+        onHand: item.stock,
+        safetyStock: item.safetyStock,
+      },
+    });
     await database.productImage.upsert({
       where: { storageKey: item.image },
       update: {
@@ -385,7 +403,7 @@ async function main() {
 
 try {
   await main();
-  console.info("Faz 2A teknik ayarlar ve güvenli pilot katalog seed'i tamamlandı.");
+  console.info("Faz 2B teknik ayarlar, katalog ve güvenli demo stok seed'i tamamlandı.");
 } finally {
   await database.$disconnect();
 }

@@ -31,11 +31,20 @@ test("tedarikçi ürün oluşturur, admin onaylar ve ürün public görünür", 
   await expect(page).toHaveURL(/tedarikci\/urunler$/);
   const supplierCard = page.locator("article").filter({ hasText: title });
   await expect(supplierCard).toBeVisible();
+  await page.goto("/tedarikci/stok");
+  const stockCard = page.locator("article").filter({ hasText: title });
+  await stockCard.getByLabel("Stok miktarı").fill("100");
+  await stockCard.getByLabel("Güvenlik stoğu").fill("10");
+  await stockCard.getByLabel("Değişiklik nedeni").fill("İlk ürün stoğu");
+  await stockCard.getByRole("button", { name: "Stoku güncelle" }).click();
+  await expect(stockCard.getByText("Stok sunucuda güncellendi.")).toBeVisible();
+  await page.goto("/tedarikci/urunler");
+  const refreshedSupplierCard = page.locator("article").filter({ hasText: title });
   const submitResponsePromise = page.waitForResponse(
     (response) => response.url().endsWith("/submit") && response.request().method() === "POST",
     { timeout: 60_000 },
   );
-  await supplierCard.getByRole("button", { name: "Onaya gönder" }).click();
+  await refreshedSupplierCard.getByRole("button", { name: "Onaya gönder" }).click();
   expect((await submitResponsePromise).status()).toBe(200);
   await page.reload();
   await expect(

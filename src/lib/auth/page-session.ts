@@ -6,12 +6,17 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/server";
 import { database } from "@/lib/db/client";
 
-export async function requirePageUser() {
+export async function getPageUser() {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) redirect("/giris");
+  if (!session) return null;
   const user = await database.user.findFirst({
     where: { id: session.user.id, status: "ACTIVE", deletedAt: null },
   });
-  if (!user) redirect("/giris");
-  return { session, user };
+  return user ? { session, user } : null;
+}
+
+export async function requirePageUser() {
+  const context = await getPageUser();
+  if (!context) redirect("/giris");
+  return context;
 }

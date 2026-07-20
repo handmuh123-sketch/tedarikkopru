@@ -1,6 +1,6 @@
 # TedarikKöprü
 
-Türkiye odaklı B2B tedarikçi pazaryerinin Faz 2A hızlı pilot uygulamasıdır. Faz 1 kimlik/işletme güvenliği üzerine kategori, marka, temel toptan fiyat/MOQ içeren ürün-varyant modeli, tedarikçi ürün ekranı, admin moderasyonu ve public telefon aksesuarı kataloğu eklenmiştir. Stok, kademe fiyat, import/export, sepet, sipariş, ödeme, kargo ve canlı entegrasyonlar henüz yoktur.
+Türkiye odaklı B2B tedarikçi pazaryerinin Faz 2B hızlı pilot uygulamasıdır. Faz 2A kataloğuna güvenli stok ve immutable hareket defteri, arama/filtre, ürün favorileri, CSV/XLSX önizleme-onay importu, formula-injection güvenli CSV export ve admin import kuyruğu eklenmiştir. Stok rezervasyonu, kademe fiyat, sepet, sipariş, ödeme, kargo ve canlı entegrasyonlar henüz yoktur.
 
 ## Gereksinimler
 
@@ -60,7 +60,11 @@ Uygulama açıldığında:
 - Doğrulama kuyruğu: <http://localhost:3000/admin/dogrulamalar>
 - Public ürünler: <http://localhost:3000/urunler>
 - Tedarikçi ürünleri: <http://localhost:3000/tedarikci/urunler>
+- Tedarikçi stokları: <http://localhost:3000/tedarikci/stok>
+- CSV/XLSX import ve CSV export: <http://localhost:3000/tedarikci/import>
+- Favoriler: <http://localhost:3000/panel/favoriler>
 - Ürün moderasyonu: <http://localhost:3000/admin/urunler>
+- Admin import işleri: <http://localhost:3000/admin/importlar>
 - Kategori/marka: <http://localhost:3000/admin/kategoriler> / <http://localhost:3000/admin/markalar>
 
 Readiness, PostgreSQL erişilemiyorsa kasıtlı olarak `503 not_ready` döndürür. Liveness dış bağımlılıklardan bağımsızdır.
@@ -109,7 +113,7 @@ Entegrasyon testi gerçek PostgreSQL ve MinIO ister; önce servisleri, migration
 
 Kayıt e-postaları, parola sıfırlama ile üyelik davetleri development ortamında Mailpit'e gider. İşletme belgesi PDF/JPEG/PNG ve en fazla 5 MB olmalıdır; private MinIO bucket'tan yalnız yetkili uygulama endpoint'i üzerinden okunur.
 
-Seed ayrıca `Demo Mobil Tedarik` adlı doğrulanmış tedarikçi, telefon aksesuarı kategori ağacı, üç marka ve dört yayındaki demo ürün oluşturur. Demo tedarikçi hesabıyla ürün oluşturup moderasyona gönderebilir; demo admin hesabıyla `/admin/urunler` üzerinden yayınlayabilirsiniz.
+Seed ayrıca `Demo Mobil Tedarik` adlı doğrulanmış tedarikçi, telefon aksesuarı kategori ağacı, üç marka, dört yayındaki demo ürün ve safety stock üstü demo stokları oluşturur. Demo tedarikçi hesabıyla ürün/stok yönetebilir, CSV/XLSX önizleyip uygulayabilir ve güvenli CSV indirebilir; demo alıcı ürünleri arayıp favorileyebilir; demo admin `/admin/urunler` ve `/admin/importlar` kuyruklarını görebilir.
 
 Diğer Faz 0 komutları:
 
