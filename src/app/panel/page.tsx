@@ -36,20 +36,29 @@ export default async function PanelPage() {
               <dt>Tür</dt>
               <dd>{organization.type}</dd>
             </dl>
+            {["SUPPLIER", "BOTH"].includes(organization.type) &&
+              ["OWNER", "ORG_ADMIN", "CATALOG_MANAGER"].includes(role) && (
+                <Link href="/tedarikci/urunler">Ürünleri yönet</Link>
+              )}
           </article>
         ))}
       </section>
       <Link className="button button-primary" href="/onboarding">
         Yeni işletme oluştur
       </Link>
+      {["PLATFORM_SUPER_ADMIN", "PLATFORM_ADMIN"].includes(user.platformRole) && (
+        <Link className="button button-secondary" href="/admin/dogrulamalar">
+          Doğrulama kuyruğu
+        </Link>
+      )}
       {[
         "PLATFORM_SUPER_ADMIN",
         "PLATFORM_ADMIN",
         "PLATFORM_OPERATIONS",
         "PLATFORM_SUPPORT",
       ].includes(user.platformRole) && (
-        <Link className="button button-secondary" href="/admin/dogrulamalar">
-          Doğrulama kuyruğu
+        <Link className="button button-secondary" href="/admin/urunler">
+          Ürün moderasyonu
         </Link>
       )}
     </main>

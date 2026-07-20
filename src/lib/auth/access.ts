@@ -15,6 +15,8 @@ const adminRoles = new Set([
   "PLATFORM_SUPPORT",
 ]);
 
+const catalogAdminRoles = new Set(["PLATFORM_SUPER_ADMIN", "PLATFORM_ADMIN"]);
+
 export async function requireUser(request: Request) {
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) throw new HttpError(401, "Oturum açmanız gerekiyor.", "UNAUTHENTICATED");
@@ -31,6 +33,14 @@ export async function requirePlatformAdmin(request: Request) {
   const context = await requireUser(request);
   if (!adminRoles.has(context.user.platformRole)) {
     throw new HttpError(403, "Bu işlem için platform yetkisi gerekiyor.", "FORBIDDEN");
+  }
+  return context;
+}
+
+export async function requireCatalogAdmin(request: Request) {
+  const context = await requireUser(request);
+  if (!catalogAdminRoles.has(context.user.platformRole)) {
+    throw new HttpError(403, "Bu işlem için katalog yönetimi yetkisi gerekiyor.", "FORBIDDEN");
   }
   return context;
 }

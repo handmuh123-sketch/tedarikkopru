@@ -1,4 +1,129 @@
-# Faz 01 — Kimlik, İşletmeler ve Doğrulama
+# Faz 02A — Katalog Pilot Çekirdeği
+
+## Amaç ve kullanıcı sonucu
+
+Bu hızlı pilot dilimi tamamlandığında doğrulanmış tedarikçi tek varyantlı temel toptan ürün oluşturup düzenleyebilecek ve moderasyona gönderebilecek; platform admini ürünü onaylayabilecek veya gerekçeyle reddedebilecek; ziyaretçi yalnız onaylı ürünleri responsive liste ve detay sayfalarında görebilecektir.
+
+## Başlangıç durumu
+
+- Faz 1 checkpoint'i `17b7e81` (`feat: complete phase 1 identity and organizations`) ve temiz çalışma ağacı doğrulandı.
+- Auth, organization, üyelik rolleri, doğrulanmış işletme durumu, audit ve admin yetkisi çalışıyor.
+- Kategori, marka ve ürün modeli/ekranı henüz yok; PostgreSQL, MinIO ve Mailpit mevcut Compose servislerinde çalışıyor.
+- Kullanıcının FAST PILOT MVP talimatı tüm Faz 2 yerine yalnız katalog ilk yarısını bağlar.
+
+## Kapsam
+
+### Dahil
+
+- Kategori ve marka yönetimi için admin API/ekranı ve development seed verisi.
+- `Product`, `ProductVariant`, `ProductImage`; integer minor-unit temel TRY toptan fiyat, MOQ ve quantity step.
+- Doğrulanmış SUPPLIER/BOTH organizasyonunda server-side RBAC ile ürün oluşturma/düzenleme ve moderasyona gönderme.
+- Admin ürün kuyruğu, onay ve gerekçeli ret; kritik işlemlerde redacted audit.
+- Yalnız `ACTIVE` ürünleri sunan public `/urunler` ve `/urunler/[slug]` sayfaları.
+- Telefon aksesuarı demo kategori, marka ve ürünleri.
+
+### Dahil değil
+
+- Inventory, stok rezervasyonu/hareketi, PriceTier/kademe fiyat, CSV/XLSX, gelişmiş arama/filtre, favoriler.
+- Sepet, checkout, ödeme, sipariş, kargo, pazaryeri entegrasyonu ve Faz 3+.
+- Harici görsel URL fetch'i veya kapsamlı medya yönetimi.
+
+## Bağlayıcı kararlar
+
+- Kullanıcının daraltılmış Faz 2A listesi, `tasks/PHASE_02_CATALOG_INVENTORY.md` içindeki daha geniş Faz 2 kapsamının önüne geçer.
+- Para integer kuruş olarak saklanır; float hesap yapılmaz. Currency her varyantta bulunur.
+- Her ürün sorgusu tedarikçi organization scope'u taşır; public sorgu yalnız `ACTIVE` ürünü döndürür.
+- Yalnız `ACTIVE` + `APPROVED` SUPPLIER/BOTH organizasyonu ürünü moderasyona gönderebilir; taslak oluşturma/düzenleme org rolüyle sınırlandırılır.
+- Migration geçmişi değiştirilmez; yeni forward migration eklenir.
+
+## Teknik kararlar
+
+- Karar: Pilot fiyatı `ProductVariant.priceAmountMinor` ve `currency` alanlarında tut.
+  - Gerekçe: Bu dilimde yalnız tek temel fiyat isteniyor; PriceTier ve dönemsel fiyat altyapısı Faz 2B kapsamı.
+  - Alternatif: Şimdiden Price/PriceTier geçmiş modeli kurmak.
+  - Sonuç: Görünür akış küçük kalır; sonraki dilimde forward migration ile fiyat geçmişine taşınabilir.
+- Karar: Ürün görselleri yalnız güvenilir uygulama-local `storageKey` değerlerinden seed edilir; kullanıcıdan URL alıp server-side fetch yapılmaz.
+  - Gerekçe: Pilot görsel akışını SSRF ve upload moderasyon altyapısı eklemeden güvenli tutar.
+  - Alternatif: Public object upload.
+  - Sonuç: `ProductImage` modeli ve public sunum çalışır; kullanıcı upload'ı bilinen eksik kalır.
+- Karar: Ürün durum geçişleri küçük bir catalog state machine servisinde tutulur.
+  - Gerekçe: Tedarikçi submit ve admin approve/reject kuralları route/UI içine dağılmaz.
+  - Sonuç: Geçersiz geçişler birim ve entegrasyon testine açıktır.
+
+## Güvenlik ve veri etkisi
+
+- Ürün mutation'ları membership + organization filtreli tek kaynak erişimiyle BOLA'ya kapalıdır; public response supplier özel verilerini içermez.
+- Kategori/marka ve moderasyon işlemleri platform admin yetkisi ister.
+- Fiyat pozitif integer minor unit; MOQ ve quantity step pozitif integer ve MOQ step ile uyumlu doğrulanır.
+- Admin ret notu kullanıcı çıktısında düz metin olarak gösterilir fakat audit payload'ında yalnız `noteProvided` tutulur.
+- Migration yalnız yeni enum/tablo/index/constraint ekler; Faz 1 verisini silmez.
+
+## Uygulama adımları
+
+- [x] Bağlayıcı belgeleri, Faz 2 ilgili şartname bölümlerini ve temiz Faz 1 checkpoint'ini doğrula.
+- [x] Prisma katalog modelleri ve forward migration oluştur; client üret ve gerçek PostgreSQL'e uygula.
+- [x] Katalog validation/state machine, RBAC, tedarikçi CRUD/submit ve admin yönetim/moderasyon API'lerini kur.
+- [x] Tedarikçi ürün formu/listesi, admin kategori-marka/ürün ekranları ve public katalog ekranlarını tamamla.
+- [x] Telefon aksesuarı kategori/marka/ürün seed'ini idempotent ve development-only ekle.
+- [x] İlgili unit ve gerçek PostgreSQL integration testlerini çalıştır.
+- [x] Ürün oluşturma, admin onayı ve public görüntüleme kritik E2E akışını çalıştır.
+- [x] PROJECT_STATUS ve bu planı gerçek sonuçlarla kapat; Faz 2B'ye geçmeden dur.
+
+## Dosya değişiklikleri
+
+- Veri: `prisma/schema.prisma`, yeni `prisma/migrations/**`, `prisma/seed.ts`.
+- Domain/API: `src/modules/catalog/**`, `src/app/api/v1/products/**`, `src/app/api/v1/admin/{products,categories,brands}/**`.
+- UI: `src/app/tedarikci/urunler/**`, `src/app/admin/{urunler,kategoriler,markalar}/**`, `src/app/urunler/**`, ilgili components/styles.
+- Test/belge: ilgili `tests/unit`, `tests/integration`, `tests/e2e`, `.agent/execplan.md`, `PROJECT_STATUS.md`, `README.md` gerektiği kadar.
+
+## Migration ve geri dönüş
+
+- Yeni migration katalog enum ve tablolarını FK/unique/check constraintleriyle ekler; mevcut migration dosyalarına dokunmaz.
+- Ürün SKU benzersizliği `(supplier_organization_id, sku)` üzerinde DB constraint ile korunur.
+- Geri dönüş yalnız pilot katalog tablolarını bağımlılık sırasıyla kaldırır; veri varsa otomatik destructive rollback uygulanmaz.
+
+## Test planı
+
+- Birim: fiyat/MOQ/step şeması ve ürün moderasyon state machine'i.
+- Entegrasyon: gerçek PostgreSQL'de doğrulanmış tedarikçi create/update/submit, başka org update reddi, admin role bypass, approve/reject ve public yalnız-active görünürlük.
+- E2E: demo tedarikçi ürün oluşturur, admin onaylar, ziyaretçi liste ve detayda görür.
+- Bu hızlı dilimde Faz 1 tam regresyonu, tüm E2E matrisi, production build ve Docker image build tekrarlanmaz.
+
+## Kabul kriterleri
+
+- [x] Kategori ve marka admin tarafından yönetilebilir.
+- [x] Doğrulanmış tedarikçi temel fiyat/MOQ/step içeren ürün oluşturup düzenleyebilir.
+- [x] Başka organizasyon ürün değişikliği ID değişimiyle yapılamaz.
+- [x] Admin ürünü onaylayabilir veya gerekçeyle reddedebilir; yetkisiz kullanıcı yapamaz.
+- [x] Public liste/detay yalnız aktif ürünleri gösterir ve responsive çalışır.
+- [x] Telefon aksesuarı demo ürünleri seed edilir.
+- [x] İlgili lint, typecheck, unit, integration ve kritik E2E testleri geçer.
+- [x] Faz 2B kapsamı uygulanmadan durulur.
+
+## İlerleme günlüğü
+
+- 2026-07-20 17:10 +03:00:
+  - Yapılan: Faz 1 checkpoint'i ve temiz ağaç doğrulandı; Faz 2 görev/şartname, güvenlik ve test kuralları okundu; dar Faz 2A teknik sınırları donduruldu.
+  - Kanıt: `17b7e81`; `git status` temiz; bu yaşayan plan.
+  - Sonraki: Forward migration ve katalog domain/API çekirdeği.
+- 2026-07-20 17:53 +03:00:
+  - Yapılan: Faz 2A migration, katalog domain/API/UI, admin taksonomi ve moderasyon, public katalog ve telefon aksesuarı seed'i tamamlandı. Katalog admin yetkisi şartnameye göre yalnız PLATFORM_ADMIN/SUPER_ADMIN rollerine daraltıldı.
+  - Kanıt: Hedefli lint/typecheck başarılı; unit 2/2; gerçek PostgreSQL integration 3/3; kritik Playwright 1/1. Migration başarılı, seed iki kez idempotent çalıştı.
+  - Sonraki: Faz 2A sonunda dur. Faz 2B yalnız yeni kullanıcı talimatıyla başlayabilir.
+
+## Sürprizler ve öğrenilenler
+
+- Geniş Faz 2 görevinde stok, tier fiyat, arama ve import birlikte bulunuyor; son kullanıcı talimatı bunları açıkça sonraki Faz 2B'ye bıraktığı için veri modeli yalnız geriye dönük güvenli genişleme noktalarını koruyacak.
+- OneDrive'da ilk Next route derlemesi 20 saniyeyi aşabildi; kritik E2E API response'unu doğrudan bekleyerek yanlış negatiften arındırıldı. İlk iki koşu UI hydration/zamanlama ve liste-detay locator belirsizliğini yakaladı; uygulama ve test birlikte düzeltildi.
+- Playwright development sunucusunu zorla kapatırken `Connection closed` ve Prisma PostgreSQL adapter'ında pg@9 öncesi deprecation uyarısı görüldü; test sonucu ve veri işlemleri başarılı, canlı istek sırasında hata yok.
+
+## Sonuç
+
+Faz 2A hızlı pilot kapsamı tamamlandı. Doğrulanmış tedarikçi ürün oluşturma/düzenleme/submit, dar katalog admin RBAC'i, approve/reject, public yalnız-active liste/detay ve telefon aksesuarı seed'i ilgili testlerle doğrulandı. Faz 2B'ye geçilmedi.
+
+---
+
+# Arşiv — Faz 01 Kimlik, İşletmeler ve Doğrulama
 
 ## Amaç ve kullanıcı sonucu
 

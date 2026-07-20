@@ -1,6 +1,6 @@
 # TedarikKöprü
 
-Türkiye odaklı B2B tedarikçi pazaryerinin Faz 1 çalışan uygulamasıdır. Responsive temel üzerine e-posta/parola kimliği, güvenli oturumlar, tedarikçi ve alıcı onboarding'i, organizasyon RBAC'i, private şirket belgeleri, doğrulama state machine'i, admin kuyruğu ve append-only audit eklenmiştir. Ürün, stok, sipariş, ödeme, kargo ve canlı entegrasyonlar Faz 2+ kapsamıdır ve henüz yoktur.
+Türkiye odaklı B2B tedarikçi pazaryerinin Faz 2A hızlı pilot uygulamasıdır. Faz 1 kimlik/işletme güvenliği üzerine kategori, marka, temel toptan fiyat/MOQ içeren ürün-varyant modeli, tedarikçi ürün ekranı, admin moderasyonu ve public telefon aksesuarı kataloğu eklenmiştir. Stok, kademe fiyat, import/export, sepet, sipariş, ödeme, kargo ve canlı entegrasyonlar henüz yoktur.
 
 ## Gereksinimler
 
@@ -58,6 +58,10 @@ Uygulama açıldığında:
 - Giriş: <http://localhost:3000/giris>
 - İşletme paneli: <http://localhost:3000/panel>
 - Doğrulama kuyruğu: <http://localhost:3000/admin/dogrulamalar>
+- Public ürünler: <http://localhost:3000/urunler>
+- Tedarikçi ürünleri: <http://localhost:3000/tedarikci/urunler>
+- Ürün moderasyonu: <http://localhost:3000/admin/urunler>
+- Kategori/marka: <http://localhost:3000/admin/kategoriler> / <http://localhost:3000/admin/markalar>
 
 Readiness, PostgreSQL erişilemiyorsa kasıtlı olarak `503 not_ready` döndürür. Liveness dış bağımlılıklardan bağımsızdır.
 
@@ -104,6 +108,8 @@ Entegrasyon testi gerçek PostgreSQL ve MinIO ister; önce servisleri, migration
 - Alıcı: `alici@demo.tedarikkopru.local` / `Faz1-Isletme-Demo-2026!`
 
 Kayıt e-postaları, parola sıfırlama ile üyelik davetleri development ortamında Mailpit'e gider. İşletme belgesi PDF/JPEG/PNG ve en fazla 5 MB olmalıdır; private MinIO bucket'tan yalnız yetkili uygulama endpoint'i üzerinden okunur.
+
+Seed ayrıca `Demo Mobil Tedarik` adlı doğrulanmış tedarikçi, telefon aksesuarı kategori ağacı, üç marka ve dört yayındaki demo ürün oluşturur. Demo tedarikçi hesabıyla ürün oluşturup moderasyona gönderebilir; demo admin hesabıyla `/admin/urunler` üzerinden yayınlayabilirsiniz.
 
 Diğer Faz 0 komutları:
 

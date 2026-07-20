@@ -1,12 +1,19 @@
 # PROJECT STATUS
 
-**Durum:** Faz 1 tamamlandı ve kalite kapıları geçti
+**Durum:** Faz 2A hızlı katalog pilotu tamamlandı
 
-**Aktif faz:** Faz 1 — Kimlik, İşletmeler ve Doğrulama (Faz 2 başlatılmadı)
+**Aktif faz:** Faz 2A — Katalog pilot çekirdeği (Faz 2B başlatılmadı)
 
-**Son güncelleme:** 20 Temmuz 2026, 16:52 +03:00
+**Son güncelleme:** 20 Temmuz 2026, 17:53 +03:00
 
 ## Tamamlananlar
+
+- Kategori ve marka admin yönetimi; `Product`, `ProductVariant`, `ProductImage` veri modeli ve forward migration tamamlandı.
+- Doğrulanmış SUPPLIER/BOTH işletmesi için org-scoped ürün oluşturma, düzenleme ve moderasyona gönderme ekran/API'leri eklendi.
+- Ürün başına temel TRY minor-unit toptan fiyat, SKU, MOQ, quantity step ve paket miktarı DB/application doğrulamasıyla eklendi.
+- Yalnız `PLATFORM_ADMIN`/`PLATFORM_SUPER_ADMIN` ürün-kategori-marka yönetebilir; approve/reject işlemleri state machine, optimistic state claim ve redacted audit ile çalışır.
+- Public `/urunler` ve `/urunler/[slug]` yalnız aktif ürün + doğrulanmış aktif tedarikçi gösterir; 360 px kritik akış doğrulandı.
+- Development seed'e doğrulanmış demo mobil tedarikçi, kategori ağacı, üç marka ve görselli dört telefon aksesuarı ürünü eklendi.
 
 - Better Auth 1.6.23 ile e-posta/parola kayıt-giriş, e-posta doğrulama, hashli ve süreli parola reset tokenı, 12 karakter parola alt sınırı, DB-backed session, güvenli cookie ve session revoke akışları tamamlandı.
 - `User`, `Session`, `Account`, `Verification`, `Organization`, `OrganizationMembership`, `OrganizationInvitation`, `Address`, `VerificationApplication`, `VerificationDocument`, `AuditLog` ve atomik rate-limit modelleri forward migration ile eklendi.
@@ -28,6 +35,10 @@
 
 ## Çalışan özellikler
 
+- `/urunler` public pilot ürün listesi ve `/urunler/[slug]` ürün detayı.
+- `/tedarikci/urunler`, `/tedarikci/urunler/yeni`, `/tedarikci/urunler/[id]` ürün oluşturma/düzenleme/submit akışı.
+- `/admin/urunler`, `/admin/kategoriler`, `/admin/markalar` moderasyon ve taksonomi yönetimi.
+
 - `/kayit`, `/giris`, `/e-posta-dogrula`, `/sifremi-unuttum`, `/sifre-yenile` kimlik akışları.
 - `/panel`, `/onboarding`, `/oturumlar` işletme ve hesap güvenliği akışları.
 - `/admin/dogrulamalar` platform doğrulama kuyruğu ve state machine işlemleri.
@@ -41,6 +52,13 @@
 - Lint, format, strict typecheck, unit, integration, E2E ve production build kalite komutları.
 
 ## Doğrulama özeti
+
+- Faz 2A hedefli lint ve strict typecheck başarılı.
+- Katalog unit: 1 dosya, 2 test başarılı; minor-unit/MOQ/step ve deny-by-default state machine dahil.
+- Gerçek PostgreSQL integration: 1 dosya, 3 test başarılı; kategori/marka rolü, create/edit, BOLA, doğrulanmış tedarikçi kapısı, approve/reject, audit ve public yalnız-active görünürlüğü dahil.
+- Kritik Playwright: 1 test başarılı; demo tedarikçi ürün oluşturdu/submit etti, admin onayladı, ürün 360 px public liste ve detayda fiyat/MOQ ile göründü.
+- Faz 2A migration uygulandı; idempotent development seed iki ardışık çalışmada başarılı.
+- Dockerfile değişmediği için kullanıcı talimatı uyarınca image build; kapsam dışı tam regresyon/build matrisi çalıştırılmadı.
 
 - Faz 1 unit: 6 dosya, 17 test başarılı.
 - Gerçek PostgreSQL/MinIO entegrasyonu: 2 dosya, 10 test başarılı; org isolation, IDOR/BFLA, token hash, atomik rate limit, rol/verifikasyon audit'i, tüm state machine sonuçları ve append-only audit dahil.
@@ -66,7 +84,8 @@
 - MinIO'nun güvenlik yamalı son release'i resmi prebuilt image sunmadığı için ilk development build'i kaynak koddan yapılır ve bu makinede yaklaşık 11 dakika sürdü.
 - CSP şu an Faz 0 statik UI uyumluluğu için `style-src 'unsafe-inline'` içerir. Nonce/hash tabanlı sıkılaştırma sonraki UI güvenlik çalışmasında ele alınmalıdır; bu incelemede kapsam dışı karmaşıklık yaratmamak için değiştirilmedi.
 - `pnpm audit` yerel TLS zincirinde `UNABLE_TO_VERIFY_LEAF_SIGNATURE` ile tamamlanamadı; bu sonuç “açık yok” olarak yorumlanmadı ve CI/kurumsal güvenilir CA ortamında yeniden çalıştırılmalıdır.
-- Ürün CRUD, kategori, fiyat, stok, sipariş, ödeme, kargo ve diğer Faz 2+ özellikleri bilinçli olarak yoktur.
+- Faz 2B stok/rezervasyon, kademe fiyat, gelişmiş arama, favoriler ve CSV/XLSX bilinçli olarak yoktur. Sepet, sipariş, ödeme, kargo ve entegrasyonlar da kapsam dışıdır.
+- Pilot `ProductImage` kayıtları güvenilir local seed görsellerini kullanır; tedarikçi görsel upload/medya moderasyonu henüz yoktur.
 - Demo malware tarama adaptörü Faz 1'de magic byte/MIME/boyut/checksum doğrulamasından sonra `CLEAN` sonucu verir; production antivirüs/karantina servisi seçimi yayın öncesi dış bağımlılıktır.
 - Yerel Playwright çalışması kurulu Microsoft Edge kanalını kullandı; CI temiz Linux ortamında resmi Playwright Chromium kurulumunu kullanır.
 - Hukuki saklama süreleri ve KVKK silme/anonimleştirme prosedürü production öncesi hukuk kararı gerektirir; Faz 1 hard-delete endpoint'i sunmaz.
@@ -75,6 +94,6 @@
 
 ## Önerilen sonraki faz
 
-Yeni bir kullanıcı talimatıyla Faz 2 ürün/katalog kapsamı değerlendirilebilir. Bu çalışmada Faz 2'ye geçilmedi.
+Yeni bir kullanıcı talimatıyla Faz 2B stok, fiyat kademesi ve kalan katalog kapsamı değerlendirilebilir. Bu çalışmada Faz 2B veya sonraki fazlara geçilmedi.
 
 > Codex her faz sonunda bu dosyayı gerçek durumla güncellemelidir.

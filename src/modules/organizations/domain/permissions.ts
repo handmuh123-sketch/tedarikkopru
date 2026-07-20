@@ -5,6 +5,7 @@ export type OrganizationPermission =
   | "organization:update"
   | "address:manage"
   | "member:manage"
+  | "catalog:manage"
   | "document:manage"
   | "verification:submit";
 
@@ -14,6 +15,7 @@ const rolePermissions: Record<OrganizationMembershipRole, ReadonlySet<Organizati
     "organization:update",
     "address:manage",
     "member:manage",
+    "catalog:manage",
     "document:manage",
     "verification:submit",
   ]),
@@ -22,10 +24,11 @@ const rolePermissions: Record<OrganizationMembershipRole, ReadonlySet<Organizati
     "organization:update",
     "address:manage",
     "member:manage",
+    "catalog:manage",
     "document:manage",
     "verification:submit",
   ]),
-  CATALOG_MANAGER: new Set(["organization:read"]),
+  CATALOG_MANAGER: new Set(["organization:read", "catalog:manage"]),
   ORDER_MANAGER: new Set(["organization:read"]),
   FINANCE: new Set(["organization:read"]),
   WAREHOUSE_OPERATOR: new Set(["organization:read"]),

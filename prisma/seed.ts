@@ -1,5 +1,6 @@
 import "dotenv/config";
 
+import { createCipheriv, createHash, createHmac, randomBytes } from "node:crypto";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { prismaAdapter } from "@better-auth/prisma-adapter";
 import { betterAuth } from "better-auth";
@@ -18,6 +19,27 @@ if (!environment.success) {
 }
 
 const seedEnvironment = environment.data;
+
+function keyedHash(value: string): string {
+  return createHmac("sha256", seedEnvironment.DATA_ENCRYPTION_KEY ?? "")
+    .update(value.normalize("NFKC").trim().toLocaleLowerCase("tr-TR"))
+    .digest("hex");
+}
+
+function encryptSensitive(value: string): string {
+  const key = createHash("sha256")
+    .update(seedEnvironment.DATA_ENCRYPTION_KEY ?? "")
+    .digest();
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  const encrypted = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
+  return [
+    "v1",
+    iv.toString("base64url"),
+    cipher.getAuthTag().toString("base64url"),
+    encrypted.toString("base64url"),
+  ].join(".");
+}
 
 const adapter = new PrismaPg({ connectionString: environment.data.DIRECT_URL });
 const database = new PrismaClient({ adapter });
@@ -38,6 +60,12 @@ async function main() {
       key: "foundation.version",
       value: { phase: 0, status: "ready" },
     },
+  });
+
+  await database.systemSetting.upsert({
+    where: { key: "catalog.version" },
+    update: { value: { phase: "2A", status: "ready" } },
+    create: { key: "catalog.version", value: { phase: "2A", status: "ready" } },
   });
 
   await database.systemSetting.upsert({
@@ -102,11 +130,262 @@ async function main() {
       },
     });
   }
+
+  const supplierUser = await database.user.findUniqueOrThrow({
+    where: { email: "tedarikci@demo.tedarikkopru.local" },
+  });
+  const supplier = await database.organization.upsert({
+    where: { slug: "demo-mobil-tedarik" },
+    update: {
+      status: "ACTIVE",
+      verificationStatus: "APPROVED",
+      verifiedAt: new Date(),
+    },
+    create: {
+      type: "SUPPLIER",
+      legalName: "Demo Mobil Tedarik Limited Şirketi",
+      tradeName: "Demo Mobil Tedarik",
+      slug: "demo-mobil-tedarik",
+      taxNumberEncrypted: encryptSensitive("9999999999"),
+      taxNumberHash: keyedHash("tax:9999999999"),
+      taxOffice: "Kadıköy",
+      phone: "+90 212 555 0202",
+      email: "tedarikci@demo.tedarikkopru.local",
+      sector: "Telefon aksesuarları",
+      authorizedPerson: "Demo Tedarikçi",
+      status: "ACTIVE",
+      verificationStatus: "APPROVED",
+      verifiedAt: new Date(),
+      verificationApplications: {
+        create: {
+          status: "APPROVED",
+          riskFlags: [],
+          submittedAt: new Date(),
+          reviewedAt: new Date(),
+        },
+      },
+    },
+  });
+  await database.organizationMembership.upsert({
+    where: { organizationId_userId: { organizationId: supplier.id, userId: supplierUser.id } },
+    update: { role: "OWNER", status: "ACTIVE", joinedAt: new Date() },
+    create: {
+      organizationId: supplier.id,
+      userId: supplierUser.id,
+      role: "OWNER",
+      status: "ACTIVE",
+      joinedAt: new Date(),
+    },
+  });
+
+  const mobileCategory = await database.category.upsert({
+    where: { slug: "telefon-aksesuarlari" },
+    update: { name: "Telefon Aksesuarları", path: "telefon-aksesuarlari", isActive: true },
+    create: {
+      name: "Telefon Aksesuarları",
+      slug: "telefon-aksesuarlari",
+      path: "telefon-aksesuarlari",
+      isActive: true,
+      sortOrder: 10,
+    },
+  });
+  const cableCategory = await database.category.upsert({
+    where: { slug: "sarj-kablolari" },
+    update: {
+      name: "Şarj Kabloları",
+      parentId: mobileCategory.id,
+      path: "telefon-aksesuarlari/sarj-kablolari",
+      isActive: true,
+    },
+    create: {
+      name: "Şarj Kabloları",
+      slug: "sarj-kablolari",
+      parentId: mobileCategory.id,
+      path: "telefon-aksesuarlari/sarj-kablolari",
+      isActive: true,
+      sortOrder: 20,
+    },
+  });
+  const caseCategory = await database.category.upsert({
+    where: { slug: "telefon-kiliflari" },
+    update: {
+      name: "Telefon Kılıfları",
+      parentId: mobileCategory.id,
+      path: "telefon-aksesuarlari/telefon-kiliflari",
+      isActive: true,
+    },
+    create: {
+      name: "Telefon Kılıfları",
+      slug: "telefon-kiliflari",
+      parentId: mobileCategory.id,
+      path: "telefon-aksesuarlari/telefon-kiliflari",
+      isActive: true,
+      sortOrder: 30,
+    },
+  });
+  const audioCategory = await database.category.upsert({
+    where: { slug: "mobil-ses" },
+    update: {
+      name: "Mobil Ses",
+      parentId: mobileCategory.id,
+      path: "telefon-aksesuarlari/mobil-ses",
+      isActive: true,
+    },
+    create: {
+      name: "Mobil Ses",
+      slug: "mobil-ses",
+      parentId: mobileCategory.id,
+      path: "telefon-aksesuarlari/mobil-ses",
+      isActive: true,
+      sortOrder: 40,
+    },
+  });
+
+  const brands = await Promise.all(
+    [
+      { name: "KöprüTech", slug: "koprutech" },
+      { name: "MobiLine", slug: "mobiline" },
+      { name: "PilotSound", slug: "pilotsound" },
+    ].map(({ name, slug }) =>
+      database.brand.upsert({
+        where: { slug },
+        update: { name, status: "ACTIVE" },
+        create: { name, slug, status: "ACTIVE" },
+      }),
+    ),
+  );
+
+  const demoProducts = [
+    {
+      title: "60W Örgülü USB-C Kablo",
+      slug: "60w-orgulu-usb-c-kablo",
+      categoryId: cableCategory.id,
+      brandId: brands[0]!.id,
+      sku: "KT-USBC-60W-1M",
+      price: 8990,
+      moq: 10,
+      step: 5,
+      image: "/demo-products/usb-c-kablo.svg",
+      description:
+        "Yoğun mağaza kullanımı için güçlendirilmiş örgü kaplamalı, 60W hızlı şarj destekli bir metre USB-C kablo.",
+    },
+    {
+      title: "20W USB-C Hızlı Şarj Adaptörü",
+      slug: "20w-usb-c-hizli-sarj-adaptoru",
+      categoryId: cableCategory.id,
+      brandId: brands[1]!.id,
+      sku: "ML-PD-20W-EU",
+      price: 18990,
+      moq: 6,
+      step: 2,
+      image: "/demo-products/sarj-adaptoru.svg",
+      description:
+        "PD uyumlu kompakt gövde ve Avrupa tipi fişle mağaza rafına hazır 20W hızlı şarj adaptörü.",
+    },
+    {
+      title: "Darbeye Dayanıklı Şeffaf Kılıf",
+      slug: "darbeye-dayanikli-seffaf-kilif",
+      categoryId: caseCategory.id,
+      brandId: brands[1]!.id,
+      sku: "ML-CASE-CLEAR-15",
+      price: 7490,
+      moq: 20,
+      step: 10,
+      image: "/demo-products/seffaf-kilif.svg",
+      description:
+        "Köşe korumalı, sararmaya dirençli şeffaf TPU telefon kılıfı; pilot ürün standart ölçü varyantıdır.",
+    },
+    {
+      title: "TWS Kablosuz Kulaklık",
+      slug: "tws-kablosuz-kulaklik",
+      categoryId: audioCategory.id,
+      brandId: brands[2]!.id,
+      sku: "PS-TWS-A1-WHT",
+      price: 42990,
+      moq: 4,
+      step: 2,
+      image: "/demo-products/tws-kulaklik.svg",
+      description:
+        "Dokunmatik kontrollü, şarj kutulu ve günlük kullanım odaklı beyaz TWS kablosuz kulaklık.",
+    },
+  ];
+  for (const item of demoProducts) {
+    const product = await database.product.upsert({
+      where: { slug: item.slug },
+      update: {
+        title: item.title,
+        categoryId: item.categoryId,
+        brandId: item.brandId,
+        shortDescription: item.description,
+        description: item.description,
+        status: "ACTIVE",
+        publishedAt: new Date(),
+      },
+      create: {
+        supplierOrganizationId: supplier.id,
+        categoryId: item.categoryId,
+        brandId: item.brandId,
+        title: item.title,
+        slug: item.slug,
+        shortDescription: item.description,
+        description: item.description,
+        status: "ACTIVE",
+        originCountry: "TR",
+        vatRateBasisPoints: 2000,
+        warrantyMonths: 24,
+        handlingDays: 2,
+        attributes: {},
+        publishedAt: new Date(),
+      },
+    });
+    const variant = await database.productVariant.upsert({
+      where: { supplierOrganizationId_sku: { supplierOrganizationId: supplier.id, sku: item.sku } },
+      update: {
+        productId: product.id,
+        title: "Standart",
+        priceAmountMinor: item.price,
+        moq: item.moq,
+        quantityStep: item.step,
+        status: "ACTIVE",
+      },
+      create: {
+        productId: product.id,
+        supplierOrganizationId: supplier.id,
+        sku: item.sku,
+        title: "Standart",
+        optionValues: {},
+        packageQuantity: 1,
+        moq: item.moq,
+        quantityStep: item.step,
+        priceAmountMinor: item.price,
+        currency: "TRY",
+        status: "ACTIVE",
+      },
+    });
+    await database.productImage.upsert({
+      where: { storageKey: item.image },
+      update: {
+        productId: product.id,
+        variantId: variant.id,
+        altText: item.title,
+        isPrimary: true,
+        sortOrder: 0,
+      },
+      create: {
+        productId: product.id,
+        variantId: variant.id,
+        storageKey: item.image,
+        altText: item.title,
+        isPrimary: true,
+        sortOrder: 0,
+      },
+    });
+  }
 }
 
 try {
   await main();
-  console.info("Faz 1 teknik ve güvenli demo seed tamamlandı.");
+  console.info("Faz 2A teknik ayarlar ve güvenli pilot katalog seed'i tamamlandı.");
 } finally {
   await database.$disconnect();
 }

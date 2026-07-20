@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getFoundationCapabilities } from "@/modules/system";
 
 const trustPoints = [
@@ -19,6 +20,7 @@ export default function HomePage() {
           <span>TedarikKöprü</span>
         </a>
         <nav aria-label="Sayfa bağlantıları">
+          <Link href="/urunler">Ürünler</Link>
           <a href="#altyapi">Altyapı</a>
           <a href="#guven">Güven yaklaşımı</a>
           <a className="nav-status" href="/api/health/live">
@@ -37,11 +39,11 @@ export default function HomePage() {
               izlenebilir süreçler üzerinde buluşturmak için kuruluyor.
             </p>
             <div className="hero-actions">
-              <a className="button button-primary" href="/kayit">
+              <Link className="button button-primary" href="/urunler">
+                Pilot ürünleri incele
+              </Link>
+              <a className="button button-secondary" href="/kayit">
                 İşletme hesabı oluştur
-              </a>
-              <a className="button button-secondary" href="/giris">
-                Giriş yap
               </a>
             </div>
             <ul className="trust-list" aria-label="Temel güven ilkeleri">
@@ -127,7 +129,7 @@ export default function HomePage() {
       <footer className="site-footer">
         <div className="page-shell footer-inner">
           <span>TedarikKöprü</span>
-          <span>Faz 1 · kimlik, işletme ve doğrulama</span>
+          <span>Faz 2A · pilot katalog</span>
         </div>
       </footer>
     </>
