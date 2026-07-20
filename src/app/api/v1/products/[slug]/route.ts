@@ -34,7 +34,11 @@ export async function GET(_request: Request, context: Context) {
         currency: variant.currency,
         moq: variant.moq,
         quantityStep: variant.quantityStep,
-        availableStock: availableStock(variant.inventory!.onHand, variant.inventory!.safetyStock),
+        availableStock: availableStock(
+          variant.inventory!.onHand,
+          variant.inventory!.safetyStock,
+          variant.inventory!.reserved,
+        ),
       })),
       images: product.images.map((image) => ({
         storageKey: image.storageKey,

@@ -1,145 +1,101 @@
-# Faz 02B — Stok ve Katalog Keşfi Pilot Dilimi
+# Faz 03A — Tek Tedarikçili Sepet ve Checkout Taslağı
 
 ## Amaç ve kullanıcı sonucu
 
-Bu hızlı pilot dilimi tamamlandığında yetkili tedarikçi varyant stok ve güvenlik stoğunu güvenli biçimde güncelleyebilecek; alıcı yalnız satışa uygun ürünleri arayıp kategori, marka, fiyat ve stok filtresiyle daraltabilecek ve favorileyebilecek; tedarikçi CSV/XLSX dosyasını önce satır bazlı önizleyip sonra açık onayla uygulayabilecek, güvenli CSV dışa aktarabilecek; admin import işlerini görebilecektir.
+Bu hızlı pilot dilimi tamamlandığında doğrulanmış bir alıcı, tek tedarikçiye ait ürünlerden sepet oluşturabilecek; MOQ, miktar adımı ve tedarikçi minimum sipariş tutarı sunucu tarafında doğrulanacak; kendi teslimat ve fatura adreslerini seçerek 15 dakikalık atomik stok rezervasyonuna bağlı idempotent checkout ve sipariş taslağı oluşturabilecektir.
 
 ## Başlangıç durumu
 
-- Faz 2A checkpoint'i `2fe3601` (`feat: complete phase 2a catalog pilot`) ve temiz çalışma ağacı doğrulandı.
-- Kategori, marka, tek varyantlı ürün, moderasyon, public liste/detay ve telefon aksesuarı seed'i çalışıyor.
-- PostgreSQL servisi ve Faz 1 kimlik/org/RBAC temeli hazır; Inventory, favori ve import modeli henüz yok.
-- Kullanıcının FAST PILOT MVP talimatı Faz 2'nin yalnız ikinci yarısını bağlar ve tam regresyonu yasaklar.
+- Faz 2B checkpoint'i `4497d51` (`feat: complete phase 2b inventory and catalog tools`) ve temiz çalışma ağacı doğrulandı.
+- Aktif/doğrulanmış tedarikçi ürünleri, varyant fiyat/MOQ/quantity-step, inventory ve immutable stok hareketleri hazırdır; rezervasyon, sepet, checkout ve sipariş modelleri yoktur.
+- Mevcut stok uygunluğu `onHand - safetyStock` hesabını kullanır; Faz 3A ile `reserved` atomik hesaba katılacaktır.
+- Kullanıcının FAST PILOT MVP talimatı yalnız Faz 3'ün ilk yarısını bağlar ve tam regresyonu/Docker image build'i yasaklar.
 
 ## Kapsam
 
 ### Dahil
 
-- `Inventory`, immutable `InventoryMovement`, `ProductFavorite` ve önizleme kapılı `ImportJob` modelleri.
-- Stok miktarı, safety stock, optimistic version ve zorunlu ayarlama nedeni; negatif stok için application + DB koruması.
-- OWNER/ORG_ADMIN/WAREHOUSE_OPERATOR stok yetkisi; tüm yazma sorgularında organization kapsamı ve başka tedarikçiye BOLA koruması.
-- Tedarikçi stok ekranı ve güncelleme API'si; kritik stok değişiminde audit log.
-- Public katalogda yalnız ACTIVE ürün, ACTIVE varyant, doğrulanmış/aktif tedarikçi ve `onHand - safetyStock > 0` görünürlüğü.
-- Temel metin arama; kategori, marka, minor-unit fiyat aralığı ve stokta olanlar filtresi.
-- Oturum kullanıcısı için ürün favorileme ve `/panel/favoriler` ekranı.
-- CSV/XLSX dosya önizlemesi, satır bazlı hata raporu, açık onaydan önce sıfır ürün/stok yazımı, idempotent tek uygulama.
-- Formula-injection güvenli CSV export ve admin import job görüntüleme.
-- Demo ürünler için stok seed'i; hedefli unit, gerçek PostgreSQL integration ve kritik Playwright E2E.
+- Tek alıcı organizasyonuna ait ve aynı anda yalnız tek tedarikçi taşıyan sepet; ürün ekleme, miktar güncelleme ve silme.
+- UI ve server tarafında MOQ, quantity step, tek tedarikçi, aktif/satılabilir ürün, stok ve minimum sipariş tutarı doğrulaması.
+- Alıcının kendi organizasyonuna scope edilmiş teslimat ve fatura adresi seçimi.
+- Integer minor-unit ara toplam, KDV ve toplam hesapları.
+- 15 dakika süreli atomik stok rezervasyonu; manuel ve süresi dolmuş rezervasyon release'i; append-only stok hareketi/audit kanıtı.
+- Aynı idempotency key + aynı istek için aynı sonucu, aynı key + farklı istek için 409 döndüren checkout taslağı.
+- `DRAFT` sipariş ve ürün/fiyat/varyant/adres snapshot'ları; OrderItem UPDATE/DELETE DB trigger koruması.
+- Alıcı sepet ve checkout ekranları, ürün detayında sepete ekleme, güvenli demo alıcı organizasyonu/adresleri.
+- Hedefli unit, gerçek PostgreSQL integration ve kritik Playwright E2E testleri.
 
 ### Dahil değil
 
-- Stok rezervasyonu, sepet, checkout, sipariş, ödeme, kargo, dropshipping, pazaryeri entegrasyonu.
-- Ayrı arama servisi, gelişmiş alaka/sıralama, tedarikçi favorisi/listeler ve background worker ölçeklemesi.
-- Kademe fiyat Faz 2B kullanıcısının açık kapsam listesinde yoktur; bu dilimde eklenmez.
-- Faz 3 veya sonrası ve Dockerfile/image build.
+- Canlı ödeme, manuel banka transferi onayı, mock ödeme tamamlama, RFQ.
+- Tedarikçi sipariş kabulü, kargo, iade veya stok rezervasyonunu satışa dönüştürme.
+- Çok tedarikçili sepet, kupon, kargo ücreti, checkout sonrası sipariş operasyon ekranları.
+- Faz 3B veya sonraki fazlar; Dockerfile/image build ve tam sistem regresyonu.
 
 ## Bağlayıcı kararlar
 
-- Son kullanıcı talimatı: yalnız Faz 2B listesi, hedefli kalite komutları, Dockerfile değişmedikçe image build yok.
-- `tasks/PHASE_02_CATALOG_INVENTORY.md`: negatif stok yasağı, org izolasyonu, satır bazlı import hatası, formula injection ve responsive katalog.
-- `DECISIONS.md` D-003/D-007/D-008: telefon aksesuarı demo verisi, CSV/XLSX pilot entegrasyonu, PostgreSQL modüler monolit.
-- `AGENTS.md`: stok hareketi hard-delete edilmez; kritik stok işlemi transaction/concurrency kontrollü; server-side deny-by-default RBAC.
+- `DECISIONS.md` D-006: tek sepet tek tedarikçi; ikinci tedarikçi server tarafında reddedilir.
+- Faz dosyası ve ürün şartnamesi: rezervasyon 15 dakika, negatif stok/oversell yok, checkout create idempotent, OrderItem snapshot immutable.
+- `AGENTS.md`: para integer minor unit, stok/checkout transaction ve concurrency korumalı, tüm org verisi server-side scope edilmiş, kritik hareket audit log üretir.
+- Son kullanıcı talimatı: yalnız hedefli kalite/test komutları; Dockerfile değişmedikçe image build yok.
 
 ## Teknik kararlar
 
-- Karar: Pilot stok kaydı varyant başına tek `Inventory` ve denormalize `supplierOrganizationId` taşır.
-- Gerekçe: Faz 2B depo/WMS kapsamı olmadan org-scope'u tek sorguda zorunlu kılar.
-- Alternatif: `InventoryLocation` ile çoklu depo; pilot için gereksiz karmaşıklık.
-- Sonuç: Sonraki depo fazı forward migration ile location ekleyebilir.
-
-- Karar: Stok ayarı transaction içinde version claim, immutable movement ve audit üretir; DB CHECK/trigger ek güvence sağlar.
-- Gerekçe: Negatif stok, kayıp ledger kaydı ve eşzamanlı overwrite engellenir.
-- Alternatif: Basit ORM update; concurrency ve ledger atomikliği zayıf.
-- Sonuç: İstemci güncel version göndermek zorundadır, conflict 409 döner.
-
-- Karar: Import önizlemesi normalize edilmiş JSON satırları ve hata listesini `ImportJob` içinde private DB verisi olarak tutar; confirm aynı job'ı yalnız bir kez transaction ile uygular.
-- Gerekçe: Dosyayı onaydan önce yazmama ve satır bazlı rapor koşullarını minimum altyapıyla karşılar.
-- Alternatif: Object storage + worker; pilot için gereksiz.
-- Sonuç: Dosya boyutu/satır sayısı sınırlandırılır, harici görsel URL fetch edilmez.
-
-- Karar: XLSX parse için sürdürülen bir çalışma kitabı kütüphanesi, CSV için küçük güvenli parser kullanılır; export yalnız CSV ve hücre başı `= + - @` nötrleştirmesi yapar.
-- Gerekçe: İstenen iki import biçimini desteklerken export yüzeyini dar tutar.
-- Alternatif: Kendi ZIP/XML XLSX parser'ı; güvenlik ve bakım riski.
-- Sonuç: Ek bağımlılık lockfile ile sabitlenir.
+- `Inventory.reserved` kalıcı sayaçtır; kullanılabilir stok `onHand - reserved - safetyStock` olarak hesaplanır. Rezervasyon claim'i PostgreSQL koşullu UPDATE içinde yapılır; iki checkout aynı stoğu aşamaz.
+- Sepet `buyerOrganizationId` ile unique ve `supplierOrganizationId` ile bağlıdır. Sepet boşalınca supplier temizlenir; farklı supplier ekleme 409 döner.
+- Tedarikçi minimum sipariş tutarı organizasyonda `minimumOrderAmountMinor` olarak tutulur ve DB CHECK ile negatif değer reddedilir.
+- Checkout isteği adres ID'lerini içerir; idempotency hash canonical istek gövdesinden SHA-256 ile üretilir. Başarılı checkout sepet satırlarını snapshot'a çevirip sepeti atomik olarak boşaltır; mevcut key kontrolü sepet okumadan önce yapılır.
+- Para hesapları BigInt tabanlı basis-point yuvarlamasıyla yapılır ve yalnız güvenli integer sınırında veritabanına yazılır.
+- Checkout ve Order adresleri JSON snapshot tutar; başka organizasyona ait adres ID'si tek scope'lu sorguda bulunamaz. Snapshotlar API loglarına/audit metadata'ya yazılmaz.
+- Süre dolumu aynı transaction içinde reservation status claim, reserved decrement, release movement ve checkout/order durum güncellemesi yapar; tekrar çağrı etkisizdir.
 
 ## Güvenlik ve veri etkisi
 
-- Bütün stok/import sorguları membership ve `supplierOrganizationId` ile tek sorguda scope edilir; yabancı ID 404 verir.
-- `on_hand >= 0`, `safety_stock >= 0`, `version >= 0` DB CHECK; movement UPDATE/DELETE trigger ile reddedilir.
-- Stok ayarında reason zorunlu, actor ve balance snapshot kaydedilir; audit metadata ürün metni/PII içermez.
-- Import yalnız `.csv/.xlsx`, küçük boyut ve sınırlı satır; formül hücreleri veri olarak ele alınır, çalıştırılmaz; export formula karakterlerini apostrofla kaçırır.
-- Önizleme kalıcı ürün/stok tablosuna yazmaz; confirm geçerli satırları bir transaction içinde işler ve tekrar confirm ikinci kez yazmaz.
-- Favoriler user-scoped unique kayıt; public ürün görünürlük şartı favori ekranında da yeniden uygulanır.
+- Sepet/checkout/adres/order sorguları aktif membership + buyer organization scope'u taşır; yabancı ID 404 döndürür.
+- Satın alma yetkisi OWNER, ORG_ADMIN ve ORDER_MANAGER ile sınırlıdır; supplier-only org checkout yapamaz.
+- DB CHECK'leri `reserved >= 0`, `reserved <= onHand` ve mevcut negatif stok korumalarını birlikte uygular.
+- Reservation/release append-only inventory movement ve kritik audit kayıtları üretir; PII/secret metadata'ya alınmaz.
+- OrderItem snapshot UPDATE/DELETE migration trigger'ı ile reddedilir; kaynak ürün daha sonra değişse de taslak satırı değişmez.
 
 ## Uygulama adımları
 
-- [x] Zorunlu belgeleri, Faz 2A checkpoint'ini ve mevcut katalog/RBAC kodunu incele.
-- [x] Faz 2B kapsam, güvenlik ve test yaklaşımını yaşayan plana yaz.
-- [x] Prisma modelleri, forward migration, generated client ve demo stok seed'ini ekle.
-- [x] Inventory domain servisi, org-scoped stok API'si ve tedarikçi stok ekranını ekle.
-- [x] Public uygunluk sorgusu, arama/filtre ve responsive UI'yı ekle.
-- [x] Favori API/buton ve alıcı favori ekranını ekle.
-- [x] Import önizleme/confirm, hata raporu, CSV export ve admin job ekranını ekle.
+- [x] Faz 2B checkpoint'ini, zorunlu belgeleri, şartnamenin ilgili bölümlerini ve mevcut stok/adres/RBAC kodunu incele.
+- [x] Faz 3A kapsam, transaction, idempotency ve test yaklaşımını yaşayan plana yaz.
+- [x] Prisma modelleri, forward migration ve generated client/seed güncellemesini ekle.
+- [x] Cart/checkout domain kuralları, atomik rezervasyon/release servisleri ve org-scoped API'leri ekle.
+- [x] Ürün detayına ekleme, alıcı sepet ve checkout ekranlarını ekle.
 - [x] Hedefli unit, integration ve kritik E2E testlerini yazıp çalıştır.
 - [x] İlgili lint/typecheck komutlarını çalıştır, hataları düzelt.
-- [x] `PROJECT_STATUS.md` ve bu planı kanıtlarla tamamla; Faz 3'e geçmeden dur.
-
-## Dosya değişiklikleri
-
-- `prisma/schema.prisma`, yeni `prisma/migrations/*`, `prisma/seed.ts`
-- `src/modules/inventory/**`, `src/modules/catalog/**`
-- `src/app/api/v1/organizations/**`, `src/app/api/v1/products/**`, `src/app/api/v1/favorites/**`, `src/app/api/v1/admin/imports/**`
-- `src/app/tedarikci/stok/**`, `src/app/tedarikci/import/**`, `src/app/panel/favoriler/**`, `src/app/admin/importlar/**`, katalog sayfaları/bileşenleri
-- `tests/unit/**`, `tests/integration/**`, `tests/e2e/**`
-- `.agent/execplan.md`, `PROJECT_STATUS.md`, gerektiği ölçüde `README.md`
+- [x] `PROJECT_STATUS.md` ve bu planı kanıtlarla tamamla; Faz 3B'ye geçmeden dur.
 
 ## Migration ve geri dönüş
 
-- Mevcut migration geçmişi değiştirilmeden yeni forward migration oluşturulur.
-- Demo varyantlara seed sırasında inventory upsert edilir; production migration otomatik stok uydurmaz.
-- Geri dönüş uygulama deploy'unu önceki commit'e almak ve yeni tabloları veri saklama kararı sonrası ayrı forward migration ile kaldırmaktır; immutable hareket verisi otomatik silinmez.
+- Mevcut migration dosyaları değiştirilmeden tek forward Faz 3A migration'ı oluşturulur.
+- Migration mevcut inventory satırlarına `reserved = 0`, organizasyonlara minimum tutar `0` verir; veri kaybı yoktur.
+- Rollback uygulamayı önceki checkpoint'e almak ve rezervasyon/sipariş verisi için saklama kararı sonrası ayrı forward migration kullanmaktır; immutable hareket veya sipariş satırı otomatik silinmez.
 
 ## Test planı
 
-- Birim: availability/negatif stok, CSV formula injection, CSV/XLSX satır doğrulama ve önizleme kuralları.
-- Entegrasyon: gerçek PostgreSQL'de org BOLA, negatif/concurrent version, immutable movement, public uygunluk/filtre, favorite scope, preview-before-write/idempotent confirm, admin job RBAC.
-- E2E: stok güncelleme; arama/filtre; favori; CSV import önizleme/hata/onay temel akışları, 360 px kontrol.
-- Kalite: yalnız ilgili ESLint dosyaları, global strict typecheck (script granüler değil), hedefli Vitest dosyaları ve hedefli Playwright spec.
-
-## Kabul kriterleri
-
-- Başka tedarikçinin stok veya ürününü ID değiştirerek değiştirme 404 ile engellenir.
-- Negatif stok application ve PostgreSQL seviyesinde oluşamaz; stok ayarı immutable movement ve audit üretir.
-- Public katalog yalnız aktif, doğrulanmış ve kullanılabilir stoğu olan ürün/varyantları gösterir.
-- Arama, kategori, marka, fiyat aralığı ve stok filtresi birlikte çalışır.
-- Kullanıcı ürün favorileyip kaldırabilir; başka kullanıcının favorisine erişemez.
-- Import önizlemeden önce ürün/stok yazmaz; satır hatalarını ayrı raporlar; confirm idempotenttir.
-- CSV export formula injection güvenlidir.
-- Admin import jobs ekranına yetkisiz erişemez.
-- Hedefli lint, typecheck, unit, integration ve kritik E2E başarılıdır; responsive temel akışta yatay taşma yoktur.
+- Unit: MOQ/quantity-step, tek supplier, minimum tutar ve BigInt KDV/toplam hesapları.
+- Integration: org BOLA/adres scope, başka supplier ve geçersiz miktar reddi, idempotency same/different body, eşzamanlı oversell engeli, expiry/manual release idempotency, immutable OrderItem snapshot.
+- E2E: ürün detayından sepete ekleme, miktar/sepet görünümü, adresli checkout taslağı ve rezervasyon/release; masaüstü ve kritik 360 px görünüm.
+- Kalite: yalnız değişen/ilgili dosyalarda ESLint, global strict typecheck, hedefli Vitest ve hedefli Playwright spec.
 
 ## İlerleme günlüğü
 
-- 2026-07-20 18:20 +03:00:
-  - Yapılan: Faz 2A checkpoint/temiz ağaç, zorunlu belgeler, şartname katalog-stok/import/güvenlik bölümleri ve kabul matrisi incelendi; Faz 2B tasarımı sınırlandı.
-  - Kanıt: `git log -1` = `2fe3601`; başlangıç `git status --short` boş; belge ve mevcut Prisma/API/UI/test yüzeyi okundu.
-  - Sonraki: Forward schema/migration ve stok domainini uygulamak.
-- 2026-07-20 18:35 +03:00:
-  - Yapılan: Inventory/movement/favorite/import modelleri, DB CHECK/append-only trigger/trigram index forward migration'ı, stok servisi/API/UI, public availability ve filtreler, favori akışı, CSV/XLSX preview-confirm/export ve admin job ekranı eklendi.
-  - Kanıt: `prisma validate` ve generate başarılı; `20260720184000_phase_02b_inventory_discovery` gerçek PostgreSQL'e uygulandı; seed demo stoklarıyla başarılı.
-  - Sonraki: Hedefli testleri tamamlamak ve güvenlik incelemesi yapmak.
-- 2026-07-20 18:53 +03:00:
-  - Yapılan: Unit/integration/E2E testleri tamamlandı; public API response allowlist ile PII ve safety-stock sızıntısı kapatıldı; XLSX ZIP açılım sınırı eklendi; önceki katalog testleri yeni stok görünürlüğüne uyarlandı.
-  - Kanıt: hedefli lint ve strict typecheck başarılı; unit 8/8; Faz 2A+2B integration 6/6, son güvenlik turu 3/3; Playwright masaüstü+360 px 6/6; frozen lockfile offline, Prisma validate ve `git diff --check` başarılı; secret imzası yok.
-  - Sonraki: Faz 3'e geçmeden kullanıcıya teslim etmek.
-
-## Sürprizler ve öğrenilenler
-
-- Aktif faz dosyası tüm Faz 2'yi içeriyor; kullanıcı kademe fiyatı bu ikinci yarının açık listesine almadığından bağlayıcı son talimata göre kapsam dışı bırakıldı.
-- `exceljs@4.4.0` resmi upstream'in kararlı latest etiketi olarak doğrulandı; yerel TLS zinciri pnpm registry doğrulamasını engellediği için yalnız tek install çağrısında kalıcı ayar bırakmadan strict-ssl kapatıldı.
-- İlk E2E koşusu `.env.example` localhost ile Playwright `127.0.0.1` origin farkı yüzünden auth katmanında başlamadan 6 testte durdu; yalnız test sürecinde APP_URL eşitlenince 6/6 geçti.
-- Final incelemede ortak public sorgu sonucunun doğrudan JSON'a verilmesiyle oluşabilecek organization scalar/safety-stock sızıntısı bulundu ve explicit response allowlist + bağımsız integration assertion ile düzeltildi.
+- 2026-07-20:
+  - Yapılan: Faz 2B checkpoint/temiz ağaç, zorunlu belgeler, Faz 3 görev dosyası ve şartnamenin sepet/checkout/rezervasyon/idempotency/snapshot bölümleri incelendi; Faz 3A tasarımı sınırlandı.
+  - Kanıt: `git log -1` = `4497d51`; başlangıç `git status --short` boş; mevcut Prisma, stok, adres ve UI yüzeyi okundu.
+  - Sonraki: Forward schema/migration ve domain servislerini uygulamak.
+- 2026-07-20 20:00 +03:00:
+  - Yapılan: Cart/checkout/reservation/order şeması ve forward migration, atomik servis/API'ler, alıcı sepet/checkout UI'sı, demo alıcı/adres seed'i ve hedefli testler eklendi.
+  - Kanıt: Prisma validate/generate başarılı; migration PostgreSQL'e uygulandı; seed başarılı; hedefli lint/typecheck ve unit 3/3 geçti.
+  - Sonraki: PostgreSQL concurrency/idempotency testini ve kritik E2E'yi tamamlamak.
+- 2026-07-20 20:10 +03:00:
+  - Yapılan: PostgreSQL serializable çatışmasının genel 500 dönmesi bulundu ve güvenli 409 eşlemesiyle düzeltildi; entegrasyon/E2E tamamlandı; belgeler kapatıldı.
+  - Kanıt: integration 3/3; Playwright desktop+360 px 2/2; `prisma migrate status` güncel, idempotent Faz 3A seed başarılı; final hedefli lint/typecheck başarılı; `git diff --check` başarılı.
+  - Sonraki: Faz 3B'ye geçmeden kullanıcıya teslim etmek.
 
 ## Sonuç
 
-Faz 2B pilot dilimi tamamlandı. Tedarikçi org-scoped ve optimistic version kontrollü stok yönetebilir; movement/audit append-only kanıtı oluşur; public katalog yalnız satışa uygun ve safety stock üstü ürünleri arama/filtreyle sunar; kullanıcı favori yönetir; CSV/XLSX import önce önizleme ve satır hatası üretip açık onayla idempotent uygulanır; CSV export formula-injection güvenlidir; admin import işlerini görür. Stok rezervasyonu, kademe fiyat, sepet ve Faz 3+ bilinçli olarak yoktur. Dockerfile değişmedi ve kullanıcı talimatıyla image build/tam regresyon çalıştırılmadı.
+Faz 3A tamamlandı. Tek tedarikçili sepet, adresli checkout taslağı, 15 dakikalık atomik rezervasyon/release, idempotent create ve immutable sipariş snapshot'ları çalışır. Faz 3B özellikleri bilinçli olarak kapsam dışıdır.

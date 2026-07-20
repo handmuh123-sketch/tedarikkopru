@@ -63,6 +63,12 @@ async function main() {
   });
 
   await database.systemSetting.upsert({
+    where: { key: "orders.version" },
+    update: { value: { phase: "3A", status: "ready" } },
+    create: { key: "orders.version", value: { phase: "3A", status: "ready" } },
+  });
+
+  await database.systemSetting.upsert({
     where: { key: "catalog.version" },
     update: { value: { phase: "2B", status: "ready" } },
     create: { key: "catalog.version", value: { phase: "2B", status: "ready" } },
@@ -140,6 +146,7 @@ async function main() {
       status: "ACTIVE",
       verificationStatus: "APPROVED",
       verifiedAt: new Date(),
+      minimumOrderAmountMinor: 50_000,
     },
     create: {
       type: "SUPPLIER",
@@ -153,6 +160,7 @@ async function main() {
       email: "tedarikci@demo.tedarikkopru.local",
       sector: "Telefon aksesuarları",
       authorizedPerson: "Demo Tedarikçi",
+      minimumOrderAmountMinor: 50_000,
       status: "ACTIVE",
       verificationStatus: "APPROVED",
       verifiedAt: new Date(),
@@ -177,6 +185,90 @@ async function main() {
       joinedAt: new Date(),
     },
   });
+
+  const buyerUser = await database.user.findUniqueOrThrow({
+    where: { email: "alici@demo.tedarikkopru.local" },
+  });
+  const buyer = await database.organization.upsert({
+    where: { slug: "demo-mobil-magaza" },
+    update: {
+      status: "ACTIVE",
+      verificationStatus: "APPROVED",
+      verifiedAt: new Date(),
+    },
+    create: {
+      type: "RESELLER",
+      legalName: "Demo Mobil Mağaza Limited Şirketi",
+      tradeName: "Demo Mobil Mağaza",
+      slug: "demo-mobil-magaza",
+      taxNumberEncrypted: encryptSensitive("8888888888"),
+      taxNumberHash: keyedHash("tax:8888888888"),
+      taxOffice: "Beşiktaş",
+      phone: "+90 212 555 0303",
+      email: "alici@demo.tedarikkopru.local",
+      sector: "Telefon aksesuarı perakendesi",
+      authorizedPerson: "Demo Alıcı",
+      status: "ACTIVE",
+      verificationStatus: "APPROVED",
+      verifiedAt: new Date(),
+      verificationApplications: {
+        create: {
+          status: "APPROVED",
+          riskFlags: [],
+          submittedAt: new Date(),
+          reviewedAt: new Date(),
+        },
+      },
+    },
+  });
+  await database.organizationMembership.upsert({
+    where: { organizationId_userId: { organizationId: buyer.id, userId: buyerUser.id } },
+    update: { role: "OWNER", status: "ACTIVE", joinedAt: new Date() },
+    create: {
+      organizationId: buyer.id,
+      userId: buyerUser.id,
+      role: "OWNER",
+      status: "ACTIVE",
+      joinedAt: new Date(),
+    },
+  });
+  const demoAddresses = [
+    {
+      type: "WAREHOUSE" as const,
+      title: "Demo Teslimat Deposu",
+      contactName: "Demo Alıcı",
+      phone: "+90 212 555 0303",
+      city: "İstanbul",
+      district: "Beşiktaş",
+      neighborhood: "Levent",
+      postalCode: "34330",
+      line1: "Büyükdere Caddesi No: 1",
+      isDefault: true,
+    },
+    {
+      type: "BILLING" as const,
+      title: "Demo Fatura Adresi",
+      contactName: "Demo Alıcı",
+      phone: "+90 212 555 0303",
+      city: "İstanbul",
+      district: "Beşiktaş",
+      neighborhood: "Levent",
+      postalCode: "34330",
+      line1: "Büyükdere Caddesi No: 1 Kat: 2",
+      isDefault: true,
+    },
+  ];
+  for (const address of demoAddresses) {
+    const existingAddress = await database.address.findFirst({
+      where: { organizationId: buyer.id, type: address.type, title: address.title },
+      select: { id: true },
+    });
+    if (existingAddress) {
+      await database.address.update({ where: { id: existingAddress.id }, data: address });
+    } else {
+      await database.address.create({ data: { organizationId: buyer.id, ...address } });
+    }
+  }
 
   const mobileCategory = await database.category.upsert({
     where: { slug: "telefon-aksesuarlari" },
@@ -403,7 +495,7 @@ async function main() {
 
 try {
   await main();
-  console.info("Faz 2B teknik ayarlar, katalog ve güvenli demo stok seed'i tamamlandı.");
+  console.info("Faz 3A teknik ayarlar, katalog ve güvenli alıcı/tedarikçi demo seed'i tamamlandı.");
 } finally {
   await database.$disconnect();
 }

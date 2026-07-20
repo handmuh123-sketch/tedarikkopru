@@ -126,6 +126,24 @@ enum ProductVariantStatus {
 enum InventoryMovementType {
   ADJUSTMENT
   IMPORT
+  RESERVATION
+  RESERVATION_RELEASE
+}
+
+enum CheckoutStatus {
+  DRAFT
+  EXPIRED
+  CANCELLED
+}
+
+enum StockReservationStatus {
+  ACTIVE
+  RELEASED
+}
+
+enum OrderStatus {
+  DRAFT
+  CANCELLED
 }
 
 enum ImportJobType {
@@ -245,6 +263,7 @@ model Organization {
   email                    String                    @db.VarChar(320)
   sector                   String?                   @db.VarChar(120)
   authorizedPerson         String                    @map("authorized_person") @db.VarChar(120)
+  minimumOrderAmountMinor  Int                       @default(0) @map("minimum_order_amount_minor")
   status                   OrganizationStatus        @default(ONBOARDING)
   verificationStatus       VerificationStatus        @default(DRAFT) @map("verification_status")
   verifiedAt               DateTime?                 @map("verified_at") @db.Timestamptz(3)
@@ -261,6 +280,12 @@ model Organization {
   productVariants          ProductVariant[]
   inventories              Inventory[]
   importJobs               ImportJob[]
+  buyerCart                Cart?                     @relation("BuyerCart")
+  suppliedCarts            Cart[]                    @relation("SupplierCarts")
+  buyerCheckouts           Checkout[]                @relation("BuyerCheckouts")
+  supplierCheckouts        Checkout[]                @relation("SupplierCheckouts")
+  buyerOrders              Order[]                   @relation("BuyerOrders")
+  supplierOrders           Order[]                   @relation("SupplierOrders")
 
   @@index([type, verificationStatus])
   @@index([status, updatedAt])
@@ -489,6 +514,7 @@ model ProductVariant {
   supplierOrganization   Organization         @relation(fields: [supplierOrganizationId], references: [id], onDelete: Restrict)
   images                 ProductImage[]
   inventory              Inventory?
+  cartItems              CartItem[]
 
   @@unique([supplierOrganizationId, sku])
   @@unique([id, supplierOrganizationId])
@@ -519,12 +545,14 @@ model Inventory {
   variantId              String              @unique @map("variant_id") @db.VarChar(36)
   supplierOrganizationId String              @map("supplier_organization_id") @db.VarChar(36)
   onHand                 Int                 @default(0) @map("on_hand")
+  reserved               Int                 @default(0)
   safetyStock            Int                 @default(0) @map("safety_stock")
   version                Int                 @default(0)
   updatedAt              DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
   variant                ProductVariant      @relation(fields: [variantId, supplierOrganizationId], references: [id, supplierOrganizationId], onDelete: Restrict)
   supplierOrganization   Organization        @relation(fields: [supplierOrganizationId], references: [id], onDelete: Restrict)
   movements              InventoryMovement[]
+  reservations           StockReservation[]
 
   @@unique([variantId, supplierOrganizationId])
   @@index([supplierOrganizationId, updatedAt])
@@ -539,13 +567,15 @@ model InventoryMovement {
   quantityDelta    Int                   @map("quantity_delta")
   balanceAfter     Int                   @map("balance_after")
   safetyStockAfter Int                   @map("safety_stock_after")
+  reservedDelta    Int                   @default(0) @map("reserved_delta")
+  reservedAfter    Int                   @default(0) @map("reserved_after")
   referenceType    String?               @map("reference_type") @db.VarChar(60)
   referenceId      String?               @map("reference_id") @db.VarChar(80)
   reason           String                @db.VarChar(240)
-  actorUserId      String                @map("actor_user_id") @db.VarChar(36)
+  actorUserId      String?               @map("actor_user_id") @db.VarChar(36)
   createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
   inventory        Inventory             @relation(fields: [inventoryId], references: [id], onDelete: Restrict)
-  actorUser        User                  @relation("InventoryMovementActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  actorUser        User?                 @relation("InventoryMovementActor", fields: [actorUserId], references: [id], onDelete: SetNull)
 
   @@index([inventoryId, createdAt])
   @@index([actorUserId, createdAt])
@@ -588,4 +618,128 @@ model ImportJob {
   @@index([organizationId, createdAt])
   @@index([status, createdAt])
   @@map("import_jobs")
+}
+
+model Cart {
+  id                     String        @id @default(cuid()) @db.VarChar(36)
+  buyerOrganizationId    String        @unique @map("buyer_organization_id") @db.VarChar(36)
+  supplierOrganizationId String?       @map("supplier_organization_id") @db.VarChar(36)
+  currency               String        @default("TRY") @db.Char(3)
+  createdAt              DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  buyerOrganization      Organization  @relation("BuyerCart", fields: [buyerOrganizationId], references: [id], onDelete: Restrict)
+  supplierOrganization   Organization? @relation("SupplierCarts", fields: [supplierOrganizationId], references: [id], onDelete: Restrict)
+  items                  CartItem[]
+
+  @@index([supplierOrganizationId])
+  @@map("carts")
+}
+
+model CartItem {
+  id                  String         @id @default(cuid()) @db.VarChar(36)
+  cartId              String         @map("cart_id") @db.VarChar(36)
+  variantId           String         @map("variant_id") @db.VarChar(36)
+  quantity            Int
+  addedUnitPriceMinor Int            @map("added_unit_price_minor")
+  createdAt           DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  cart                Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variant             ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+
+  @@unique([cartId, variantId])
+  @@index([variantId])
+  @@map("cart_items")
+}
+
+model Checkout {
+  id                      String             @id @default(cuid()) @db.VarChar(36)
+  buyerOrganizationId     String             @map("buyer_organization_id") @db.VarChar(36)
+  supplierOrganizationId  String             @map("supplier_organization_id") @db.VarChar(36)
+  status                  CheckoutStatus     @default(DRAFT)
+  idempotencyKey          String             @map("idempotency_key") @db.VarChar(128)
+  requestHash             String             @map("request_hash") @db.VarChar(64)
+  currency                String             @default("TRY") @db.Char(3)
+  subtotalAmountMinor     Int                @map("subtotal_amount_minor")
+  vatAmountMinor          Int                @map("vat_amount_minor")
+  totalAmountMinor        Int                @map("total_amount_minor")
+  deliveryAddressSnapshot Json               @map("delivery_address_snapshot")
+  invoiceAddressSnapshot  Json               @map("invoice_address_snapshot")
+  expiresAt               DateTime           @map("expires_at") @db.Timestamptz(3)
+  createdAt               DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt               DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  buyerOrganization       Organization       @relation("BuyerCheckouts", fields: [buyerOrganizationId], references: [id], onDelete: Restrict)
+  supplierOrganization    Organization       @relation("SupplierCheckouts", fields: [supplierOrganizationId], references: [id], onDelete: Restrict)
+  reservations            StockReservation[]
+  order                   Order?
+
+  @@unique([buyerOrganizationId, idempotencyKey])
+  @@index([buyerOrganizationId, status, expiresAt])
+  @@index([supplierOrganizationId, createdAt])
+  @@map("checkouts")
+}
+
+model StockReservation {
+  id          String                 @id @default(cuid()) @db.VarChar(36)
+  checkoutId  String                 @map("checkout_id") @db.VarChar(36)
+  inventoryId String                 @map("inventory_id") @db.VarChar(36)
+  quantity    Int
+  status      StockReservationStatus @default(ACTIVE)
+  expiresAt   DateTime               @map("expires_at") @db.Timestamptz(3)
+  releasedAt  DateTime?              @map("released_at") @db.Timestamptz(3)
+  createdAt   DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  checkout    Checkout               @relation(fields: [checkoutId], references: [id], onDelete: Restrict)
+  inventory   Inventory              @relation(fields: [inventoryId], references: [id], onDelete: Restrict)
+
+  @@unique([checkoutId, inventoryId])
+  @@index([status, expiresAt])
+  @@index([inventoryId, status])
+  @@map("stock_reservations")
+}
+
+model Order {
+  id                      String       @id @default(cuid()) @db.VarChar(36)
+  publicNumber            String       @unique @map("public_number") @db.VarChar(32)
+  checkoutId              String       @unique @map("checkout_id") @db.VarChar(36)
+  buyerOrganizationId     String       @map("buyer_organization_id") @db.VarChar(36)
+  supplierOrganizationId  String       @map("supplier_organization_id") @db.VarChar(36)
+  status                  OrderStatus  @default(DRAFT)
+  currency                String       @default("TRY") @db.Char(3)
+  subtotalAmountMinor     Int          @map("subtotal_amount_minor")
+  vatAmountMinor          Int          @map("vat_amount_minor")
+  totalAmountMinor        Int          @map("total_amount_minor")
+  deliveryAddressSnapshot Json         @map("delivery_address_snapshot")
+  invoiceAddressSnapshot  Json         @map("invoice_address_snapshot")
+  createdAt               DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt               DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  checkout                Checkout     @relation(fields: [checkoutId], references: [id], onDelete: Restrict)
+  buyerOrganization       Organization @relation("BuyerOrders", fields: [buyerOrganizationId], references: [id], onDelete: Restrict)
+  supplierOrganization    Organization @relation("SupplierOrders", fields: [supplierOrganizationId], references: [id], onDelete: Restrict)
+  items                   OrderItem[]
+
+  @@index([buyerOrganizationId, createdAt])
+  @@index([supplierOrganizationId, createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id                   String   @id @default(cuid()) @db.VarChar(36)
+  orderId              String   @map("order_id") @db.VarChar(36)
+  sourceProductId      String   @map("source_product_id") @db.VarChar(36)
+  sourceVariantId      String   @map("source_variant_id") @db.VarChar(36)
+  productTitleSnapshot String   @map("product_title_snapshot") @db.VarChar(180)
+  variantTitleSnapshot String   @map("variant_title_snapshot") @db.VarChar(160)
+  skuSnapshot          String   @map("sku_snapshot") @db.VarChar(80)
+  optionValuesSnapshot Json     @map("option_values_snapshot")
+  imageSnapshot        Json?    @map("image_snapshot")
+  quantity             Int
+  unitPriceAmountMinor Int      @map("unit_price_amount_minor")
+  subtotalAmountMinor  Int      @map("subtotal_amount_minor")
+  vatRateBasisPoints   Int      @map("vat_rate_basis_points")
+  vatAmountMinor       Int      @map("vat_amount_minor")
+  totalAmountMinor     Int      @map("total_amount_minor")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  order                Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@map("order_items")
 }

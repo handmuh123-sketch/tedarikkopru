@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FavoriteButton } from "@/components/catalog/favorite-button";
+import { AddToCartForm } from "@/components/orders/add-to-cart-form";
 import { getPageUser } from "@/lib/auth/page-session";
 import { database } from "@/lib/db/client";
 import { findPublicProductBySlug } from "@/modules/catalog/application/public-catalog";
@@ -24,6 +25,24 @@ export default async function ProductDetailPage({ params }: Props) {
         }),
       )
     : false;
+  const buyerMembership = pageUser
+    ? await database.organizationMembership.findFirst({
+        where: {
+          userId: pageUser.user.id,
+          status: "ACTIVE",
+          role: { in: ["OWNER", "ORG_ADMIN", "ORDER_MANAGER"] },
+          organization: {
+            type: { in: ["RESELLER", "BOTH"] },
+            status: "ACTIVE",
+            verificationStatus: "APPROVED",
+          },
+        },
+        include: {
+          organization: { include: { buyerCart: { select: { supplierOrganizationId: true } } } },
+        },
+        orderBy: { createdAt: "asc" },
+      })
+    : null;
   const image = product.images[0];
   return (
     <main id="ana-icerik" className="catalog-page" tabIndex={-1}>
@@ -58,9 +77,35 @@ export default async function ProductDetailPage({ params }: Props) {
           <p>KDV hariç temel toptan fiyat · Para birimi {variant.currency}</p>
           <p>
             Kullanılabilir stok:{" "}
-            {availableStock(variant.inventory!.onHand, variant.inventory!.safetyStock)} adet
+            {availableStock(
+              variant.inventory!.onHand,
+              variant.inventory!.safetyStock,
+              variant.inventory!.reserved,
+            )}{" "}
+            adet
           </p>
           <FavoriteButton productId={product.id} initial={favorite} />
+          {buyerMembership ? (
+            <AddToCartForm
+              organizationId={buyerMembership.organizationId}
+              variantId={variant.id}
+              moq={variant.moq}
+              quantityStep={variant.quantityStep}
+              supplierConflict={Boolean(
+                buyerMembership.organization.buyerCart?.supplierOrganizationId &&
+                buyerMembership.organization.buyerCart.supplierOrganizationId !==
+                  product.supplierOrganizationId,
+              )}
+            />
+          ) : pageUser ? (
+            <p className="form-help">
+              Sepet için onaylı bir alıcı işletmesi ve satın alma yetkisi gerekir.
+            </p>
+          ) : (
+            <Link className="button button-primary" href="/giris">
+              Sepete eklemek için giriş yap
+            </Link>
+          )}
           <dl className="product-specs">
             <dt>Minimum sipariş</dt>
             <dd>{variant.moq} adet</dd>

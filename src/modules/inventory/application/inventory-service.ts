@@ -56,6 +56,7 @@ export async function adjustInventoryInTransaction(
         quantityDelta: input.onHand,
         balanceAfter: input.onHand,
         safetyStockAfter: input.safetyStock,
+        reservedAfter: 0,
         referenceType: input.referenceType ?? null,
         referenceId: input.referenceId ?? null,
         reason: input.reason,
@@ -64,6 +65,14 @@ export async function adjustInventoryInTransaction(
     });
     await writeInventoryAudit(transaction, input, variant.sku, 0, created.version);
     return created;
+  }
+
+  if (input.onHand < current.reserved) {
+    throw new HttpError(
+      409,
+      "Fiziksel stok aktif rezervasyonların altına indirilemez.",
+      "ACTIVE_RESERVATION_CONFLICT",
+    );
   }
 
   const claimed = await transaction.inventory.updateMany({
@@ -93,6 +102,7 @@ export async function adjustInventoryInTransaction(
       quantityDelta: input.onHand - current.onHand,
       balanceAfter: input.onHand,
       safetyStockAfter: input.safetyStock,
+      reservedAfter: current.reserved,
       referenceType: input.referenceType ?? null,
       referenceId: input.referenceId ?? null,
       reason: input.reason,

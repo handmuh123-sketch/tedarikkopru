@@ -133,7 +133,11 @@ export default async function ProductsPage({ searchParams }: Props) {
         {products.map((product) => {
           const variant = product.variants[0]!;
           const image = product.images[0];
-          const stock = availableStock(variant.inventory!.onHand, variant.inventory!.safetyStock);
+          const stock = availableStock(
+            variant.inventory!.onHand,
+            variant.inventory!.safetyStock,
+            variant.inventory!.reserved,
+          );
           return (
             <article className="product-card" key={product.id}>
               <Link href={`/urunler/${product.slug}`}>

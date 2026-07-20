@@ -1,12 +1,19 @@
 # PROJECT STATUS
 
-**Durum:** Faz 2B hızlı stok ve katalog keşfi pilotu tamamlandı
+**Durum:** Faz 3A hızlı tek tedarikçili sepet ve checkout taslağı pilotu tamamlandı
 
-**Aktif faz:** Faz 2B — Stok, keşif, favori ve dosya import/export (Faz 3 başlatılmadı)
+**Aktif faz:** Faz 3A — Sepet, checkout taslağı ve stok rezervasyonu (Faz 3B başlatılmadı)
 
-**Son güncelleme:** 20 Temmuz 2026, 18:55 +03:00
+**Son güncelleme:** 20 Temmuz 2026, 20:10 +03:00
 
 ## Tamamlananlar
+
+- Alıcı organizasyonu başına tek sepet ve tek tedarikçi kuralı UI + org-scoped API tarafında tamamlandı; ürün ekleme, miktar güncelleme ve silme MOQ/quantity-step doğrulamasıyla çalışır.
+- `Cart`, `CartItem`, `Checkout`, `StockReservation`, `Order` ve immutable `OrderItem` snapshot modelleri forward migration ile eklendi; tedarikçi minimum sipariş tutarı integer minor unit olarak saklanır.
+- Kullanılabilir stok hesabı `onHand - reserved - safetyStock` oldu. 15 dakikalık rezervasyon PostgreSQL koşullu UPDATE ve serializable transaction ile atomik claim edilir; expiry/manual release sayaç, append-only movement ve audit'i birlikte günceller.
+- Checkout create `Idempotency-Key` ister; aynı key + aynı adres isteği aynı checkout/sipariş sonucunu, farklı gövde 409 döndürür.
+- Teslimat/fatura adresleri yalnız alıcı organizasyonu scope'undan seçilir ve siparişe snapshot olarak yazılır; OrderItem UPDATE/DELETE DB trigger ile reddedilir.
+- `/panel/sepet`, `/panel/checkout` ve ürün detayında sepete ekleme ekranları responsive olarak tamamlandı; demo alıcı işletmesi, teslimat/fatura adresleri ve minimum sipariş tutarı seed'e eklendi.
 
 - `Inventory`, immutable `InventoryMovement`, `ProductFavorite` ve önizleme kapılı `ImportJob` modelleri yeni forward migration ile eklendi.
 - Negatif stok/safety stock için application + PostgreSQL CHECK, stok hareketi UPDATE/DELETE yasağı için DB trigger ve optimistic `version` claim tamamlandı.
@@ -45,6 +52,9 @@
 
 ## Çalışan özellikler
 
+- `/urunler/[slug]` üzerinden tek tedarikçili sepete ekleme; `/panel/sepet` miktar güncelleme/silme ve minimum tutar özeti.
+- `/panel/checkout` üzerinden teslimat/fatura adresi seçimi, 15 dakikalık stok rezervasyonu, `DRAFT` sipariş snapshot'ı ve rezervasyon release'i.
+
 - `/tedarikci/stok` stok ve safety stock yönetimi; `/tedarikci/import` CSV/XLSX önizleme/onay ve güvenli CSV export.
 - `/urunler` üzerinde arama/kategori/marka/fiyat/stok filtresi; `/panel/favoriler` kullanıcı favorileri.
 - `/admin/importlar` platform katalog admini import iş kuyruğu.
@@ -66,6 +76,13 @@
 - Lint, format, strict typecheck, unit, integration, E2E ve production build kalite komutları.
 
 ## Doğrulama özeti
+
+- Faz 3A hedefli ESLint ve global strict TypeScript typecheck başarılı.
+- Faz 3A unit: 1 dosya, 3 test başarılı; MOQ/quantity-step, BigInt minor-unit KDV/toplam yuvarlaması, integer sınırı ve minimum sipariş dahil.
+- Gerçek PostgreSQL integration: 1 dosya, 3 test başarılı. Org BOLA/RBAC, tek tedarikçi, adres scope, minimum tutar, aynı/farklı gövdede idempotency, immutable OrderItem, expiry release idempotency ve eşzamanlı oversell (1 başarı/1 güvenli 409) doğrulandı.
+- Kritik Playwright: sistem Chrome kanalıyla masaüstü ve 360 px mobilde 2/2 başarılı; ürün ekleme → sepet → adresli checkout taslağı → ACTIVE rezervasyon → release akışı ve yatay taşma kontrolü geçti.
+- `20260720213000_phase_03a_cart_checkout_reservation` dahil 6 migration PostgreSQL'de güncel; Faz 3A seed'i başarılı ve tekrar çalıştırılabilir.
+- Dockerfile değişmedi; FAST PILOT talimatına göre Docker image build, production build ve tam sistem regresyonu çalıştırılmadı.
 
 - Faz 2B hedefli ESLint ve global strict TypeScript typecheck başarılı.
 - Faz 2B unit: 1 dosya, 8 test başarılı; availability/negatif sınır, CSV/XLSX parse, satır hata ayrımı ve beş formula-injection başlangıcı dahil.
@@ -105,7 +122,8 @@
 - MinIO'nun güvenlik yamalı son release'i resmi prebuilt image sunmadığı için ilk development build'i kaynak koddan yapılır ve bu makinede yaklaşık 11 dakika sürdü.
 - CSP şu an Faz 0 statik UI uyumluluğu için `style-src 'unsafe-inline'` içerir. Nonce/hash tabanlı sıkılaştırma sonraki UI güvenlik çalışmasında ele alınmalıdır; bu incelemede kapsam dışı karmaşıklık yaratmamak için değiştirilmedi.
 - `pnpm audit` yerel TLS zincirinde `UNABLE_TO_VERIFY_LEAF_SIGNATURE` ile tamamlanamadı; bu sonuç “açık yok” olarak yorumlanmadı ve CI/kurumsal güvenilir CA ortamında yeniden çalıştırılmalıdır.
-- Stok rezervasyonu, kademe fiyat, sepet, sipariş, ödeme, kargo, dropshipping ve pazaryeri entegrasyonları bilinçli olarak yoktur; Faz 3+ başlatılmadı.
+- Rezervasyonu satışa dönüştürme, canlı/mock ödeme, manuel banka transferi onayı, RFQ, tedarikçi sipariş kabulü, kargo, iade, dropshipping ve pazaryeri entegrasyonları bilinçli olarak yoktur; Faz 3B+ başlatılmadı.
+- Süresi dolmuş rezervasyonlar pilotta sepet/checkout erişiminde ve checkout oluşturmadan önce lazy release edilir; sürekli çalışan production scheduler/worker Faz 3A kapsamı dışındadır.
 - Import pilotu tek process içinde request-time parse/confirm kullanır; background worker, object-storage dosya saklama ve büyük batch ölçeklemesi kapsam dışıdır. Harici görsel URL'leri fetch edilmez.
 - Public arama temel PostgreSQL `ILIKE`/trigram indeks yaklaşımıdır; gelişmiş relevance, typo tolerance veya ayrı arama servisi yoktur.
 - ExcelJS 4.4.0 resmi upstream kararlı latest sürümüdür ancak eski transitive paketler için pnpm uyarıları vardır; kurumsal CA ortamında `pnpm audit` ayrıca çalıştırılmalıdır.
@@ -118,6 +136,6 @@
 
 ## Önerilen sonraki faz
 
-Yeni bir kullanıcı talimatıyla Faz 3 sepet, checkout ve mock ödeme ele alınabilir. Stok rezervasyonu bu ticaret akışıyla birlikte atomik/idempotent tasarlanmalıdır. Bu çalışmada Faz 3'e geçilmedi.
+Yeni ve açık bir kullanıcı talimatıyla Faz 3B ele alınabilir. RFQ, mock ödeme tamamlama veya manuel banka transferi ve tedarikçi sipariş kabulü mevcut immutable taslak/idempotency/rezervasyon temeli üzerine eklenmelidir. Bu çalışmada Faz 3B'ye geçilmedi.
 
 > Codex her faz sonunda bu dosyayı gerçek durumla güncellemelidir.

@@ -68,7 +68,7 @@ export default async function SupplierInventoryPage() {
               <h2>{variant.product.title}</h2>
               <p>SKU {variant.sku}</p>
               <p>
-                Kullanılabilir: <strong>{availableStock(onHand, safetyStock)}</strong> adet
+                Kullanılabilir: <strong>{availableStock(onHand, safetyStock, variant.inventory?.reserved ?? 0)}</strong> adet
               </p>
               <StockAdjustmentForm
                 organizationId={membership!.organizationId}

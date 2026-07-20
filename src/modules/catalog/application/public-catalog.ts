@@ -2,6 +2,7 @@ import "server-only";
 
 import { Prisma } from "@/generated/prisma/client";
 import { database } from "@/lib/db/client";
+import { availableStock } from "@/modules/inventory/domain/inventory-rules";
 
 export type CatalogFilters = {
   query?: string | undefined;
@@ -83,7 +84,13 @@ export async function findPublicProducts(filters: CatalogFilters = {}) {
     .map((product) => ({
       ...product,
       variants: product.variants.filter(
-        (variant) => variant.inventory && variant.inventory.onHand > variant.inventory.safetyStock,
+        (variant) =>
+          variant.inventory &&
+          availableStock(
+            variant.inventory.onHand,
+            variant.inventory.safetyStock,
+            variant.inventory.reserved,
+          ) > 0,
       ),
     }))
     .filter((product) => product.variants.length > 0)
@@ -107,7 +114,13 @@ export async function findPublicProductBySlug(slug: string) {
   });
   if (!product) return null;
   const availableVariants = product.variants.filter(
-    (variant) => variant.inventory && variant.inventory.onHand > variant.inventory.safetyStock,
+    (variant) =>
+      variant.inventory &&
+      availableStock(
+        variant.inventory.onHand,
+        variant.inventory.safetyStock,
+        variant.inventory.reserved,
+      ) > 0,
   );
   return availableVariants.length > 0 ? { ...product, variants: availableVariants } : null;
 }
