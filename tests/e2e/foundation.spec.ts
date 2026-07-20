@@ -9,7 +9,7 @@ test("ana sayfa erişilebilir temel içeriği gösterir", async ({ page }) => {
       name: "İşletmeler arası tedarik için güvenilir bir köprü.",
     }),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Canlılık durumunu aç" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "İşletme hesabı oluştur" })).toBeVisible();
   await expect(page.getByText("Canlı entegrasyonlar varsayılan kapalı")).toBeVisible();
   await expect(page.getByRole("banner")).toBeVisible();
   await expect(page.getByRole("main")).toBeVisible();

@@ -50,6 +50,11 @@ function createServerEnvSchema(validationContext: "runtime" | "build") {
       EMAIL_SMTP_PORT: z.coerce.number().int().min(1).max(65_535),
       RESEND_API_KEY: optionalString,
 
+      DOCUMENT_MAX_BYTES: z.coerce.number().int().min(1).max(10_485_760).default(5_242_880),
+      DEMO_SEED_ENABLED: booleanFromEnvironment.default(false),
+      DEMO_ADMIN_PASSWORD: optionalString,
+      DEMO_USER_PASSWORD: optionalString,
+
       PAYMENT_PROVIDER: z.literal("mock").default("mock"),
       IYZICO_API_KEY: optionalString,
       IYZICO_SECRET_KEY: optionalString,
@@ -71,7 +76,23 @@ function createServerEnvSchema(validationContext: "runtime" | "build") {
       SENTRY_DSN: optionalString,
     })
     .superRefine((environment, context) => {
-      if (environment.NODE_ENV !== "production" || validationContext === "build") {
+      if (validationContext === "build") {
+        return;
+      }
+
+      for (const key of ["AUTH_SECRET", "DATA_ENCRYPTION_KEY"] as const) {
+        const value = environment[key];
+
+        if (!value || value.length < 32) {
+          context.addIssue({
+            code: "custom",
+            path: [key],
+            message: "runtime ortamında en az 32 karakterli olmalıdır",
+          });
+        }
+      }
+
+      if (environment.NODE_ENV !== "production") {
         return;
       }
 

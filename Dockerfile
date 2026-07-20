@@ -23,6 +23,8 @@ RUN set -eu; \
       APP_TIMEZONE=Europe/Istanbul \
       DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build \
       DIRECT_URL=postgresql://build:build@127.0.0.1:5432/build \
+      AUTH_SECRET=build-only-auth-secret-with-at-least-thirty-two-characters \
+      DATA_ENCRYPTION_KEY=build-only-data-key-with-at-least-thirty-two-characters \
       S3_ENDPOINT=http://127.0.0.1:9000 \
       S3_REGION=auto \
       S3_BUCKET_PRIVATE=build-private \

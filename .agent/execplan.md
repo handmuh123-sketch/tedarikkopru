@@ -1,4 +1,175 @@
-# Faz 00 — Foundation
+# Faz 01 — Kimlik, İşletmeler ve Doğrulama
+
+## Amaç ve kullanıcı sonucu
+
+Bu faz bittiğinde tedarikçi ve alıcı kullanıcılar e-posta/parola ile kayıt olabilecek, e-postalarını doğrulayabilecek, güvenli parola sıfırlama ve session yönetimi kullanabilecek; işletmelerini ve adreslerini oluşturup private belgelerle doğrulama başvurusu yapabilecektir. Yetkili platform admini, server-side rol kontrolü altında başvuruları inceleyip onaylayabilecek, değişiklik isteyebilecek veya reddedebilecektir. Tüm kritik üyelik, belge ve doğrulama işlemleri redacted audit kaydı üretecektir.
+
+## Başlangıç durumu
+
+- Faz 0 checkpoint'i `d509db9` (`feat: complete reviewed phase 0 foundation`) olarak temiz çalışma ağacında doğrulandı.
+- 20 Temmuz 2026 başlangıç kalite turunda format, lint, strict typecheck, unit 9/9, gerçek PostgreSQL integration 3/3, Playwright E2E 6/6 ve `pnpm build` geçti.
+- PostgreSQL, MinIO ve Mailpit Compose servisleri healthy. Docker image build başlangıç denemesi koddan önce Docker Desktop DNS çözümleme hatasıyla (`registry-1.docker.io`) durdu; önceden üretilmiş Faz 0 image'ı mevcut ve final kapıda build yeniden denenecek.
+- Auth, User/Organization modelleri, onboarding, verification, private document ve admin queue henüz yoktur.
+- Canlı e-posta, storage veya secret kullanılmayacak; Mailpit/MinIO ve development adapter'ları kullanılacaktır.
+
+## Kapsam
+
+### Dahil
+
+- Better Auth ile e-posta/parola kayıt, email verification, giriş/çıkış, parola reset ve DB-backed session yönetimi.
+- User, auth Account/Session/Verification, Organization, OrganizationMembership, OrganizationInvitation ve Address modelleri.
+- SUPPLIER, RESELLER ve BOTH onboarding; kaydedilebilir işletme/adres/belge/inceleme akışı.
+- Merkezi platform ve organization rol matrisi; deny-by-default server-side RBAC.
+- VerificationApplication state machine ve admin doğrulama kuyruğu.
+- Private MinIO belge yükleme/okuma; boyut, MIME, magic byte ve checksum doğrulaması; development malware scan adapter'ı.
+- Hashlenmiş invitation/reset/verification belirteçleri ve DB-backed rate limit.
+- Redacted immutable audit log ve development e-posta akışı.
+- Güvenli, development-only demo seed kullanıcı/işletmeleri.
+- Responsive ve klavye erişilebilir Türkçe auth/onboarding/panel/admin ekranları.
+- Unit, gerçek PostgreSQL integration, Playwright E2E ve güvenlik testleri.
+
+### Dahil değil
+
+- Faz 2 katalog, fiyat, stok veya ürün moderasyonu.
+- Sipariş, checkout, ödeme, kargo, RFQ ve diğer Faz 2+ domainleri.
+- Canlı e-posta/storage sağlayıcısı, admin 2FA'nın tamamlanması veya production secret bootstrap.
+- Virüs tarama motorunun canlı entegrasyonu; yalnız kapalı/geliştirme adapter sınırı.
+
+## Bağlayıcı kararlar
+
+- `tasks/PHASE_01_IDENTITY_ORGANIZATIONS.md`, şartname §3, §4.1–4.2, §6.2–6.6, §8, §9.1, §9.11 AuditLog, §10, §13, §16–17, §20–22 uygulanır.
+- `AGENTS.md` gereği her org sorgusu organization filtresi içerir; yetkilendirme server-side ve deny-by-default'tur.
+- `DECISIONS.md` gereği yalnız doğrulanmış B2B işletmeler ve mock-first local servisler kullanılır.
+- Migration geçmişi değiştirilmez; Faz 1 yeni forward migration ekler.
+- Faz 2 veya sonrası veri modeli/iş akışı eklenmez.
+
+## Teknik kararlar
+
+- Karar: Better Auth `1.6.23` ve resmi Prisma adapter kullanılacak.
+  - Gerekçe: Resmî doküman Next.js 16, Prisma 7 custom client output, email/password, verification, reset ve güvenli session desteğini belgeliyor.
+  - Alternatif: Auth.js veya tamamen özel auth.
+  - Sonuç: Kimlik/session kriptografisi yeniden icat edilmeden güncel kararlı kütüphane kullanılır.
+- Karar: Better Auth yalnız auth çekirdeğini yönetir; organization/membership/invitation özel domain servisidir.
+  - Gerekçe: Kabul kriteri davet tokenının yalnız hash olarak saklanmasını ve özel verification state machine/rollerini gerektirir; organization plugin'in e-posta linkinde kullandığı opaque invitation ID bu sözleşmeyi doğrudan karşılamaz.
+  - Alternatif: Better Auth organization plugin'ine tüm organization modelini devretmek.
+  - Sonuç: Auth tabloları kütüphane uyumlu, B2B organization kuralları açık domain sınırındadır.
+- Karar: Better Auth verification identifier'ları `hashed`, session'lar DB-backed ve cookie cache kapalı olacaktır.
+  - Gerekçe: Reset/email tokenlarının düz saklanmaması ve session revoke işleminin anında etkili olması gerekir.
+  - Alternatif: Kısa cookie cache veya stateless session.
+  - Sonuç: Hassas aksiyonlar her istekte gerçek session kaydını doğrular.
+- Karar: Private belgeler S3 uyumlu private bucket'a yazılır ve yalnız yetkili server route üzerinden stream edilir.
+  - Gerekçe: Public object URL ve IDOR riskini kaldırır; her indirmede org/admin sahiplik kontrolü uygulanır.
+  - Alternatif: Süreli signed URL.
+  - Sonuç: Faz 1'de URL üretimi yerine güvenli uygulama proxy'si; sonraki storage adapterları aynı portu kullanabilir.
+- Karar: Auth ve hassas endpoint rate limit anahtarları SHA-256 ile normalize edilip PostgreSQL'de saklanır.
+  - Gerekçe: Redis eklemeden çok-process uyumlu limit ve ham IP/e-posta minimizasyonu sağlar.
+  - Alternatif: In-memory limit veya Redis.
+  - Sonuç: Modüler monolit/Docker kapsamı korunur.
+
+### Doğrulanan resmî kaynaklar (20 Temmuz 2026)
+
+- Better Auth npm kararlı sürüm: https://www.npmjs.com/package/better-auth
+- Next.js entegrasyonu: https://better-auth.com/docs/integrations/next
+- Prisma adapter: https://better-auth.com/docs/adapters/prisma
+- Email/password ve email akışları: https://better-auth.com/docs/authentication/email-password ve https://better-auth.com/docs/concepts/email
+- Session/cookie/security: https://better-auth.com/docs/concepts/session-management, https://better-auth.com/docs/concepts/cookies ve https://better-auth.com/docs/reference/security
+- Rate limit: https://better-auth.com/docs/concepts/rate-limit
+- Verification identifier hashing: https://better-auth.com/docs/reference/options#verification
+
+## Güvenlik ve veri etkisi
+
+- E-posta, telefon, vergi kimliği, KEP, adres ve şirket belgeleri PII/özel veri olarak ele alınır; application loglara yazılmaz.
+- Tax number normalize hash ile uniqueness/lookup alır; gösterim değeri uygulama anahtarıyla authenticated encryption altında saklanır.
+- Parola Better Auth scrypt ile hashlenir; reset/email verification ve invitation tokenları düz saklanmaz.
+- Cookie httpOnly, SameSite=Lax, host-only; production HTTPS'te Secure. Origin/CSRF kontrolleri devre dışı bırakılmaz.
+- Organization erişimi tek sorguda `organizationId` + üyelik/rol filtresiyle sınırlandırılır; başka org için 404 tercih edilir.
+- Audit log append-only servis üzerinden oluşturulur; normal kullanıcı update/delete endpoint'i yoktur ve before/after payload redacted olur.
+- Belge MIME/magic byte/boyut/checksum doğrulanır, SVG/HTML/zip reddedilir ve public bucket kullanılmaz.
+- Faz 1 migration'ı yeni tablolar ekler; Faz 0 `SystemSetting` verisini değiştirmez veya silmez.
+
+## Uygulama adımları
+
+- [x] Bağlayıcı dosyaları ve ilgili şartname bölümlerini tamamen oku.
+- [x] Faz 0 checkpoint'ini ve başlangıç kalite durumunu doğrula.
+- [x] Better Auth güncel sürüm/API/güvenlik davranışını resmî dokümanlardan doğrula.
+- [x] Faz 1 dependency, environment sözleşmesi ve Prisma modelleri için forward migration oluştur.
+- [x] Better Auth, email adapter, hash/rate-limit ve güvenli session çekirdeğini kur.
+- [x] Organization repository/service, central RBAC ve invitation akışını kur.
+- [x] Verification state machine, audit log ve private document storage akışını kur.
+- [x] Auth, onboarding, session, organization ve admin route/UI akışlarını tamamla.
+- [x] Development demo seed hesapları ve private bucket hazırlığını idempotent yap.
+- [x] Unit ve gerçek PostgreSQL security/integration testlerini tamamla.
+- [x] Supplier/reseller/admin Playwright E2E akışlarını masaüstü ve 360 px mobilde doğrula.
+- [x] Tüm kalite kapıları ve Docker image build'i çalıştırıp hataları düzelt.
+- [x] README, OpenAPI, data processing inventory, PROJECT_STATUS ve bu planı sonuçlarla güncelle.
+- [x] Faz 1 sonunda dur; Faz 2'ye geçme.
+
+## Dosya değişiklikleri
+
+- Paket/config: `package.json`, `pnpm-lock.yaml`, `.env.example`, Docker/CI gerektiği kadar.
+- Veri: `prisma/schema.prisma`, yeni `prisma/migrations/**`, `prisma/seed.ts`.
+- Auth/security: `src/lib/auth/**`, `src/lib/security/**`, `src/lib/email/**`, `src/lib/storage/**`.
+- Domain: `src/modules/auth/**`, `src/modules/organizations/**`, `src/modules/verification/**`, `src/modules/audit/**`.
+- UI/API: `src/app/(auth)/**`, `src/app/onboarding/**`, `src/app/panel/**`, `src/app/admin/**`, `src/app/api/**`.
+- Test: `tests/unit/**`, `tests/integration/**`, `tests/e2e/**`.
+- Belge: `README.md`, `docs/openapi.json`, `docs/data-processing-inventory.md`, `PROJECT_STATUS.md`, `.agent/execplan.md`.
+
+## Migration ve geri dönüş
+
+- Faz 0 migration dosyaları değiştirilmeyecek; yeni Faz 1 forward migration auth, organization, verification, audit ve rate-limit tablolarını/indekslerini ekleyecek.
+- Hassas tax değeri için encrypted value + deterministic normalized hash tutulacak; seed yalnız development ortamında idempotent upsert çalıştıracak.
+- Geri dönüş yeni Faz 1 tablolarını bağımlılık sırasıyla kaldırabilir; production veri varsa otomatik destructive rollback uygulanmayacak, export/retention kararı gerekir.
+- Verification/audit/document kayıtları hard delete API'sine sahip olmayacak.
+
+## Test planı
+
+- Birim: permission matrix, verification state machine, token hashing, PII redaction, file validation, rate limit kararları.
+- Entegrasyon: Better Auth registration/session/reset hash, org isolation read/write, membership role bypass, admin queue, document ownership/private erişim, audit üretimi ve migration indeksleri.
+- E2E: supplier ve reseller kayıt-email verification-onboarding-submit; admin login/queue/approve-needs changes-reject; session list/revoke; responsive/keyboard/form errors.
+- Güvenlik: URL/ID değiştirerek org/belge BOLA, admin endpoint BFLA, plaintext token DB taraması, failed-login ve sensitive endpoint rate limit, public storage erişim reddi, secret/PII log testi.
+- Manuel: Mailpit verification/reset/invitation mesajları, MinIO private bucket/object ve admin/user UI.
+
+## Kabul kriterleri
+
+- [x] Tedarikçi ve alıcı kayıt/onboarding E2E geçer.
+- [x] Admin başvuruyu onaylar, değişiklik ister ve reddeder.
+- [x] Org A, Org B verisini okuyamaz veya değiştiremez.
+- [x] Üyelik rolleri server-side uygulanır; yetkisiz admin/org işlemleri reddedilir.
+- [x] Private belgeler public URL ile açılamaz; ID değişimi erişim sağlamaz.
+- [x] Reset, email verification ve invitation tokenları düz metin saklanmaz.
+- [x] Başarısız giriş ve hassas endpointlerde rate limit vardır.
+- [x] Kritik rol, verification ve document işlemleri redacted audit log üretir.
+- [x] Secret/PII application loglara sızmaz.
+- [x] Migration, seed, unit, integration ve E2E testleri geçer.
+- [x] `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:integration`, `pnpm test:e2e`, `pnpm build`, `docker compose build app` başarılıdır.
+- [x] PROJECT_STATUS ve yaşayan plan gerçek sonuçlarla günceldir.
+- [x] Faz 2'ye geçilmeden durulur.
+
+## İlerleme günlüğü
+
+- 2026-07-20 14:35 +03:00:
+  - Yapılan: Faz 1 bağlayıcı belgeleri ve ilgili ürün şartnamesi bölümleri tamamen okundu. Faz 0 checkpoint/temiz ağaç ve kalite tabanı doğrulandı. Better Auth güncel resmi API/güvenlik davranışı araştırıldı ve Faz 1 mimari kararları donduruldu.
+  - Kanıt: `d509db9`; format/lint/typecheck başarılı; unit 9/9, integration 3/3, E2E 6/6, `pnpm build` başarılı; Compose servisleri healthy. Docker build yalnız registry DNS çözümünde durdu.
+  - Sonraki: Dependency ve yeni forward migration ile auth/organization çekirdeğini kurmak.
+- 2026-07-20 16:52 +03:00:
+  - Yapılan: Faz 1 auth, organization, onboarding, private belge, doğrulama kuyruğu, state machine, RBAC, rate limit, immutable audit, Mailpit ve güvenli demo seed kapsamı tamamlandı. Bağımsız güvenlik turunda son owner rol yarışı ve paralel doğrulama geçişleri organization advisory lock/optimistic state claim ile kapatıldı.
+  - Kanıt: format/lint/typecheck başarılı; unit 17/17; gerçek PostgreSQL/MinIO integration 10/10; temiz sunucuda Edge tabanlı desktop+360 px Playwright 10/10; production build başarılı; `docker compose build app` başarılı. PostgreSQL, MinIO ve Mailpit healthy; `8025`, `9001` ve MinIO health `200`.
+  - Sonraki: Faz 1 sonunda dur. Faz 2 yalnız yeni kullanıcı talimatıyla başlayabilir.
+
+## Sürprizler ve öğrenilenler
+
+- Docker Desktop mevcut image'ları çalıştırabildiği hâlde başlangıç image rebuild sırasında `registry-1.docker.io` DNS çözümleyemedi. Kod/build sorunu değil; final kapıda yeniden denenecek.
+- Better Auth organization plugin davet akışında opaque invitation ID kullanıyor. Bu fazın “token düz saklanmaz” şartı için invitation domain'i özel hashli token modeliyle uygulanacak.
+- Native Chromium indirmesi yerel ağda tamamlanmadı; Playwright matrisi makinede kurulu Edge kanalıyla aynı Chromium motorunda çalıştırıldı ve CI resmi Chromium kurulumunu kullanacak şekilde bırakıldı.
+- Eski geliştirme sunucusu E2E başlangıcında 3000 portunu tutabiliyordu; test yapılandırması varsayılan olarak stale server reuse etmez ve global setup yalnız geçici rate-limit kayıtlarını temizler.
+
+## Sonuç
+
+Faz 1 kapsamı tamamlandı. Kimlik ve session akışları, işletme/adres/üyelik modeli, deny-by-default server-side RBAC, private belge, şirket doğrulama state machine'i, immutable/redacted audit ve development e-posta/seed akışları gerçek servislerle doğrulandı. Tüm zorunlu kalite kapıları geçti ve Faz 2'ye geçilmedi.
+
+---
+
+# Arşiv — Faz 00 Foundation
 
 ## Amaç ve kullanıcı sonucu
 

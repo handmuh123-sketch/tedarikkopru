@@ -8,8 +8,8 @@ const validEnvironment = {
   APP_TIMEZONE: "Europe/Istanbul",
   DATABASE_URL: "postgresql://user:password@localhost:5432/app",
   DIRECT_URL: "postgresql://user:password@localhost:5432/app",
-  AUTH_SECRET: "",
-  DATA_ENCRYPTION_KEY: "",
+  AUTH_SECRET: "development-auth-secret-with-at-least-thirty-two-characters",
+  DATA_ENCRYPTION_KEY: "development-data-key-with-at-least-thirty-two-characters",
   CRON_SECRET: "",
   S3_ENDPOINT: "http://localhost:9000",
   S3_REGION: "auto",
@@ -51,6 +51,8 @@ describe("server environment", () => {
       ...validEnvironment,
       NODE_ENV: "production",
       APP_URL: "http://example.com",
+      AUTH_SECRET: "",
+      DATA_ENCRYPTION_KEY: "",
     });
 
     expect(result.success).toBe(false);

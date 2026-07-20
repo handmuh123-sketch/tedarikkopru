@@ -1,12 +1,20 @@
 # PROJECT STATUS
 
-**Durum:** Faz 0 tamamlandı
+**Durum:** Faz 1 tamamlandı ve kalite kapıları geçti
 
-**Aktif faz:** Faz 0 — Foundation (kabul kapıları tamamlandı; Faz 1 başlatılmadı)
+**Aktif faz:** Faz 1 — Kimlik, İşletmeler ve Doğrulama (Faz 2 başlatılmadı)
 
-**Son güncelleme:** 20 Temmuz 2026, 14:02 +03:00
+**Son güncelleme:** 20 Temmuz 2026, 16:52 +03:00
 
 ## Tamamlananlar
+
+- Better Auth 1.6.23 ile e-posta/parola kayıt-giriş, e-posta doğrulama, hashli ve süreli parola reset tokenı, 12 karakter parola alt sınırı, DB-backed session, güvenli cookie ve session revoke akışları tamamlandı.
+- `User`, `Session`, `Account`, `Verification`, `Organization`, `OrganizationMembership`, `OrganizationInvitation`, `Address`, `VerificationApplication`, `VerificationDocument`, `AuditLog` ve atomik rate-limit modelleri forward migration ile eklendi.
+- Tedarikçi/alıcı işletme onboarding'i, adres, hashli tek kullanımlık davet, merkezi server-side RBAC, üyelik rolü ve org kapsamlı sorgular tamamlandı.
+- Private MinIO belge yükleme/okuma, MIME+magic byte+5 MB+checksum kontrolleri, admin kuyruğu ve doğrulama state machine'i tamamlandı.
+- Kritik rol, doğrulama ve belge işlemleri aynı transaction'da redacted audit üretir; audit tablosu DB trigger ile UPDATE/DELETE kabul etmez.
+- Development Mailpit e-postaları ve yalnız development/test ortamında çalışan güvenli demo admin/tedarikçi/alıcı seed hesapları eklendi.
+- Org A/B izolasyonu, URL/ID belge erişimi, admin BFLA, private bucket, plaintext token, rate limit, audit ve PII/secret log güvenliği bağımsız entegrasyon testleriyle doğrulandı.
 
 - Node.js 24.18.0, pnpm 11.15.0, Next.js 16.2.10, React 19.2.7, Prisma 7.8.0 ve PostgreSQL 18.4 uyumlu kararlı hat olarak sabitlendi.
 - Next.js App Router, strict TypeScript, Tailwind CSS, ESLint, Prettier ve frozen lockfile temeli kuruldu.
@@ -20,6 +28,11 @@
 
 ## Çalışan özellikler
 
+- `/kayit`, `/giris`, `/e-posta-dogrula`, `/sifremi-unuttum`, `/sifre-yenile` kimlik akışları.
+- `/panel`, `/onboarding`, `/oturumlar` işletme ve hesap güvenliği akışları.
+- `/admin/dogrulamalar` platform doğrulama kuyruğu ve state machine işlemleri.
+- Private belge yalnız `/api/v1/verification-documents/{id}/content` yetkili endpoint'i üzerinden açılır; public MinIO URL'si 403 döner.
+
 - `pnpm dev` ile açılan responsive Faz 0 ana sayfası.
 - `GET /api/health/live` ile bağımlılıksız liveness kontrolü.
 - `GET /api/health/ready` ile PostgreSQL `SELECT 1` readiness kontrolü.
@@ -28,6 +41,14 @@
 - Lint, format, strict typecheck, unit, integration, E2E ve production build kalite komutları.
 
 ## Doğrulama özeti
+
+- Faz 1 unit: 6 dosya, 17 test başarılı.
+- Gerçek PostgreSQL/MinIO entegrasyonu: 2 dosya, 10 test başarılı; org isolation, IDOR/BFLA, token hash, atomik rate limit, rol/verifikasyon audit'i, tüm state machine sonuçları ve append-only audit dahil.
+- Tam Playwright matrisi: desktop ve 360 px mobilde 10/10 test başarılı; Mailpit e-posta doğrulama, MinIO private belge, tedarikçi/alıcı onboarding ve admin onayı gerçek servislerle geçti.
+- Next.js production build başarılı; 16 statik sayfa ve tüm Faz 1 dinamik route'ları derlendi.
+- `docker compose build app` başarılı; `tedarikkopru-app:latest` üretildi.
+- Final kalite turunda `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:integration`, `pnpm test:e2e`, `pnpm build` ve Docker app build sıfır çıkış koduyla tamamlandı.
+- PostgreSQL, MinIO ve Mailpit healthy; PostgreSQL bağlantı kabul ediyor, Mailpit `8025`, MinIO konsolu `9001` ve MinIO health endpoint'i `200` döndürüyor.
 
 - Format, lint ve strict typecheck: başarılı.
 - Birim testleri: 3 dosya, 9 test başarılı; production secret reddi ve key adı/case/nesting bağımsız log redaction senaryoları dâhil.
@@ -41,16 +62,19 @@
 
 ## Bilinen eksikler ve ortam kısıtları
 
-- Docker Desktop 4.82.0 / Engine 29.6.1 / Compose v5.3.0 bu inceleme sırasında kullanılabilir hâle geldi; servisler çalışır ve smoke verileri yerel volume'larda bırakıldı.
+- Docker Desktop 4.82.0 / Engine 29.6.1 / Compose v5.3.0 kullanıldı; servisler çalışır ve development smoke verileri yerel volume'larda bırakıldı.
 - MinIO'nun güvenlik yamalı son release'i resmi prebuilt image sunmadığı için ilk development build'i kaynak koddan yapılır ve bu makinede yaklaşık 11 dakika sürdü.
 - CSP şu an Faz 0 statik UI uyumluluğu için `style-src 'unsafe-inline'` içerir. Nonce/hash tabanlı sıkılaştırma sonraki UI güvenlik çalışmasında ele alınmalıdır; bu incelemede kapsam dışı karmaşıklık yaratmamak için değiştirilmedi.
 - `pnpm audit` yerel TLS zincirinde `UNABLE_TO_VERIFY_LEAF_SIGNATURE` ile tamamlanamadı; bu sonuç “açık yok” olarak yorumlanmadı ve CI/kurumsal güvenilir CA ortamında yeniden çalıştırılmalıdır.
-- Auth, kullanıcı/işletme onboarding'i, RBAC, ürün CRUD, ödeme, kargo ve diğer Faz 1+ özellikleri bilinçli olarak yoktur.
+- Ürün CRUD, kategori, fiyat, stok, sipariş, ödeme, kargo ve diğer Faz 2+ özellikleri bilinçli olarak yoktur.
+- Demo malware tarama adaptörü Faz 1'de magic byte/MIME/boyut/checksum doğrulamasından sonra `CLEAN` sonucu verir; production antivirüs/karantina servisi seçimi yayın öncesi dış bağımlılıktır.
+- Yerel Playwright çalışması kurulu Microsoft Edge kanalını kullandı; CI temiz Linux ortamında resmi Playwright Chromium kurulumunu kullanır.
+- Hukuki saklama süreleri ve KVKK silme/anonimleştirme prosedürü production öncesi hukuk kararı gerektirir; Faz 1 hard-delete endpoint'i sunmaz.
 - Gerçek servis kimlik bilgileri ve canlı feature flag'leri yoktur; hiçbir canlı çağrı yapılmadı.
 - Hukuk/KVKK, mali müşavir, ödeme kuruluşu ve pilot kategori doğrulamaları sonraki ilgili fazların dış bağımlılıklarıdır.
 
 ## Önerilen sonraki faz
 
-Yeni bir kullanıcı talimatıyla `tasks/PHASE_01_IDENTITY_ORGANIZATIONS.md` kapsamındaki kimlik, işletme ve rol temelidir. Bu çalışmada Faz 1'e geçilmedi.
+Yeni bir kullanıcı talimatıyla Faz 2 ürün/katalog kapsamı değerlendirilebilir. Bu çalışmada Faz 2'ye geçilmedi.
 
 > Codex her faz sonunda bu dosyayı gerçek durumla güncellemelidir.

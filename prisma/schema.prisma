@@ -15,3 +15,343 @@ model SystemSetting {
 
   @@map("system_settings")
 }
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+
+enum PlatformRole {
+  USER
+  PLATFORM_SUPER_ADMIN
+  PLATFORM_ADMIN
+  PLATFORM_OPERATIONS
+  PLATFORM_SUPPORT
+  PLATFORM_FINANCE
+}
+
+enum OrganizationType {
+  SUPPLIER
+  RESELLER
+  BOTH
+}
+
+enum OrganizationStatus {
+  ONBOARDING
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum VerificationStatus {
+  DRAFT
+  SUBMITTED
+  IN_REVIEW
+  NEEDS_CHANGES
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum OrganizationMembershipRole {
+  OWNER
+  ORG_ADMIN
+  CATALOG_MANAGER
+  ORDER_MANAGER
+  FINANCE
+  WAREHOUSE_OPERATOR
+  VIEWER
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+enum AddressType {
+  HEADQUARTERS
+  BILLING
+  WAREHOUSE
+  RETURN
+}
+
+enum VerificationDocumentType {
+  TAX_CERTIFICATE
+  AUTHORIZED_SIGNATURE
+  TRADE_REGISTRY
+  CRAFTSMAN_REGISTRY
+  IBAN_PROOF
+  BRAND_AUTHORIZATION
+}
+
+enum DocumentScanStatus {
+  PENDING
+  CLEAN
+  REJECTED
+}
+
+enum AuditActorType {
+  USER
+  SYSTEM
+}
+
+model User {
+  id              String       @id @default(cuid()) @db.VarChar(36)
+  name            String       @db.VarChar(120)
+  email           String       @unique @db.VarChar(320)
+  emailVerified   Boolean      @default(false) @map("email_verified")
+  image           String?      @db.VarChar(2048)
+  phone           String?      @db.VarChar(32)
+  phoneVerifiedAt DateTime?    @map("phone_verified_at") @db.Timestamptz(3)
+  locale          String       @default("tr-TR") @db.VarChar(16)
+  timezone        String       @default("Europe/Istanbul") @db.VarChar(64)
+  status          UserStatus   @default(ACTIVE)
+  platformRole    PlatformRole @default(USER) @map("platform_role")
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt       DateTime?    @map("deleted_at") @db.Timestamptz(3)
+
+  accounts             Account[]
+  sessions             Session[]
+  memberships          OrganizationMembership[]  @relation("MembershipUser")
+  membershipsInvited   OrganizationMembership[]  @relation("MembershipInviter")
+  invitationsSent      OrganizationInvitation[]  @relation("InvitationInviter")
+  applicationsReviewed VerificationApplication[] @relation("ApplicationReviewer")
+  documentsReviewed    VerificationDocument[]    @relation("DocumentReviewer")
+  auditLogs            AuditLog[]                @relation("AuditActor")
+
+  @@index([platformRole, status])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(cuid()) @db.VarChar(36)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+  token     String   @unique @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  ipAddress String?  @map("ip_address") @db.VarChar(128)
+  userAgent String?  @map("user_agent") @db.VarChar(512)
+  userId    String   @map("user_id") @db.VarChar(36)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid()) @db.VarChar(36)
+  accountId             String    @map("account_id") @db.VarChar(255)
+  providerId            String    @map("provider_id") @db.VarChar(100)
+  userId                String    @map("user_id") @db.VarChar(36)
+  accessToken           String?   @map("access_token") @db.Text
+  refreshToken          String?   @map("refresh_token") @db.Text
+  idToken               String?   @map("id_token") @db.Text
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at") @db.Timestamptz(3)
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz(3)
+  scope                 String?   @db.Text
+  password              String?   @db.Text
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @default(cuid()) @db.VarChar(36)
+  identifier String   @db.VarChar(255)
+  value      String   @db.Text
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([identifier])
+  @@index([expiresAt])
+  @@map("verification")
+}
+
+model RateLimitBucket {
+  keyHash         String   @id @map("key_hash") @db.VarChar(64)
+  count           Int      @default(0)
+  windowStartedAt DateTime @map("window_started_at") @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([updatedAt])
+  @@map("rate_limit_buckets")
+}
+
+model Organization {
+  id                       String                    @id @default(cuid()) @db.VarChar(36)
+  type                     OrganizationType
+  legalName                String                    @map("legal_name") @db.VarChar(200)
+  tradeName                String                    @map("trade_name") @db.VarChar(160)
+  slug                     String                    @unique @db.VarChar(120)
+  taxNumberEncrypted       String                    @map("tax_number_encrypted") @db.Text
+  taxNumberHash            String                    @unique @map("tax_number_hash") @db.VarChar(64)
+  taxOffice                String                    @map("tax_office") @db.VarChar(120)
+  mersisNumber             String?                   @map("mersis_number") @db.VarChar(32)
+  kepAddress               String?                   @map("kep_address") @db.VarChar(320)
+  website                  String?                   @db.VarChar(2048)
+  phone                    String                    @db.VarChar(32)
+  email                    String                    @db.VarChar(320)
+  sector                   String?                   @db.VarChar(120)
+  authorizedPerson         String                    @map("authorized_person") @db.VarChar(120)
+  status                   OrganizationStatus        @default(ONBOARDING)
+  verificationStatus       VerificationStatus        @default(DRAFT) @map("verification_status")
+  verifiedAt               DateTime?                 @map("verified_at") @db.Timestamptz(3)
+  suspendedAt              DateTime?                 @map("suspended_at") @db.Timestamptz(3)
+  createdAt                DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  memberships              OrganizationMembership[]
+  invitations              OrganizationInvitation[]
+  addresses                Address[]
+  verificationApplications VerificationApplication[]
+  auditLogs                AuditLog[]
+
+  @@index([type, verificationStatus])
+  @@index([status, updatedAt])
+  @@map("organizations")
+}
+
+model OrganizationMembership {
+  id             String                     @id @default(cuid()) @db.VarChar(36)
+  organizationId String                     @map("organization_id") @db.VarChar(36)
+  userId         String                     @map("user_id") @db.VarChar(36)
+  role           OrganizationMembershipRole
+  status         MembershipStatus           @default(ACTIVE)
+  invitedById    String?                    @map("invited_by_id") @db.VarChar(36)
+  joinedAt       DateTime?                  @map("joined_at") @db.Timestamptz(3)
+  createdAt      DateTime                   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime                   @updatedAt @map("updated_at") @db.Timestamptz(3)
+  organization   Organization               @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user           User                       @relation("MembershipUser", fields: [userId], references: [id], onDelete: Restrict)
+  invitedBy      User?                      @relation("MembershipInviter", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, userId])
+  @@index([userId, status])
+  @@index([organizationId, role, status])
+  @@map("organization_memberships")
+}
+
+model OrganizationInvitation {
+  id             String                     @id @default(cuid()) @db.VarChar(36)
+  organizationId String                     @map("organization_id") @db.VarChar(36)
+  email          String                     @db.VarChar(320)
+  role           OrganizationMembershipRole
+  tokenHash      String                     @unique @map("token_hash") @db.VarChar(64)
+  status         InvitationStatus           @default(PENDING)
+  expiresAt      DateTime                   @map("expires_at") @db.Timestamptz(3)
+  acceptedAt     DateTime?                  @map("accepted_at") @db.Timestamptz(3)
+  revokedAt      DateTime?                  @map("revoked_at") @db.Timestamptz(3)
+  invitedById    String                     @map("invited_by_id") @db.VarChar(36)
+  createdAt      DateTime                   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime                   @updatedAt @map("updated_at") @db.Timestamptz(3)
+  organization   Organization               @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  invitedBy      User                       @relation("InvitationInviter", fields: [invitedById], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, status, expiresAt])
+  @@index([email, status])
+  @@map("organization_invitations")
+}
+
+model Address {
+  id             String       @id @default(cuid()) @db.VarChar(36)
+  organizationId String       @map("organization_id") @db.VarChar(36)
+  type           AddressType
+  title          String       @db.VarChar(100)
+  contactName    String       @map("contact_name") @db.VarChar(120)
+  phone          String       @db.VarChar(32)
+  countryCode    String       @default("TR") @map("country_code") @db.Char(2)
+  city           String       @db.VarChar(80)
+  district       String       @db.VarChar(80)
+  neighborhood   String?      @db.VarChar(120)
+  postalCode     String?      @map("postal_code") @db.VarChar(16)
+  line1          String       @db.VarChar(240)
+  line2          String?      @db.VarChar(240)
+  isDefault      Boolean      @default(false) @map("is_default")
+  verifiedAt     DateTime?    @map("verified_at") @db.Timestamptz(3)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, type])
+  @@map("addresses")
+}
+
+model VerificationApplication {
+  id              String                 @id @default(cuid()) @db.VarChar(36)
+  organizationId  String                 @map("organization_id") @db.VarChar(36)
+  status          VerificationStatus     @default(DRAFT)
+  submittedAt     DateTime?              @map("submitted_at") @db.Timestamptz(3)
+  reviewedAt      DateTime?              @map("reviewed_at") @db.Timestamptz(3)
+  reviewedById    String?                @map("reviewed_by_id") @db.VarChar(36)
+  rejectionReason String?                @map("rejection_reason") @db.Text
+  changeRequest   String?                @map("change_request") @db.Text
+  riskFlags       Json                   @map("risk_flags")
+  version         Int                    @default(1)
+  createdAt       DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  organization    Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  reviewedBy      User?                  @relation("ApplicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  documents       VerificationDocument[]
+
+  @@unique([organizationId, version])
+  @@index([status, submittedAt])
+  @@map("verification_applications")
+}
+
+model VerificationDocument {
+  id            String                   @id @default(cuid()) @db.VarChar(36)
+  applicationId String                   @map("application_id") @db.VarChar(36)
+  type          VerificationDocumentType
+  storageKey    String                   @unique @map("storage_key") @db.VarChar(512)
+  originalName  String                   @map("original_name") @db.VarChar(255)
+  mimeType      String                   @map("mime_type") @db.VarChar(100)
+  size          Int
+  checksum      String                   @db.VarChar(64)
+  scanStatus    DocumentScanStatus       @default(PENDING) @map("scan_status")
+  expiresAt     DateTime?                @map("expires_at") @db.Timestamptz(3)
+  reviewedAt    DateTime?                @map("reviewed_at") @db.Timestamptz(3)
+  reviewedById  String?                  @map("reviewed_by_id") @db.VarChar(36)
+  createdAt     DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  application   VerificationApplication  @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  reviewedBy    User?                    @relation("DocumentReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([applicationId, type])
+  @@index([scanStatus, createdAt])
+  @@map("verification_documents")
+}
+
+model AuditLog {
+  id             String         @id @default(cuid()) @db.VarChar(36)
+  actorType      AuditActorType @map("actor_type")
+  actorId        String?        @map("actor_id") @db.VarChar(36)
+  organizationId String?        @map("organization_id") @db.VarChar(36)
+  action         String         @db.VarChar(120)
+  targetType     String         @map("target_type") @db.VarChar(80)
+  targetId       String         @map("target_id") @db.VarChar(64)
+  beforeRedacted Json?          @map("before_redacted")
+  afterRedacted  Json?          @map("after_redacted")
+  ipHash         String?        @map("ip_hash") @db.VarChar(64)
+  requestId      String         @map("request_id") @db.VarChar(128)
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  actor          User?          @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  organization   Organization?  @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}

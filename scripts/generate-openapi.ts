@@ -7,8 +7,8 @@ const document = {
   openapi: "3.1.0",
   info: {
     title: "TedarikKöprü API",
-    version: "0.0.0",
-    description: "Faz 0 sistem sağlık API sözleşmesi.",
+    version: "0.1.0",
+    description: "Faz 1 kimlik, işletme ve şirket doğrulama API sözleşmesi.",
   },
   servers: [{ url: "http://localhost:3000" }],
   paths: {
@@ -38,8 +38,166 @@ const document = {
         },
       },
     },
+    "/api/auth/{path}": {
+      post: {
+        operationId: "betterAuthAction",
+        summary: "Kayıt, giriş, e-posta doğrulama, parola yenileme ve oturum işlemleri",
+        parameters: [{ name: "path", in: "path", required: true, schema: { type: "string" } }],
+        responses: {
+          "200": { description: "Better Auth yanıtı" },
+          "429": { description: "Rate limit" },
+        },
+      },
+    },
+    "/api/v1/organizations": {
+      post: {
+        operationId: "createOrganization",
+        summary: "Tedarikçi veya alıcı işletme oluşturur ve çağıranı owner yapar",
+        security: [{ cookieAuth: [] }],
+        responses: {
+          "201": { description: "İşletme oluşturuldu" },
+          "401": { description: "Oturum gerekli" },
+          "429": { description: "Rate limit" },
+        },
+      },
+    },
+    "/api/v1/organizations/{organizationId}": {
+      get: {
+        operationId: "getOrganization",
+        summary: "Üyesi olunan işletmeyi döndürür; başka organizasyonlar 404 olur",
+        security: [{ cookieAuth: [] }],
+        parameters: [{ $ref: "#/components/parameters/OrganizationId" }],
+        responses: {
+          "200": { description: "İşletme" },
+          "404": { description: "Bulunamadı veya erişim yok" },
+        },
+      },
+      patch: {
+        operationId: "updateOrganization",
+        summary: "Yetkili üyeyle işletme bilgilerini günceller",
+        security: [{ cookieAuth: [] }],
+        parameters: [{ $ref: "#/components/parameters/OrganizationId" }],
+        responses: {
+          "200": { description: "Güncellendi" },
+          "404": { description: "Bulunamadı veya erişim yok" },
+        },
+      },
+    },
+    "/api/v1/organizations/{organizationId}/addresses": {
+      post: {
+        operationId: "createOrganizationAddress",
+        summary: "İşletme adresi ekler",
+        security: [{ cookieAuth: [] }],
+        parameters: [{ $ref: "#/components/parameters/OrganizationId" }],
+        responses: {
+          "201": { description: "Adres oluşturuldu" },
+          "404": { description: "Bulunamadı veya erişim yok" },
+        },
+      },
+    },
+    "/api/v1/organizations/{organizationId}/invitations": {
+      post: {
+        operationId: "createOrganizationInvitation",
+        summary: "Hashli tek kullanımlık token ile üyelik daveti oluşturur",
+        security: [{ cookieAuth: [] }],
+        parameters: [{ $ref: "#/components/parameters/OrganizationId" }],
+        responses: {
+          "201": { description: "Davet gönderildi" },
+          "403": { description: "Rol atama yetkisi yok" },
+          "429": { description: "Rate limit" },
+        },
+      },
+    },
+    "/api/v1/invitations/accept": {
+      post: {
+        operationId: "acceptOrganizationInvitation",
+        summary: "E-posta ile eşleşen tek kullanımlık daveti kabul eder",
+        security: [{ cookieAuth: [] }],
+        responses: {
+          "200": { description: "Davet kabul edildi" },
+          "404": { description: "Geçerli davet yok" },
+        },
+      },
+    },
+    "/api/v1/organizations/{organizationId}/verification/documents": {
+      post: {
+        operationId: "uploadVerificationDocument",
+        summary: "Magic byte doğrulamalı belgeyi private bucket'a yükler",
+        security: [{ cookieAuth: [] }],
+        parameters: [{ $ref: "#/components/parameters/OrganizationId" }],
+        responses: {
+          "201": { description: "Belge yüklendi ve audit oluşturuldu" },
+          "422": { description: "Geçersiz dosya" },
+          "429": { description: "Rate limit" },
+        },
+      },
+    },
+    "/api/v1/verification-documents/{documentId}/content": {
+      get: {
+        operationId: "getPrivateVerificationDocument",
+        summary: "Belgeyi yalnız org üyesi veya platform adminine private/no-store döndürür",
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          { name: "documentId", in: "path", required: true, schema: { type: "string" } },
+        ],
+        responses: {
+          "200": { description: "Özel belge içeriği" },
+          "404": { description: "Bulunamadı veya erişim yok" },
+        },
+      },
+    },
+    "/api/v1/organizations/{organizationId}/verification/submit": {
+      post: {
+        operationId: "submitVerification",
+        summary: "Tam başvuruyu doğrulama kuyruğuna gönderir",
+        security: [{ cookieAuth: [] }],
+        parameters: [{ $ref: "#/components/parameters/OrganizationId" }],
+        responses: {
+          "200": { description: "Başvuru gönderildi" },
+          "409": { description: "Geçersiz durum" },
+          "422": { description: "Eksik adres veya belge" },
+        },
+      },
+    },
+    "/api/v1/admin/verifications": {
+      get: {
+        operationId: "listVerificationQueue",
+        summary: "Platform admin doğrulama kuyruğunu döndürür",
+        security: [{ cookieAuth: [] }],
+        responses: {
+          "200": { description: "Doğrulama kuyruğu" },
+          "403": { description: "Platform yetkisi yok" },
+        },
+      },
+    },
+    "/api/v1/admin/verifications/{applicationId}/transition": {
+      post: {
+        operationId: "transitionVerification",
+        summary: "State machine üzerinden atomik durum ve audit geçişi yapar",
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          { name: "applicationId", in: "path", required: true, schema: { type: "string" } },
+        ],
+        responses: {
+          "200": { description: "Durum değişti" },
+          "403": { description: "Platform yetkisi yok" },
+          "409": { description: "Geçersiz geçiş" },
+        },
+      },
+    },
   },
   components: {
+    securitySchemes: {
+      cookieAuth: { type: "apiKey", in: "cookie", name: "tedarikkopru.session_token" },
+    },
+    parameters: {
+      OrganizationId: {
+        name: "organizationId",
+        in: "path",
+        required: true,
+        schema: { type: "string" },
+      },
+    },
     schemas: {
       Liveness: {
         type: "object",

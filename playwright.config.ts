@@ -9,8 +9,10 @@ const executionOptions = process.env.CI
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  globalSetup: "./tests/e2e/global-setup.ts",
   fullyParallel: false,
-  timeout: 60_000,
+  timeout: 120_000,
+  expect: { timeout: 20_000 },
   forbidOnly: Boolean(process.env.CI),
   ...executionOptions,
   use: {

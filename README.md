@@ -1,6 +1,6 @@
 # TedarikKöprü
 
-Türkiye odaklı B2B tedarikçi pazaryerinin Faz 0 çalışan iskeletidir. Bu faz; responsive Türkçe ana sayfa, PostgreSQL/Prisma temeli, yerel MinIO ve Mailpit servisleri, health endpointleri ve kalite kapılarını içerir. Auth, ürün akışları, ödeme, kargo ve canlı entegrasyonlar henüz yoktur.
+Türkiye odaklı B2B tedarikçi pazaryerinin Faz 1 çalışan uygulamasıdır. Responsive temel üzerine e-posta/parola kimliği, güvenli oturumlar, tedarikçi ve alıcı onboarding'i, organizasyon RBAC'i, private şirket belgeleri, doğrulama state machine'i, admin kuyruğu ve append-only audit eklenmiştir. Ürün, stok, sipariş, ödeme, kargo ve canlı entegrasyonlar Faz 2+ kapsamıdır ve henüz yoktur.
 
 ## Gereksinimler
 
@@ -54,6 +54,10 @@ Uygulama açıldığında:
 - Readiness: <http://localhost:3000/api/health/ready>
 - MinIO API/konsol: <http://localhost:9000> / <http://localhost:9001>
 - Mailpit: <http://localhost:8025>
+- Kayıt: <http://localhost:3000/kayit>
+- Giriş: <http://localhost:3000/giris>
+- İşletme paneli: <http://localhost:3000/panel>
+- Doğrulama kuyruğu: <http://localhost:3000/admin/dogrulamalar>
 
 Readiness, PostgreSQL erişilemiyorsa kasıtlı olarak `503 not_ready` döndürür. Liveness dış bağımlılıklardan bağımsızdır.
 
@@ -86,9 +90,20 @@ pnpm test:integration
 pnpm test:e2e:install
 pnpm test:e2e
 pnpm build
+docker compose build app
 ```
 
-Entegrasyon testi gerçek PostgreSQL ister; önce servisleri, migration'ı ve seed'i çalıştırın. Playwright varsayılan olarak kendi temiz development sunucusunu başlatır ve eski bir `localhost:3000` sürecini başarı saymaz. Yalnız bilinçli yerel hata ayıklamada mevcut sunucuyu kullanmak için `PLAYWRIGHT_REUSE_EXISTING_SERVER=true` verilebilir. Playwright varsayılan olarak kurduğu Chromium'u kullanır. Kurulu Microsoft Edge'i özellikle kullanmak isterseniz PowerShell'de testten önce `$env:PLAYWRIGHT_CHANNEL="msedge"` ayarlayabilirsiniz.
+Entegrasyon testi gerçek PostgreSQL ve MinIO ister; önce servisleri, migration'ı ve seed'i çalıştırın. E2E ayrıca Mailpit SMTP/API akışını kullanır. Playwright varsayılan olarak kendi temiz development sunucusunu başlatır ve eski bir `localhost:3000` sürecini başarı saymaz. Yalnız bilinçli yerel hata ayıklamada mevcut sunucuyu kullanmak için `PLAYWRIGHT_REUSE_EXISTING_SERVER=true` verilebilir. Playwright varsayılan olarak kurduğu Chromium'u kullanır. Kurulu Microsoft Edge'i özellikle kullanmak isterseniz PowerShell'de testten önce `$env:PLAYWRIGHT_CHANNEL="msedge"` ayarlayabilirsiniz.
+
+## Faz 1 demo hesapları
+
+`.env.example` içindeki `DEMO_SEED_ENABLED=true` yalnız development ortamında aşağıdaki localhost hesaplarını idempotent oluşturur. Seed production ortamında demo hesap oluşturmaz; parolalar veritabanında Better Auth scrypt hash'i olarak tutulur.
+
+- Platform admini: `admin@demo.tedarikkopru.local` / `Faz1-Admin-Demo-2026!`
+- Tedarikçi: `tedarikci@demo.tedarikkopru.local` / `Faz1-Isletme-Demo-2026!`
+- Alıcı: `alici@demo.tedarikkopru.local` / `Faz1-Isletme-Demo-2026!`
+
+Kayıt e-postaları, parola sıfırlama ile üyelik davetleri development ortamında Mailpit'e gider. İşletme belgesi PDF/JPEG/PNG ve en fazla 5 MB olmalıdır; private MinIO bucket'tan yalnız yetkili uygulama endpoint'i üzerinden okunur.
 
 Diğer Faz 0 komutları:
 
@@ -103,6 +118,6 @@ OpenAPI çıktısı `docs/openapi.json` dosyasına deterministik olarak yazılı
 
 ## Güvenli varsayımlar
 
-`.env.example` içindeki tüm kimlik bilgileri yalnız localhost development örneğidir ve canlı secret değildir. Gerçek `.env` dosyası Git tarafından yok sayılır. Runtime `NODE_ENV=production` olduğunda localhost arkasında dahi bilinen development/build placeholder secret'ları reddedilir. `pnpm build` yalnız derleme süresinde runtime-only kontrolleri ayrı bir compile bağlamıyla atlar; çalışan production sunucusu bu istisnayı kullanmaz. Tüm canlı ödeme, kargo ve pazaryeri bayrakları kapalıdır. Faz 0 herhangi bir demo kullanıcı veya production admin hesabı oluşturmaz.
+`.env.example` içindeki tüm kimlik bilgileri yalnız localhost development örneğidir ve canlı secret değildir. Gerçek `.env` dosyası Git tarafından yok sayılır. Runtime her ortamda en az 32 karakterli auth ve veri şifreleme anahtarı ister; `NODE_ENV=production` olduğunda localhost arkasında dahi bilinen development/build placeholder secret'ları reddedilir. `pnpm build` yalnız derleme süresinde runtime-only kontrolleri ayrı bir compile bağlamıyla atlar; çalışan production sunucusu bu istisnayı kullanmaz. Vergi numarası AES-256-GCM ile şifreli ve HMAC hashli, reset/doğrulama/davet tokenları hashli saklanır. Tüm canlı ödeme, kargo ve pazaryeri bayrakları kapalıdır.
 
 Development servislerinin sürüm ve güvenlik ayrıntıları için [docs/DEVELOPMENT_SERVICES.md](docs/DEVELOPMENT_SERVICES.md), yayın sınırları için [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) dosyasına bakın.

@@ -30,18 +30,18 @@ export default function HomePage() {
       <main id="ana-icerik" tabIndex={-1}>
         <section className="hero page-shell" aria-labelledby="hero-title">
           <div className="hero-copy">
-            <p className="eyebrow">Faz 0 · Geliştirme temeli hazır</p>
+            <p className="eyebrow">Faz 1 · Güvenli işletme kimliği</p>
             <h1 id="hero-title">İşletmeler arası tedarik için güvenilir bir köprü.</h1>
             <p className="hero-lead">
               TedarikKöprü; tedarikçileri ve pazaryeri satıcısı işletmeleri, doğrulanabilir ve
               izlenebilir süreçler üzerinde buluşturmak için kuruluyor.
             </p>
             <div className="hero-actions">
-              <a className="button button-primary" href="/api/health/live">
-                Canlılık durumunu aç
+              <a className="button button-primary" href="/kayit">
+                İşletme hesabı oluştur
               </a>
-              <a className="button button-secondary" href="#altyapi">
-                Teknik temeli incele
+              <a className="button button-secondary" href="/giris">
+                Giriş yap
               </a>
             </div>
             <ul className="trust-list" aria-label="Temel güven ilkeleri">
@@ -127,7 +127,7 @@ export default function HomePage() {
       <footer className="site-footer">
         <div className="page-shell footer-inner">
           <span>TedarikKöprü</span>
-          <span>Faz 0 · çalışan proje iskeleti</span>
+          <span>Faz 1 · kimlik, işletme ve doğrulama</span>
         </div>
       </footer>
     </>
