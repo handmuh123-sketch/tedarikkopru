@@ -1,12 +1,17 @@
 # PROJECT STATUS
 
-**Durum:** Faz 3B-2 tedarikçi sipariş kararı pilotu tamamlandı
+**Durum:** Faz 3C RFQ / teklif talebi pilotu tamamlandı
 
-**Aktif faz:** Faz 3B-2 — Tedarikçi sipariş kabul/ret (sonraki faz başlatılmadı)
+**Aktif faz:** Faz 3C — RFQ / teklif talebi pilotu (sonraki faz başlatılmadı)
 
-**Son güncelleme:** 20 Ağustos 2026, 22:29 +03:00
+**Son güncelleme:** 20 Ağustos 2026, 23:41 +03:00
 
 ## Tamamlananlar
+
+- `RequestForQuote`, `Quote`, append-only RFQ/teklif durum geçmişi ve `RfqStatus`/`QuoteStatus` forward migration ile eklendi. RFQ açık → teklifli → kabul/red akışı merkezi serializable transaction ile yürür; teklif birim fiyatı pozitif integer TRY minor-unit olarak DB CHECK ile korunur.
+- Onaylı alıcı OWNER/ORG_ADMIN/ORDER_MANAGER üyeleri ürün varyantından hedef tedarikçiye RFQ oluşturur; onaylı tedarikçi OWNER/ORG_ADMIN/CATALOG_MANAGER üyeleri yalnız kendi gelen RFQ'larına idempotent teklif verir. Alıcı kararı aynı idempotency anahtarıyla history/audit çoğaltmaz; yabancı alıcı veya tedarikçi API'de 404 alır.
+- Alıcı için ürün detayındaki teklif talep formu, `/panel/teklif-talepleri` liste/detay ve kabul/ret görünümü; tedarikçi için `/tedarikci/teklifler` liste/detay ve fiyat teklifi formu tamamlandı. Kabul edilen teklif mevcut ürün detayına, oradan mevcut sepet/checkout akışına basit bağlantı verir; sipariş snapshot, rezervasyon, ödeme veya sepet tasarımı değiştirilmedi.
+- Audit kayıtları notları kaydetmeden RFQ oluşturma, teklif verme ve kabul/ret olaylarını kaydeder. Demo seed, mevcut demo hesapların parolasını `.env` ile hashleyip eşitler ve eski demo oturumlarını kapatır; secret loglanmaz.
 
 - `OrderStatus` için forward migration ile `ACCEPTED` ve `REJECTED` terminal durumları eklendi; mevcut append-only `OrderStatusHistory` tedarikçi kararlarını kaydeder.
 - Doğrulanmış SUPPLIER/BOTH işletmesinin aktif `OWNER`, `ORG_ADMIN` ve `WAREHOUSE_OPERATOR` üyeleri, yalnız kendi `PAID` siparişleri için org-scoped kabul/ret kararı verebilir. Alıcı veya yabancı tedarikçi 404 alır.
@@ -64,6 +69,8 @@
 
 ## Çalışan özellikler
 
+- `/urunler/[slug]` alıcıda RFQ oluşturma, `/panel/teklif-talepleri` alıcı RFQ/teklif liste-detal-karar ve `/tedarikci/teklifler` tedarikçi gelen RFQ/teklif akışını sunar.
+
 - `/tedarikci/siparisler` üzerinden tedarikçi sipariş listesi ve `/tedarikci/siparisler/[orderId]` üzerinden `PAID` siparişi kabul/ret; alıcı `/panel/siparisler/[orderId]` detayında güncel terminal sonucu görür.
 
 - `/panel/siparisler` ve `/panel/siparisler/[orderId]` üzerinden alıcıya org-scoped sipariş listesi/detayı; mock ödeme başlatma ve başarılı/ret/iptal tamamlama akışı.
@@ -92,6 +99,12 @@
 - Lint, format, strict typecheck, unit, integration, E2E ve production build kalite komutları.
 
 ## Doğrulama özeti
+
+- Faz 3C hedefli ESLint ve global strict `pnpm typecheck` başarılı; `git diff --check` temiz.
+- Faz 3C unit: 1 dosya, 3/3 test başarılı; MOQ/step, teklif verme ve alıcı karar state machine/replay kuralları kapsandı.
+- Gerçek PostgreSQL integration: 1 dosya, 2/2 test başarılı; supplier/buyer BOLA, org-scoped RBAC, teklif ve karar idempotency'si, tek durum geçmişi/audit, zıt karar 409 ve kabul/ret kapsandı.
+- `20260820100000_phase_03c_rfq_pilot` forward migration'ı PostgreSQL'e uygulandı; Prisma schema/client ve tekrar çalıştırılabilir Faz 3C demo seed'i başarılı oldu.
+- Kritik Chrome E2E: `tests/e2e/rfq-quote.spec.ts` `.env` değerlerini `dotenv/config` ile secret göstermeden yükler. Masaüstü `chromium-desktop` kabul/ret 2/2 ve 360 px `chromium-mobile` kabul/ret 2/2 geçti; alıcı RFQ oluşturma, tedarikçi teklif verme, alıcı terminal kararı ve yatay taşma kontrolü doğrulandı.
 
 - Faz 3B-2 global strict `pnpm typecheck` ve Faz 3B-2 kaynak/test yollarındaki hedefli ESLint başarısız uyarı olmadan geçti.
 - Unit regresyon: Faz 3B-1 mock ödeme ve Faz 3B-2 supplier decision dosyalarında 6/6 test başarılı; `PAID` geçişi, aynı karar replay'i ve zıt karar reddi kapsandı.
@@ -150,7 +163,7 @@
 - MinIO'nun güvenlik yamalı son release'i resmi prebuilt image sunmadığı için ilk development build'i kaynak koddan yapılır ve bu makinede yaklaşık 11 dakika sürdü.
 - CSP şu an Faz 0 statik UI uyumluluğu için `style-src 'unsafe-inline'` içerir. Nonce/hash tabanlı sıkılaştırma sonraki UI güvenlik çalışmasında ele alınmalıdır; bu incelemede kapsam dışı karmaşıklık yaratmamak için değiştirilmedi.
 - `pnpm audit` yerel TLS zincirinde `UNABLE_TO_VERIFY_LEAF_SIGNATURE` ile tamamlanamadı; bu sonuç “açık yok” olarak yorumlanmadı ve CI/kurumsal güvenilir CA ortamında yeniden çalıştırılmalıdır.
-- Mock ödeme, rezervasyonu satışa dönüştürme ve tedarikçi kabul/ret tamamlandı. Manuel banka transferi onayı, RFQ, kargo, iade/refund, dropshipping ve pazaryeri entegrasyonları bilinçli olarak yoktur; sonraki faz başlatılmadı.
+- Mock ödeme, rezervasyonu satışa dönüştürme, tedarikçi kabul/ret ve tek hedef tedarikçili RFQ pilotu tamamlandı. Karşı teklif/pazarlık, mesajlaşma, ek, çoklu tedarikçi/açık artırma, otomatik süre sonlandırma worker'ı, kabul edilen teklif fiyatının sepete taşınması, manuel banka transferi, kargo, iade/refund, dropshipping ve pazaryeri entegrasyonları bilinçli olarak yoktur.
 - Bu Windows yerel ortamında `prisma migrate deploy` migration uygulandıktan sonra ayrıntısız `Schema engine error` ile non-zero döndü. `_prisma_migrations` applied kaydı, yeni tablolar, seed ve gerçek PostgreSQL integration testi şemanın uygulandığını doğruluyor; Prisma CLI teşhisi kurumsal/temiz ortamda ayrıca incelenmelidir.
 - Faz 3B-2 kritik E2E, mevcut yerel demo volume üzerinde yeni siparişler oluşturur. Aynı geliştirme verisiyle tekrar geniş bir E2E turu yapılacaksa katalog stoklarını yenilemek için seed bir kez çalıştırılmalıdır; geçmiş sipariş/audit kayıtları silinmez.
 - Süresi dolmuş rezervasyonlar pilotta sepet/checkout erişiminde ve checkout oluşturmadan önce lazy release edilir; sürekli çalışan production scheduler/worker Faz 3A kapsamı dışındadır.
@@ -166,6 +179,6 @@
 
 ## Önerilen sonraki faz
 
-Yeni ve açık bir kullanıcı talimatıyla manuel banka transferi, kargo veya iade/refund değerlendirilmelidir. Mevcut immutable sipariş, idempotency, stok ledger ve tedarikçi karar temeli korunmalıdır. Bu çalışmada sonraki faza geçilmedi.
+Yeni ve açık bir kullanıcı talimatıyla yalnız Faz 3C sonrası onaylı teklifin sepete güvenli fiyat aktarımı veya ayrı kapsamda manuel banka transferi, kargo ya da iade/refund değerlendirilmelidir. Mevcut immutable sipariş, idempotency, stok ledger, tedarikçi kararı ve RFQ temeli korunmalıdır. Bu çalışmada sonraki faza geçilmedi.
 
 > Codex her faz sonunda bu dosyayı gerçek durumla güncellemelidir.

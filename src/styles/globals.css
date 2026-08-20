@@ -802,6 +802,51 @@ h2 {
   border-radius: 0.65rem;
 }
 
+.rfq-form-section {
+  display: grid;
+  gap: 0.65rem;
+  max-width: 430px;
+  margin-block: 1.25rem;
+  padding: 1rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.rfq-form-section h2,
+.rfq-form-section p {
+  margin: 0;
+}
+
+.rfq-form {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.rfq-form label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--color-ink-soft);
+  font-size: 0.86rem;
+  font-weight: 750;
+}
+
+.rfq-form input,
+.rfq-form textarea {
+  width: 100%;
+  min-height: 2.8rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #a9b8b5;
+  border-radius: 0.55rem;
+  background: white;
+  color: var(--color-ink);
+}
+
+.rfq-form textarea {
+  min-height: 5.5rem;
+  resize: vertical;
+}
+
 .cart-list {
   display: grid;
   gap: 1rem;

@@ -4,6 +4,7 @@ import { createCipheriv, createHash, createHmac, randomBytes } from "node:crypto
 import { PrismaPg } from "@prisma/adapter-pg";
 import { prismaAdapter } from "@better-auth/prisma-adapter";
 import { betterAuth } from "better-auth";
+import { hashPassword } from "better-auth/crypto";
 
 import { PrismaClient } from "../src/generated/prisma/client";
 import { parseServerEnvironment } from "../src/lib/env/schema";
@@ -64,8 +65,14 @@ async function main() {
 
   await database.systemSetting.upsert({
     where: { key: "orders.version" },
-    update: { value: { phase: "3B-1", status: "ready" } },
-    create: { key: "orders.version", value: { phase: "3B-1", status: "ready" } },
+    update: { value: { phase: "3B-2", status: "ready" } },
+    create: { key: "orders.version", value: { phase: "3B-2", status: "ready" } },
+  });
+
+  await database.systemSetting.upsert({
+    where: { key: "rfq.version" },
+    update: { value: { phase: "3C", status: "ready" } },
+    create: { key: "rfq.version", value: { phase: "3C", status: "ready" } },
   });
 
   await database.systemSetting.upsert({
@@ -135,6 +142,20 @@ async function main() {
         platformRole: demoUser.platformRole,
       },
     });
+    const passwordHash = await hashPassword(demoUser.password);
+    await database.account.upsert({
+      where: {
+        providerId_accountId: { providerId: "credential", accountId: user.id },
+      },
+      update: { password: passwordHash },
+      create: {
+        userId: user.id,
+        accountId: user.id,
+        providerId: "credential",
+        password: passwordHash,
+      },
+    });
+    await database.session.deleteMany({ where: { userId: user.id } });
   }
 
   const supplierUser = await database.user.findUniqueOrThrow({
@@ -495,7 +516,7 @@ async function main() {
 
 try {
   await main();
-  console.info("Faz 3B-2 için katalog ve güvenli alıcı/tedarikçi demo seed'i tamamlandı.");
+  console.info("Faz 3C için katalog ve güvenli alıcı/tedarikçi demo seed'i tamamlandı.");
 } finally {
   await database.$disconnect();
 }

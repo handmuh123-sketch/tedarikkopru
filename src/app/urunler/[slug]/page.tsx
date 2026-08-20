@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FavoriteButton } from "@/components/catalog/favorite-button";
 import { AddToCartForm } from "@/components/orders/add-to-cart-form";
+import { RfqCreateForm } from "@/components/rfq/rfq-create-form";
 import { getPageUser } from "@/lib/auth/page-session";
 import { database } from "@/lib/db/client";
 import { findPublicProductBySlug } from "@/modules/catalog/application/public-catalog";
@@ -86,17 +87,25 @@ export default async function ProductDetailPage({ params }: Props) {
           </p>
           <FavoriteButton productId={product.id} initial={favorite} />
           {buyerMembership ? (
-            <AddToCartForm
-              organizationId={buyerMembership.organizationId}
-              variantId={variant.id}
-              moq={variant.moq}
-              quantityStep={variant.quantityStep}
-              supplierConflict={Boolean(
-                buyerMembership.organization.buyerCart?.supplierOrganizationId &&
-                buyerMembership.organization.buyerCart.supplierOrganizationId !==
-                  product.supplierOrganizationId,
-              )}
-            />
+            <>
+              <AddToCartForm
+                organizationId={buyerMembership.organizationId}
+                variantId={variant.id}
+                moq={variant.moq}
+                quantityStep={variant.quantityStep}
+                supplierConflict={Boolean(
+                  buyerMembership.organization.buyerCart?.supplierOrganizationId &&
+                  buyerMembership.organization.buyerCart.supplierOrganizationId !==
+                    product.supplierOrganizationId,
+                )}
+              />
+              <RfqCreateForm
+                organizationId={buyerMembership.organizationId}
+                variantId={variant.id}
+                moq={variant.moq}
+                quantityStep={variant.quantityStep}
+              />
+            </>
           ) : pageUser ? (
             <p className="form-help">
               Sepet için onaylı bir alıcı işletmesi ve satın alma yetkisi gerekir.

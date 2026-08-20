@@ -58,6 +58,24 @@ export default async function PanelPage() {
           ["RESELLER", "BOTH"].includes(organization.type) &&
           ["OWNER", "ORG_ADMIN", "ORDER_MANAGER"].includes(role),
       ) && (
+        <Link className="button button-secondary" href="/panel/teklif-talepleri">
+          Teklif taleplerim
+        </Link>
+      )}
+      {memberships.some(
+        ({ organization, role }) =>
+          ["SUPPLIER", "BOTH"].includes(organization.type) &&
+          ["OWNER", "ORG_ADMIN", "CATALOG_MANAGER"].includes(role),
+      ) && (
+        <Link className="button button-secondary" href="/tedarikci/teklifler">
+          Gelen teklif talepleri
+        </Link>
+      )}
+      {memberships.some(
+        ({ organization, role }) =>
+          ["RESELLER", "BOTH"].includes(organization.type) &&
+          ["OWNER", "ORG_ADMIN", "ORDER_MANAGER"].includes(role),
+      ) && (
         <Link className="button button-secondary" href="/panel/sepet">
           Sepetim
         </Link>

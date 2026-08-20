@@ -154,6 +154,23 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum RfqStatus {
+  DRAFT
+  OPEN
+  QUOTED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
+
+enum QuoteStatus {
+  OFFERED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
 enum PaymentProvider {
   MOCK
 }
@@ -212,6 +229,8 @@ model User {
   paymentsInitiated    Payment[]                 @relation("PaymentInitiator")
   paymentAttempts      PaymentAttempt[]          @relation("PaymentAttemptActor")
   orderStatusChanges   OrderStatusHistory[]      @relation("OrderStatusActor")
+  rfqStatusChanges     RfqStatusHistory[]        @relation("RfqStatusActor")
+  quoteStatusChanges   QuoteStatusHistory[]      @relation("QuoteStatusActor")
 
   @@index([platformRole, status])
   @@map("user")
@@ -316,6 +335,9 @@ model Organization {
   buyerOrders              Order[]                   @relation("BuyerOrders")
   supplierOrders           Order[]                   @relation("SupplierOrders")
   buyerPayments            Payment[]                 @relation("BuyerPayments")
+  buyerRfqs                RequestForQuote[]        @relation("BuyerRfqs")
+  supplierRfqs             RequestForQuote[]        @relation("SupplierRfqs")
+  supplierQuotes           Quote[]                   @relation("SupplierQuotes")
 
   @@index([type, verificationStatus])
   @@index([status, updatedAt])
@@ -515,6 +537,7 @@ model Product {
   variants               ProductVariant[]
   images                 ProductImage[]
   favorites              ProductFavorite[]
+  rfqs                   RequestForQuote[]
 
   @@unique([id, supplierOrganizationId])
   @@index([supplierOrganizationId, status, updatedAt])
@@ -545,6 +568,7 @@ model ProductVariant {
   images                 ProductImage[]
   inventory              Inventory?
   cartItems              CartItem[]
+  rfqs                   RequestForQuote[]
 
   @@unique([supplierOrganizationId, sku])
   @@unique([id, supplierOrganizationId])
@@ -623,6 +647,90 @@ model ProductFavorite {
   @@unique([userId, productId])
   @@index([productId])
   @@map("product_favorites")
+}
+
+model RequestForQuote {
+  id                     String             @id @default(cuid()) @db.VarChar(36)
+  buyerOrganizationId    String             @map("buyer_organization_id") @db.VarChar(36)
+  supplierOrganizationId String             @map("supplier_organization_id") @db.VarChar(36)
+  productId              String             @map("product_id") @db.VarChar(36)
+  variantId              String             @map("variant_id") @db.VarChar(36)
+  status                 RfqStatus          @default(OPEN)
+  targetQuantity         Int                @map("target_quantity")
+  buyerNote              String?            @map("buyer_note") @db.VarChar(1000)
+  createdAt              DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  buyerOrganization      Organization       @relation("BuyerRfqs", fields: [buyerOrganizationId], references: [id], onDelete: Restrict)
+  supplierOrganization   Organization       @relation("SupplierRfqs", fields: [supplierOrganizationId], references: [id], onDelete: Restrict)
+  product                Product            @relation(fields: [productId], references: [id], onDelete: Restrict)
+  variant                ProductVariant     @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  quotes                 Quote[]
+  statusHistory          RfqStatusHistory[]
+
+  @@index([buyerOrganizationId, createdAt])
+  @@index([supplierOrganizationId, status, createdAt])
+  @@index([productId, variantId])
+  @@map("request_for_quotes")
+}
+
+model Quote {
+  id                     String              @id @default(cuid()) @db.VarChar(36)
+  rfqId                  String              @map("rfq_id") @db.VarChar(36)
+  supplierOrganizationId String              @map("supplier_organization_id") @db.VarChar(36)
+  status                 QuoteStatus         @default(OFFERED)
+  unitPriceAmountMinor   Int                 @map("unit_price_amount_minor")
+  currency               String              @default("TRY") @db.Char(3)
+  validUntil             DateTime            @map("valid_until") @db.Timestamptz(3)
+  supplierNote           String?             @map("supplier_note") @db.VarChar(1000)
+  idempotencyKey         String              @map("idempotency_key") @db.VarChar(128)
+  requestHash            String              @map("request_hash") @db.VarChar(64)
+  decisionIdempotencyKey String?             @map("decision_idempotency_key") @db.VarChar(128)
+  decisionRequestHash    String?             @map("decision_request_hash") @db.VarChar(64)
+  createdAt              DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  rfq                    RequestForQuote     @relation(fields: [rfqId], references: [id], onDelete: Restrict)
+  supplierOrganization   Organization        @relation("SupplierQuotes", fields: [supplierOrganizationId], references: [id], onDelete: Restrict)
+  statusHistory          QuoteStatusHistory[]
+
+  @@unique([rfqId, supplierOrganizationId])
+  @@unique([supplierOrganizationId, idempotencyKey])
+  @@index([rfqId, status])
+  @@index([supplierOrganizationId, createdAt])
+  @@map("quotes")
+}
+
+model RfqStatusHistory {
+  id         String         @id @default(cuid()) @db.VarChar(36)
+  rfqId      String         @map("rfq_id") @db.VarChar(36)
+  fromStatus RfqStatus?     @map("from_status")
+  toStatus   RfqStatus      @map("to_status")
+  reasonCode String         @map("reason_code") @db.VarChar(80)
+  actorType  AuditActorType @map("actor_type")
+  actorId    String?        @map("actor_id") @db.VarChar(36)
+  metadata   Json           @default("{}")
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  rfq        RequestForQuote @relation(fields: [rfqId], references: [id], onDelete: Restrict)
+  actor      User?          @relation("RfqStatusActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([rfqId, createdAt])
+  @@map("rfq_status_history")
+}
+
+model QuoteStatusHistory {
+  id         String      @id @default(cuid()) @db.VarChar(36)
+  quoteId    String      @map("quote_id") @db.VarChar(36)
+  fromStatus QuoteStatus? @map("from_status")
+  toStatus   QuoteStatus @map("to_status")
+  reasonCode String      @map("reason_code") @db.VarChar(80)
+  actorType  AuditActorType @map("actor_type")
+  actorId    String?     @map("actor_id") @db.VarChar(36)
+  metadata   Json        @default("{}")
+  createdAt  DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  quote      Quote       @relation(fields: [quoteId], references: [id], onDelete: Restrict)
+  actor      User?       @relation("QuoteStatusActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([quoteId, createdAt])
+  @@map("quote_status_history")
 }
 
 model ImportJob {
