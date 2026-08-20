@@ -890,10 +890,19 @@ h2 {
   display: grid;
   align-content: start;
   gap: 1.25rem;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .order-detail .dashboard-header {
   margin-bottom: 1rem;
+}
+
+.order-detail .dashboard-header > div {
+  min-width: 0;
+}
+
+.order-detail h1 {
+  overflow-wrap: anywhere;
 }
 
 .order-detail address {

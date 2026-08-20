@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { MockPaymentForm } from "@/components/payments/mock-payment-form";
+import { SupplierOrderDecisionForm } from "@/components/orders/supplier-order-decision-form";
 import { requirePageUser } from "@/lib/auth/page-session";
 import { database } from "@/lib/db/client";
 import { formatTryMinor } from "@/modules/catalog/domain/product-rules";
-import { releaseExpiredReservations } from "@/modules/orders/application/order-service";
 
-export const dynamic = "force-dynamic";
+const supplierOrderRoles = ["OWNER", "ORG_ADMIN", "WAREHOUSE_OPERATOR"] as const;
+
 type Props = { params: Promise<{ orderId: string }> };
 
 function addressLines(snapshot: unknown): string[] {
@@ -20,20 +20,22 @@ function addressLines(snapshot: unknown): string[] {
     value.line2,
     value.district,
     value.city,
+    value.phone,
   ].filter((part): part is string => typeof part === "string" && part.length > 0);
 }
 
-export default async function BuyerOrderDetailPage({ params }: Props) {
+export const dynamic = "force-dynamic";
+
+export default async function SupplierOrderDetailPage({ params }: Props) {
   const { orderId } = await params;
   const { user } = await requirePageUser();
-  await releaseExpiredReservations();
   const membership = await database.organizationMembership.findFirst({
     where: {
       userId: user.id,
       status: "ACTIVE",
-      role: { in: ["OWNER", "ORG_ADMIN", "ORDER_MANAGER"] },
+      role: { in: [...supplierOrderRoles] },
       organization: {
-        type: { in: ["RESELLER", "BOTH"] },
+        type: { in: ["SUPPLIER", "BOTH"] },
         status: "ACTIVE",
         verificationStatus: "APPROVED",
       },
@@ -43,26 +45,23 @@ export default async function BuyerOrderDetailPage({ params }: Props) {
   });
   if (!membership) notFound();
   const order = await database.order.findFirst({
-    where: { id: orderId, buyerOrganizationId: membership.organizationId },
+    where: { id: orderId, supplierOrganizationId: membership.organizationId },
     include: {
-      supplierOrganization: { select: { tradeName: true } },
+      buyerOrganization: { select: { tradeName: true } },
       items: { orderBy: { createdAt: "asc" } },
-      payments: { include: { attempts: true }, take: 1 },
       statusHistory: { orderBy: { createdAt: "asc" } },
-      checkout: { select: { expiresAt: true } },
     },
   });
   if (!order) notFound();
-  const payment = order.payments[0] ?? null;
   return (
     <main id="ana-icerik" className="dashboard-page order-detail" tabIndex={-1}>
       <header className="dashboard-header">
         <div>
-          <p className="eyebrow">Alıcı siparişi</p>
+          <p className="eyebrow">Tedarikçi siparişi</p>
           <h1>{order.publicNumber}</h1>
-          <p>{order.supplierOrganization.tradeName}</p>
+          <p>{order.buyerOrganization.tradeName}</p>
         </div>
-        <Link className="button button-secondary" href="/panel/siparisler">
+        <Link className="button button-secondary" href="/tedarikci/siparisler">
           Siparişlere dön
         </Link>
       </header>
@@ -75,24 +74,11 @@ export default async function BuyerOrderDetailPage({ params }: Props) {
           <p>
             <strong>Genel toplam: {formatTryMinor(order.totalAmountMinor)}</strong>
           </p>
-          <p>
-            Rezervasyon sonu:{" "}
-            {order.checkout.expiresAt.toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" })}
-          </p>
         </article>
         <article className="dashboard-card">
           <h2>Teslimat adresi</h2>
           <address>
             {addressLines(order.deliveryAddressSnapshot).map((line) => (
-              <span key={line}>
-                {line}
-                <br />
-              </span>
-            ))}
-          </address>
-          <h2>Fatura adresi</h2>
-          <address>
-            {addressLines(order.invoiceAddressSnapshot).map((line) => (
               <span key={line}>
                 {line}
                 <br />
@@ -130,25 +116,21 @@ export default async function BuyerOrderDetailPage({ params }: Props) {
           </table>
         </div>
       </section>
-      {order.status === "DRAFT" || order.status === "PAYMENT_PROCESSING" ? (
+      {order.status === "PAID" ? (
         <section className="dashboard-card">
-          <MockPaymentForm
+          <SupplierOrderDecisionForm
             organizationId={membership.organizationId}
             orderId={order.id}
-            initialPayment={payment ? { id: payment.id, status: payment.status } : null}
           />
         </section>
       ) : (
         <section className="dashboard-card">
-          <h2>Ödeme durumu</h2>
-          <span className="status-pill">{payment?.status ?? "YOK"}</span>
-          {order.status === "ACCEPTED" && (
-            <p className="form-status success">Tedarikçi siparişinizi kabul etti.</p>
-          )}
+          <h2>Sipariş kararı</h2>
+          <p>Bu sipariş için tedarikçi kararı zaten kaydedildi: {order.status}.</p>
           {order.status === "REJECTED" && (
             <p className="form-status error">
-              Tedarikçi siparişi reddetti. Ödeme iadesi ve iade işlemleri henüz pilot kapsamı
-              dışındadır.
+              Stok ve rezervasyon kayıtları ödeme sonrası immutable kalır; iade süreci bu pilotta
+              yoktur.
             </p>
           )}
         </section>

@@ -1,120 +1,116 @@
-# Faz 03B-1 — Mock Ödeme ve Alıcı Siparişleri
+# Faz 03B-2 — Tedarikçi Sipariş Kararı
 
 ## Amaç ve kullanıcı sonucu
 
-Bu hızlı pilot dilimi tamamlandığında alıcı, Faz 3A checkout taslağındaki tek immutable siparişi mock ödeme sürecine alabilecek; ödeme sonucuna göre rezervasyon atomik olarak satış stoğuna dönüşecek veya serbest bırakılacak; kendi siparişlerini liste ve detay ekranında görebilecektir.
+Bu hızlı pilot dilimi tamamlandığında yetkili tedarikçi kullanıcıları kendi `PAID` siparişlerini listeleyip detayını görüntüleyebilecek; siparişi bir kez kabul veya reddedebilecek; alıcı da aynı sipariş detayında güncel sonucu görebilecektir.
 
 ## Başlangıç durumu
 
-- Son güvenli checkpoint `2deaff492596635cafb3071f7adfb80aa90999d5`; Faz 3A kodu commitli ve checkout başına unique `DRAFT` Order hazırdır.
-- Checkout 15 dakika ACTIVE rezervasyon, immutable OrderItem snapshot, integer minor-unit toplam ve idempotent checkout oluşturur.
-- Ödeme modeli, sipariş durum geçmişi, alıcı sipariş ekranları ve rezervasyonu gerçek stok düşümüne dönüştürme henüz yoktur.
-- `next-env.d.ts` önceki Next dev sürecinde otomatik değişmişti; checkpointteki generated yoluna geri alındı ve Faz 3B-1 kapsamına dahil edilmeyecek.
+- Son güvenli checkpoint `a6af5cc3cd115460248a0e058635a28221013cd5`; Faz 3B-1 mock ödeme ve alıcı siparişleri commitli, çalışma ağacı temizdir.
+- Faz 3B-1, başarılı mock ödemede `PAID` Order, `COMPLETED` Checkout, `CONSUMED` StockReservation ve immutable `SALE` inventory movement üretir.
+- `OrderStatusHistory` append-only, `OrderItem` immutable ve supplier organization siparişte mevcut; tedarikçi görünümü ve karar state machine'i henüz yoktur.
 
 ## Kapsam
 
 ### Dahil
 
-- Checkout sırasında tek kez üretilen immutable sipariş taslağını ödeme başlatıldığında `PAYMENT_PROCESSING`, başarıda `PAID` durumuna geçirmek.
-- `Payment`, idempotent `PaymentAttempt` ve append-only `OrderStatusHistory` modelleri.
-- Mock ödeme başlatma ve doğrulanmış server-side mock tamamlama; kart/token/provider secret verisi toplamayan dar adaptör.
-- Başarıda ACTIVE rezervasyonu aynı transaction içinde `CONSUMED` yapıp `onHand` ve `reserved` değerlerini birlikte düşüren immutable `SALE` stok hareketi.
-- Açık başarısızlık kuralları: ödeme PENDING iken rezervasyon orijinal 15 dakikalık süreye kadar korunur; `DECLINED` ve `CANCELLED` terminal sonuçlarında hemen tek kez release edilir; zaman aşımında existing expiry akışı release edip Payment'ı `EXPIRED` yapar.
-- Başlatma ve tamamlama için ayrı `Idempotency-Key`; aynı key + aynı istek aynı sonuç, aynı key + farklı istek 409; order başına en fazla bir Payment.
-- Org-scoped alıcı sipariş listesi ve detay ekranı; ödeme durumu, immutable satırlar, integer tutarlar ve kendi adres snapshot'ları.
-- Kritik ödeme/sipariş/stok geçişlerinde redacted audit log.
-- Hedefli unit, gerçek PostgreSQL integration ve yalnız mock ödeme/sipariş E2E.
+- `PAID` siparişi `ACCEPTED` veya `REJECTED` terminal tedarikçi karar durumuna geçiren merkezi state machine.
+- Tedarikçi org-scoped sipariş listesi ve detay ekranı; alıcı detayında güncel sipariş sonucu.
+- Sadece aktif SUPPLIER/BOTH organizasyonunun `OWNER`, `ORG_ADMIN` veya `WAREHOUSE_OPERATOR` rollerine kabul/ret yetkisi.
+- Karar endpoint'inde aynı sonuç için idempotent tekrar; ikinci status history/audit kaydı yok. Zıt veya `PAID` dışı karar 409.
+- Append-only status history ve redacted accept/reject audit logları.
+- Ret halinde `CONSUMED` rezervasyon ve `SALE` stok hareketi korunur; stok tekrar satışa açılmaz ve çift hareket oluşmaz. Refund/return bu faz kapsamı dışındadır.
+- Hedefli unit, gerçek PostgreSQL integration, Chrome masaüstü/360 px kritik E2E.
 
 ### Dahil değil
 
-- Banka transferi veya admin onayı, RFQ, tedarikçi sipariş kabulü.
-- Kargo, iade, refund, payout, split/komisyon, gerçek ödeme sağlayıcısı veya webhook.
-- Faz 3B-2 ve sonraki fazlar; Docker image build, production build ve tam sistem regresyonu.
+- RFQ, kargo, iade, refund, manuel banka transferi onayı, fatura, gerçek ödeme sağlayıcısı ve sonraki fazlar.
+- Docker image build, production build ve tam sistem regresyonu.
 
 ## Bağlayıcı kararlar
 
-- Son kullanıcı talimatı yalnız Faz 3B-1'i ve hedefli kalite hattını bağlar.
-- `DECISIONS.md` D-005/D-007: pilot mock ödeme; canlı tahsilat ve lisanssız emanet yapı yok.
-- Ürün şartnamesi 4.10: başarı rezervasyonu gerçek stok düşümüne dönüştürür; başarısız/iptal/zaman aşımı release eder; hareketler transaction, idempotency ve immutable ledger kullanır.
-- `AGENTS.md`: redirect başarı kaynağı değildir, para minor unit, org scope/RBAC zorunlu, finans/stok/sipariş geçişi merkezi servistedir.
+- Kullanıcının FAST PILOT Faz 3B-2 talimatı yalnız tedarikçi kabul/ret akışını bağlar.
+- `DECISIONS.md` D-004/D-005/D-007: tedarikçi alıcı adresine gönderir; mock ödeme kullanılır; gerçek servisler kapsam dışıdır.
+- `AGENTS.md`: finans, stok ve sipariş geçişleri merkezi serviste; org scope, deny-by-default, audit, immutable order item ve stock ledger zorunludur.
 
 ## Teknik kararlar
 
-- Faz 3A checkout zaten checkout başına unique Order üretir; Faz 3B-1 ikinci Order oluşturmaz. Ödeme başlatma mevcut DRAFT Order'ı PAYMENT_PROCESSING'e geçirir, böylece aynı key veya yarış ikinci sipariş üretemez.
-- Order başına tek Payment ve Payment başına tek terminal PaymentAttempt tutulur. Başlatma/completion request hash'leri SHA-256 canonical gövdeden üretilir; DB unique constraint concurrency'de son güvence olur.
-- Mock tamamlama sonucu yalnız `SUCCEEDED`, `DECLINED` veya `CANCELLED` enum'udur. Kullanıcı redirect'i veya query parametresi durum değiştirmez; yalnız authenticated POST endpoint'i state machine'i çalıştırır.
-- Başarı transaction'ı Payment/Order/Checkout claim, reservation claim, koşullu inventory update, SALE movement, status history ve audit'i birlikte yazar. Herhangi bir adım başarısızsa tamamı rollback olur.
-- Başarısız terminal sonuçta Faz 3A release primitive'i kullanılır; ACTIVE claim sayesinde tekrar çağrı çift release/movement üretmez.
-- Production ortamında mock endpoint yalnız açık `FEATURE_MOCK_PAYMENTS` bayrağıyla çalışır; development/testte PAYMENT_PROVIDER=mock ile kullanılabilir. Canlı ödeme bayrağı bu akışı açmaz.
+- Karar: `OrderStatus` enum'una `ACCEPTED` ve `REJECTED` eklenir; `OrderStatusHistory` yeni geçişi kayıt altına alır.
+- Gerekçe: tek Order state machine'i alıcı/tadarikçi ekranlarının aynı güncel sonucu okumasını sağlar; yeni paralel karar tablosu gerektirmez.
+- Alternatif: ayrıca SupplierDecision modeli tutmak.
+- Sonuç: tekrar karar, conditional `PAID` claim ile history/audit üretmeden mevcut terminal Order'ı döndürür; karşıt karar 409 olur.
+- Karar: ret, Faz 3B-1'in `CONSUMED` reservation ve `SALE` ledger'ını değiştirmez.
+- Gerekçe: ödeme başarılıdır; refund/iade siparişten ayrı hesaplanacak sonraki fazdır. Stoku erken geri koymak oversell ve finans/stok tutarsızlığı yaratır.
 
 ## Güvenlik ve veri etkisi
 
-- Payment ve Order her sorguda buyerOrganizationId + aktif purchase membership ile scope edilir; yabancı ID 404 döner.
-- Mock akış kart, CVV, provider tokenı veya secret kabul etmez/loglamaz. Audit metadata yalnız durum ve hareket sayısı içerir.
-- OrderItem değiştirilmeyecek; mevcut UPDATE/DELETE trigger korunur. PaymentAttempt ve OrderStatusHistory için de UPDATE/DELETE trigger eklenir.
-- SALE dönüşümü `on_hand >= quantity AND reserved >= quantity` koşullu SQL update kullanır; negatif stok, oversell ve çift hareket DB/application katmanında engellenir.
-- Forward migration mevcut DRAFT siparişleri kaybetmez; başlangıç DRAFT status history backfill'i yapar.
+- Order okumaları `supplierOrganizationId` ile scope edilir; yabancı tedarikçi ID'si ve alıcı rolü 404/403 ile engellenir.
+- Karar yetkisi yalnız supplier org'un aktif `OWNER`, `ORG_ADMIN`, `WAREHOUSE_OPERATOR` üyelerine verilir; diğer roller deny-by-default kalır.
+- `OrderItem`, `OrderStatusHistory`, PaymentAttempt ve InventoryMovement immutable kalır.
+- Decision transaction, conditional Order claim, append-only history ve audit'i atomik yazar. Ret stok/rezervasyon mutation'ı üretmez.
 
 ## Uygulama adımları
 
-- [x] Checkpoint, zorunlu belgeler, şartname/acceptance ve Faz 3A Order/Checkout kodunu incele.
-- [x] Başarılı/başarısız/iptal/zaman aşımı davranışı ile idempotency modelini yaşayan plana yaz.
-- [x] Prisma modelleri, forward migration, generated client ve feature flag'i ekle.
-- [x] Merkezi order/payment state machine, idempotent mock start/complete ve stok consume/release akışını ekle.
-- [x] Org-scoped API, alıcı sipariş listesi/detayı ve mock ödeme UI'sını ekle.
-- [x] Hedefli unit, PostgreSQL integration ve kritik E2E testlerini çalıştır/düzelt.
-- [x] Hedefli lint ve strict typecheck'i doğrula.
-- [x] `PROJECT_STATUS.md` ve planı kanıtlarla kapat; Faz 3B-2'ye geçmeden dur.
+- [x] Zorunlu belgeler, Faz 3B-1 checkpoint'i, çalışma ağacı ve mevcut order/payment/reservation akışını incele.
+- [x] Order enum/migration ve merkezi supplier decision state machine'ini ekle.
+- [x] Supplier org API/UI listesi, detay ve karar formunu ekle.
+- [x] Buyer detail'a güncel terminal durumu ekle.
+- [x] Unit ve PostgreSQL BOLA/RBAC/idempotency/stok integration testlerini çalıştır/düzelt.
+- [x] Chrome desktop + 360 px E2E'yi mevcut PostgreSQL volume üzerinde çalıştır.
+- [x] Hedefli lint, strict typecheck, `PROJECT_STATUS.md` ve planı kanıtlarla kapat.
+- [x] Son `git diff --check` sonrası Faz 3B-3'e geçmeden dur.
 
 ## Dosya değişiklikleri
 
 - `prisma/schema.prisma`, yeni `prisma/migrations/*`
-- `src/modules/payments/**`, sınırlı `src/modules/orders/**`
-- `src/app/api/v1/organizations/**/orders/**`, `src/app/panel/siparisler/**`, `src/components/payments/**`
-- `src/lib/env/**`, `.env.example`, gerekirse Docker Compose mock flag'i
+- sınırlı `src/modules/orders/**`, `src/lib/auth/**`
+- `src/app/api/v1/organizations/**/orders/**`, `src/app/tedarikci/siparisler/**`, `src/components/orders/**`
 - `tests/unit/**`, `tests/integration/**`, `tests/e2e/**`
 - `.agent/execplan.md`, `PROJECT_STATUS.md`
 
 ## Migration ve geri dönüş
 
-- Faz 3A migration geçmişi değiştirilmeden tek forward Faz 3B-1 migration'ı oluşturulur.
-- Mevcut order kayıtları için DRAFT history backfill edilir; inventory/order/payment verisi silinmez.
-- Geri dönüş önce uygulama deploy'unu checkpoint'e almak, sonra finans/status verisini koruyarak ayrı forward migration kararı vermektir; payment/history/ledger hard-delete edilmez.
+- Faz 3B-1 migration geçmişi değiştirilmeden tek forward Faz 3B-2 migration'ı `ACCEPTED` ve `REJECTED` enum değerlerini ekler.
+- Mevcut siparişler korunur; yeni durumlar yalnız tedarikçi kararından sonra yazılır.
+- Geri dönüş uygulamayı checkpoint'e almakla sınırlıdır; immutable history ve ledger korunur, gerektiğinde ayrı forward migration planlanır.
 
 ## Test planı
 
-- Unit: order number formatı, mock outcome state machine ve terminal geçiş reddi.
-- Integration: org BOLA/RBAC; start ve completion same/different-key idempotency; başarıda tek Payment/Order, reserved→sale atomik hareket; decline/cancel/timeout release idempotency; immutable OrderItem/history/attempt; audit ve minor-unit eşliği.
-- E2E: demo alıcı checkout taslağı oluşturur, sipariş detayına gider, mock ödemeyi başlatıp başarıyla tamamlar, `PAID` ve sipariş listesinde görünürlüğü doğrular; masaüstü + 360 px.
-- Kalite: yalnız ilgili ESLint, global strict typecheck, hedefli Vitest/Playwright; Dockerfile değişmedikçe image build yok.
+- Unit: supplier decision state machine, idempotent aynı karar ve zıt karar reddi.
+- Integration: supplier BOLA/RBAC, alıcı karar yasağı, aynı kararın tek history/audit üretmesi, `PAID` dışı geçiş reddi, ret sonrası `CONSUMED` reservation/`SALE` ledger ve stok değerlerinin korunması.
+- E2E: demo alıcının `PAID` siparişi, demo tedarikçinin kabul/ret kararından sonra alıcı detayında güncel terminal durumla görünür; desktop + 360 px.
+- Kalite: hedefli ESLint, global strict typecheck ve ilgili Vitest/Playwright; Dockerfile değişmedikçe image build yok.
 
 ## Kabul kriterleri
 
-- Aynı idempotency key ikinci Payment, PaymentAttempt veya Order üretmez; farklı gövde 409 verir.
-- Başarı rezervasyonu tek kez SALE'e dönüştürür; onHand/reserved doğru, negatif stok ve oversell yoktur.
-- PENDING rezervasyonu korur; DECLINED/CANCELLED/timeout tek kez release eder ve çift hareket üretmez.
-- OrderItem snapshot değişmez; status/payment geçmişi append-only kalır.
-- Yalnız alıcı organizasyonu kendi sipariş ve ödeme kaydını okuyup değiştirebilir.
-- Redirect/GET/query parametresi ödeme başarısı oluşturamaz; kritik geçiş audit üretir.
-- Hedefli lint, typecheck, unit, integration ve kritik E2E başarılıdır.
+- Tedarikçi yalnız kendi `PAID` siparişini kabul veya reddedebilir; başka supplier order'ı 404 döner.
+- Aynı kabul/ret tekrarında ikinci status history/audit kaydı üretilmez; zıt veya geçersiz geçiş 409 döner.
+- Alıcı sipariş detayında `ACCEPTED` veya `REJECTED` güncel olarak görünür.
+- Ret, Faz 3B-1 stok tüketimini tersine çeviremez; `CONSUMED` reservation, `SALE` movement ve onHand/reserved değerleri korunur.
+- OrderItem snapshots immutable kalır; hedefli kalite hattı geçer.
 
 ## İlerleme günlüğü
 
-- 2026-07-20 23:34 +03:00:
-  - Yapılan: Faz 3B-1 forward migration ve generated client doğrulandı; seed tekrar çalıştırıldı. Hedefli lint, global strict typecheck, mock ödeme unit, gerçek PostgreSQL integration ve sistem Chrome masaüstü/360 px E2E başarıyla tamamlandı.
-  - Kanıt: `pnpm typecheck`; hedefli `pnpm exec eslint`; unit 3/3; integration 3/3; Playwright `chromium-desktop` + `chromium-mobile` 2/2. `_prisma_migrations` Faz 3B-1 kaydı applied, `payments`, `payment_attempts` ve `order_status_history` tabloları mevcut.
-  - Sonraki: Faz 3B-2'ye geçmeden yeni kullanıcı talimatını bekle.
+- 2026-08-20 21:19 +03:00:
+  - Yapılan: Tedarikçi kabul/ret state machine'i, org-scoped API/UI, alıcı durum görünümü, forward migration ve testler tamamlandı. E2E spec'e test işçisi seviyesinde `dotenv/config` eklendi; demo parolası kaynakta veya loglarda yer almadı.
+  - Kanıt: schema validate/client generate, migration deploy ve seed başarılı; unit regresyon 6/6, supplier PostgreSQL integration 2/2, global strict typecheck ve hedefli ESLint başarılı.
+  - Sonraki: Chrome E2E tamamlandığında belgeler son kanıtla kapatılmalı; sonraki faza geçmeden kullanıcı talimatı beklenmeli.
 
-- 2026-07-20 20:25 +03:00:
-  - Yapılan: `2deaff4` checkpoint'i doğrulandı; zorunlu belgeler, acceptance matrisi ve şartnamenin checkout, reservation, order, payment, idempotency ve test bölümleri okundu; Faz 3B-1 sınırları ve failure kuralları donduruldu.
-  - Kanıt: HEAD tam hash eşleşti; başlangıçta yalnız Next'in generated `next-env.d.ts` değişimi görüldü ve checkpoint içeriğine alındı.
-  - Sonraki: Forward schema/migration ve merkezi ödeme state machine'ini uygulamak.
+- 2026-08-20 22:29 +03:00:
+  - Yapılan: Docker Desktop ile mevcut PostgreSQL volume ayağa kaldırıldı; schema güncelliği doğrulandı ve demo stok durumu gerektiği için seed bir kez çalıştırıldı. E2E spec'in `.env` parolası yalnız test işçisinde yüklendi; fallback parola kaldırıldı. 360 px alıcı detayındaki yatay taşma, daralabilir grid kolonu ve sipariş numarası satır kırmasıyla düzeltildi.
+  - Kanıt: sistem Chrome'da `chromium-desktop` kabul/ret 2/2 ve `chromium-mobile` 360 px kabul/ret 2/2 başarılı; global strict typecheck, Faz 3B-2 hedefli ESLint ve `git diff --check` başarılı.
+  - Sonraki: Kullanıcı talimatı olmadan Faz 3B-3 veya sonraki fazlara geçilmez.
+
+- 2026-08-20 00:00 +03:00:
+  - Yapılan: Faz 3B-1 checkpoint'i, zorunlu belgeler, aktif Faz 3 görevi ve çalışma ağacı okundu.
+  - Kanıt: `git status` temiz, `git diff --check` başarılı; gerçek HEAD `a6af5cc3cd115460248a0e058635a28221013cd5`.
+  - Sonraki: Forward migration ve merkezi tedarikçi karar state machine'i.
 
 ## Sürprizler ve öğrenilenler
 
-- Faz 3A checkout zaten immutable DRAFT Order oluşturuyor. Faz 3B-1 bu kaydı ikinci kez üretmek yerine ödeme yaşam döngüsüne geçirerek “aynı key ikinci sipariş üretmez” koşulunu daha güçlü korur.
-- Yerel Windows Prisma CLI'si `migrate deploy` sırasında migration'ı PostgreSQL'e uyguladıktan sonra ayrıntısız `Schema engine error` ile non-zero döndü. DB migration kaydı, tablolar, seed ve real-DB integration şemayı doğruladığı için uygulama tamamlandı; CLI teşhisi temiz/kurumsal ortamda ayrıca izlenmelidir.
+- Kullanıcı tarafından verilen checkpoint `aeaf5cc…` olarak yazılmıştı; repodaki Faz 3B-1 commit'i `a6af5cc…` olarak doğrulandı.
+- E2E'de `.env` değerini Playwright komutunun üst ortamına yüklemek `APP_URL`/origin davranışını değiştirebilir. Bu nedenle yalnız test işçisi spec'i `dotenv/config` yükler; parola fallback'i yoktur ve değer loglanmaz.
 
 ## Sonuç
 
-Faz 3B-1 tamamlandı. Mock ödeme, alıcı siparişleri, atomik stok tüketimi/release, append-only ödeme ve sipariş geçmişi, org scope/RBAC ve hedefli kalite hattı kanıtlandı. Docker image build ve tam sistem regresyonu bilinçli olarak çalıştırılmadı; Faz 3B-2 özellikleri kapsam dışıdır.
+Faz 3B-2 tamamlandı. Tedarikçi sipariş listesi/detayı, org-scoped idempotent kabul/ret, append-only history/audit, alıcı durum görünümü ve ret sonrası immutable stok davranışı uygulandı. Hedefli statik, unit, gerçek PostgreSQL integration ve sistem Chrome desktop/360 px E2E kanıtları başarılıdır. Docker image build, tam regresyon ve sonraki fazlar bilinçli olarak çalıştırılmadı.

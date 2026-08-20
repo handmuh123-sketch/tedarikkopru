@@ -495,9 +495,7 @@ async function main() {
 
 try {
   await main();
-  console.info(
-    "Faz 3B-1 teknik ayarlar, katalog ve güvenli alıcı/tedarikçi demo seed'i tamamlandı.",
-  );
+  console.info("Faz 3B-2 için katalog ve güvenli alıcı/tedarikçi demo seed'i tamamlandı.");
 } finally {
   await database.$disconnect();
 }

@@ -1,12 +1,18 @@
 # PROJECT STATUS
 
-**Durum:** Faz 3B-1 mock ödeme ve alıcı siparişleri pilotu tamamlandı
+**Durum:** Faz 3B-2 tedarikçi sipariş kararı pilotu tamamlandı
 
-**Aktif faz:** Faz 3B-1 — Mock ödeme ve alıcı siparişleri (Faz 3B-2 başlatılmadı)
+**Aktif faz:** Faz 3B-2 — Tedarikçi sipariş kabul/ret (sonraki faz başlatılmadı)
 
-**Son güncelleme:** 20 Temmuz 2026, 23:34 +03:00
+**Son güncelleme:** 20 Ağustos 2026, 22:29 +03:00
 
 ## Tamamlananlar
+
+- `OrderStatus` için forward migration ile `ACCEPTED` ve `REJECTED` terminal durumları eklendi; mevcut append-only `OrderStatusHistory` tedarikçi kararlarını kaydeder.
+- Doğrulanmış SUPPLIER/BOTH işletmesinin aktif `OWNER`, `ORG_ADMIN` ve `WAREHOUSE_OPERATOR` üyeleri, yalnız kendi `PAID` siparişleri için org-scoped kabul/ret kararı verebilir. Alıcı veya yabancı tedarikçi 404 alır.
+- Merkezi karar state machine'i koşullu `PAID` claim, history ve redacted audit'i tek transaction'da yazar. Aynı karar replay'inde ikinci history/audit oluşmaz; karşıt veya `PAID` öncesi karar 409 döner.
+- `/tedarikci/siparisler` ve `/tedarikci/siparisler/[orderId]` ile tedarikçi sipariş listesi, immutable satır/adres snapshot'ı, karar formu ve durum geçmişi eklendi; panelden erişim sağlandı.
+- Alıcı sipariş detayında tedarikçi kabulü veya ret sonucu güncel olarak gösterilir. Ret, ödeme sonrasındaki `CONSUMED` rezervasyon, `SALE` hareketi, `onHand` ve `reserved` değerlerini değiştirmez; refund/iade kapsam dışı kalır.
 
 - `Payment`, immutable `PaymentAttempt` ve append-only `OrderStatusHistory` modelleri; forward migration, mevcut `DRAFT` siparişler için history backfill'i ve immutable DB trigger'ları eklendi.
 - Mock ödeme başlatma/tamamlama merkezi state machine üzerinden çalışır: ayrı başlangıç/tamamlama `Idempotency-Key`'leri aynı isteği tekrarlar, farklı gövdeyi 409 ile reddeder ve sipariş başına tek Payment oluşturur.
@@ -58,6 +64,8 @@
 
 ## Çalışan özellikler
 
+- `/tedarikci/siparisler` üzerinden tedarikçi sipariş listesi ve `/tedarikci/siparisler/[orderId]` üzerinden `PAID` siparişi kabul/ret; alıcı `/panel/siparisler/[orderId]` detayında güncel terminal sonucu görür.
+
 - `/panel/siparisler` ve `/panel/siparisler/[orderId]` üzerinden alıcıya org-scoped sipariş listesi/detayı; mock ödeme başlatma ve başarılı/ret/iptal tamamlama akışı.
 
 - `/urunler/[slug]` üzerinden tek tedarikçili sepete ekleme; `/panel/sepet` miktar güncelleme/silme ve minimum tutar özeti.
@@ -84,6 +92,12 @@
 - Lint, format, strict typecheck, unit, integration, E2E ve production build kalite komutları.
 
 ## Doğrulama özeti
+
+- Faz 3B-2 global strict `pnpm typecheck` ve Faz 3B-2 kaynak/test yollarındaki hedefli ESLint başarısız uyarı olmadan geçti.
+- Unit regresyon: Faz 3B-1 mock ödeme ve Faz 3B-2 supplier decision dosyalarında 6/6 test başarılı; `PAID` geçişi, aynı karar replay'i ve zıt karar reddi kapsandı.
+- Gerçek PostgreSQL integration: 1 dosya, 2/2 test başarılı; supplier BOLA/RBAC, alıcı karar yasağı, idempotent accept/reject, tek history/audit, zıt karar 409 ve ret sonrası `CONSUMED` rezervasyon/`SALE` ledger/stok korunumu doğrulandı.
+- Prisma schema doğrulandı, client üretildi; `20260820000000_phase_03b2_supplier_order_decision` migration'ı PostgreSQL'e uygulandı. Faz 3B-2 seed'i başarıyla tekrar çalıştırıldı.
+- Kritik Chrome E2E için `tests/e2e/supplier-order-decision.spec.ts` `.env` değerlerini test işçisinde `dotenv/config` ile yükler; demo parolası loglanmaz veya hardcode edilmez. Mevcut PostgreSQL volume ile `chromium-desktop` kabul/ret 2/2 ve 360 px `chromium-mobile` kabul/ret 2/2 geçti; alıcı detayında terminal durum ve yatay taşma kontrolü doğrulandı.
 
 - Faz 3B-1 global strict `pnpm typecheck` ve Faz 3B-1 kaynak/test yollarındaki hedefli ESLint başarısız uyarı olmadan geçti.
 - Mock ödeme unit: 1 dosya, 3 test başarılı; sipariş numarası ve başarılı/ret/iptal state machine kuralları kapsandı.
@@ -136,8 +150,9 @@
 - MinIO'nun güvenlik yamalı son release'i resmi prebuilt image sunmadığı için ilk development build'i kaynak koddan yapılır ve bu makinede yaklaşık 11 dakika sürdü.
 - CSP şu an Faz 0 statik UI uyumluluğu için `style-src 'unsafe-inline'` içerir. Nonce/hash tabanlı sıkılaştırma sonraki UI güvenlik çalışmasında ele alınmalıdır; bu incelemede kapsam dışı karmaşıklık yaratmamak için değiştirilmedi.
 - `pnpm audit` yerel TLS zincirinde `UNABLE_TO_VERIFY_LEAF_SIGNATURE` ile tamamlanamadı; bu sonuç “açık yok” olarak yorumlanmadı ve CI/kurumsal güvenilir CA ortamında yeniden çalıştırılmalıdır.
-- Mock ödeme ile rezervasyonu satışa dönüştürme tamamlandı. Manuel banka transferi onayı, RFQ, tedarikçi sipariş kabulü, kargo, iade, dropshipping ve pazaryeri entegrasyonları bilinçli olarak yoktur; Faz 3B-2 başlatılmadı.
+- Mock ödeme, rezervasyonu satışa dönüştürme ve tedarikçi kabul/ret tamamlandı. Manuel banka transferi onayı, RFQ, kargo, iade/refund, dropshipping ve pazaryeri entegrasyonları bilinçli olarak yoktur; sonraki faz başlatılmadı.
 - Bu Windows yerel ortamında `prisma migrate deploy` migration uygulandıktan sonra ayrıntısız `Schema engine error` ile non-zero döndü. `_prisma_migrations` applied kaydı, yeni tablolar, seed ve gerçek PostgreSQL integration testi şemanın uygulandığını doğruluyor; Prisma CLI teşhisi kurumsal/temiz ortamda ayrıca incelenmelidir.
+- Faz 3B-2 kritik E2E, mevcut yerel demo volume üzerinde yeni siparişler oluşturur. Aynı geliştirme verisiyle tekrar geniş bir E2E turu yapılacaksa katalog stoklarını yenilemek için seed bir kez çalıştırılmalıdır; geçmiş sipariş/audit kayıtları silinmez.
 - Süresi dolmuş rezervasyonlar pilotta sepet/checkout erişiminde ve checkout oluşturmadan önce lazy release edilir; sürekli çalışan production scheduler/worker Faz 3A kapsamı dışındadır.
 - Import pilotu tek process içinde request-time parse/confirm kullanır; background worker, object-storage dosya saklama ve büyük batch ölçeklemesi kapsam dışıdır. Harici görsel URL'leri fetch edilmez.
 - Public arama temel PostgreSQL `ILIKE`/trigram indeks yaklaşımıdır; gelişmiş relevance, typo tolerance veya ayrı arama servisi yoktur.
@@ -151,6 +166,6 @@
 
 ## Önerilen sonraki faz
 
-Yeni ve açık bir kullanıcı talimatıyla Faz 3B-2 ele alınabilir. Manuel banka transferi veya tedarikçi sipariş kabulü, mevcut immutable sipariş/idempotency/rezervasyon ve mock ödeme temeli üzerine eklenmelidir. Bu çalışmada Faz 3B-2'ye geçilmedi.
+Yeni ve açık bir kullanıcı talimatıyla manuel banka transferi, kargo veya iade/refund değerlendirilmelidir. Mevcut immutable sipariş, idempotency, stok ledger ve tedarikçi karar temeli korunmalıdır. Bu çalışmada sonraki faza geçilmedi.
 
 > Codex her faz sonunda bu dosyayı gerçek durumla güncellemelidir.

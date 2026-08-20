@@ -71,6 +71,15 @@ export default async function PanelPage() {
           Siparişlerim
         </Link>
       )}
+      {memberships.some(
+        ({ organization, role }) =>
+          ["SUPPLIER", "BOTH"].includes(organization.type) &&
+          ["OWNER", "ORG_ADMIN", "WAREHOUSE_OPERATOR"].includes(role),
+      ) && (
+        <Link className="button button-secondary" href="/tedarikci/siparisler">
+          Tedarikçi siparişleri
+        </Link>
+      )}
       {["PLATFORM_SUPER_ADMIN", "PLATFORM_ADMIN"].includes(user.platformRole) && (
         <Link className="button button-secondary" href="/admin/dogrulamalar">
           Doğrulama kuyruğu

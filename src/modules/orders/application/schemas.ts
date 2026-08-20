@@ -15,3 +15,7 @@ export const checkoutDraftSchema = z.object({
 });
 
 export const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._:-]{16,128}$/;
+
+export const supplierOrderDecisionSchema = z
+  .object({ decision: z.enum(["ACCEPTED", "REJECTED"]) })
+  .strict();
