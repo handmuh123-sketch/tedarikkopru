@@ -1,12 +1,17 @@
 # PROJECT STATUS
 
-**Durum:** Faz 3C RFQ / teklif talebi pilotu tamamlandı
+**Durum:** Faz 4A kargo ve teslimat pilotu tamamlandı
 
-**Aktif faz:** Faz 3C — RFQ / teklif talebi pilotu (sonraki faz başlatılmadı)
+**Aktif faz:** Faz 4A — kargo ve teslimat pilotu (sonraki faz başlatılmadı)
 
-**Son güncelleme:** 20 Ağustos 2026, 23:41 +03:00
+**Son güncelleme:** 21 Ağustos 2026, +03:00
 
 ## Tamamlananlar
+
+- `Shipment`, append-only `ShipmentStatusHistory` ve `OrderStatus` için `SHIPPED`/`DELIVERED` forward migration ile eklendi. Merkezi serializable servis yalnız `ACCEPTED → SHIPPED → DELIVERED` geçişlerini uygular; terminal durumdan geri dönüş yoktur.
+- Onaylı tedarikçi `OWNER`/`ORG_ADMIN`/`WAREHOUSE_OPERATOR` üyeleri `order:fulfill` ile yalnız kendi kabul edilmiş siparişine kargo firması, manuel takip numarası, kargoya verilme ve tahmini teslim tarihini idempotent kaydeder; yalnız `SHIPPED` siparişi teslim edildi yapabilir. Aynı idempotency anahtarı history/audit çoğaltmaz, yabancı tedarikçi veya alıcı 404 alır.
+- Tedarikçi sipariş detayına kargo oluşturma/teslim formu ve kargo durum geçmişi; alıcı sipariş detayına kendi siparişi için güncel kargo firması, takip numarası, tarihler ve kargo geçmişi eklendi. OrderItem snapshot'ları, rezervasyon, stok ve `SALE` ledger satırları değiştirilmedi.
+- Carrier/tracking biçimi ve gönderim/tahmini teslim/tamamlanma tarih sırası doğrulanır. Kargo history DB trigger ile append-only'dir; kargo audit'leri taşıyıcı, takip numarası, adres ya da başka PII tutmaz. `shipping.version` seed kaydı Faz 4A olarak eklendi.
 
 - `RequestForQuote`, `Quote`, append-only RFQ/teklif durum geçmişi ve `RfqStatus`/`QuoteStatus` forward migration ile eklendi. RFQ açık → teklifli → kabul/red akışı merkezi serializable transaction ile yürür; teklif birim fiyatı pozitif integer TRY minor-unit olarak DB CHECK ile korunur.
 - Onaylı alıcı OWNER/ORG_ADMIN/ORDER_MANAGER üyeleri ürün varyantından hedef tedarikçiye RFQ oluşturur; onaylı tedarikçi OWNER/ORG_ADMIN/CATALOG_MANAGER üyeleri yalnız kendi gelen RFQ'larına idempotent teklif verir. Alıcı kararı aynı idempotency anahtarıyla history/audit çoğaltmaz; yabancı alıcı veya tedarikçi API'de 404 alır.
@@ -69,6 +74,8 @@
 
 ## Çalışan özellikler
 
+- `/tedarikci/siparisler/[orderId]` kabul edilmiş siparişi manuel takip bilgisiyle kargoya verir ve yalnız `SHIPPED` siparişi teslim edildi yapar; `/panel/siparisler/[orderId]` alıcıya org-scoped güncel kargo bilgisini ve `DELIVERED` durumunu gösterir.
+
 - `/urunler/[slug]` alıcıda RFQ oluşturma, `/panel/teklif-talepleri` alıcı RFQ/teklif liste-detal-karar ve `/tedarikci/teklifler` tedarikçi gelen RFQ/teklif akışını sunar.
 
 - `/tedarikci/siparisler` üzerinden tedarikçi sipariş listesi ve `/tedarikci/siparisler/[orderId]` üzerinden `PAID` siparişi kabul/ret; alıcı `/panel/siparisler/[orderId]` detayında güncel terminal sonucu görür.
@@ -99,6 +106,13 @@
 - Lint, format, strict typecheck, unit, integration, E2E ve production build kalite komutları.
 
 ## Doğrulama özeti
+
+- Faz 4A hedefli ESLint ve global strict `pnpm typecheck` başarılı; `git diff --check` temiz.
+- Faz 4A unit: 1 dosya, 2/2 test başarılı; dar shipment oluşturma/teslim transition ve terminal replay kuralları kapsandı.
+- Gerçek PostgreSQL integration: 1 dosya, 2/2 test başarılı; supplier/buyer BOLA, `order:fulfill` RBAC, aynı idempotency key replay'i, farklı gövdede 409, tek shipment/order history ve audit, terminal geri dönüş yasağı ile stok/`SALE` ledger korunumu kapsandı.
+- Prisma schema/client doğrulandı; `20260821000000_phase_04a_shipping_delivery` forward migration'ı PostgreSQL'e uygulandı ve Faz 4A demo seed'i başarılı oldu.
+- Kritik Chrome E2E: `tests/e2e/shipment-delivery.spec.ts` `.env` değerlerini `dotenv/config` ile secret göstermeden yükler. `chromium-desktop` 1/1 ve 360 px `chromium-mobile` 1/1 geçti; alıcı ödeme → supplier accept → kargoya verme → idempotent replay → alıcı görünümü → teslim → idempotent replay → alıcı `DELIVERED` görünümü ve yatay taşma doğrulandı.
+- Docker image build ve tam sistem regresyonu FAST PILOT talimatı gereği çalıştırılmadı.
 
 - Faz 3C hedefli ESLint ve global strict `pnpm typecheck` başarılı; `git diff --check` temiz.
 - Faz 3C unit: 1 dosya, 3/3 test başarılı; MOQ/step, teklif verme ve alıcı karar state machine/replay kuralları kapsandı.
@@ -163,9 +177,9 @@
 - MinIO'nun güvenlik yamalı son release'i resmi prebuilt image sunmadığı için ilk development build'i kaynak koddan yapılır ve bu makinede yaklaşık 11 dakika sürdü.
 - CSP şu an Faz 0 statik UI uyumluluğu için `style-src 'unsafe-inline'` içerir. Nonce/hash tabanlı sıkılaştırma sonraki UI güvenlik çalışmasında ele alınmalıdır; bu incelemede kapsam dışı karmaşıklık yaratmamak için değiştirilmedi.
 - `pnpm audit` yerel TLS zincirinde `UNABLE_TO_VERIFY_LEAF_SIGNATURE` ile tamamlanamadı; bu sonuç “açık yok” olarak yorumlanmadı ve CI/kurumsal güvenilir CA ortamında yeniden çalıştırılmalıdır.
-- Mock ödeme, rezervasyonu satışa dönüştürme, tedarikçi kabul/ret ve tek hedef tedarikçili RFQ pilotu tamamlandı. Karşı teklif/pazarlık, mesajlaşma, ek, çoklu tedarikçi/açık artırma, otomatik süre sonlandırma worker'ı, kabul edilen teklif fiyatının sepete taşınması, manuel banka transferi, kargo, iade/refund, dropshipping ve pazaryeri entegrasyonları bilinçli olarak yoktur.
+- Mock ödeme, rezervasyonu satışa dönüştürme, tedarikçi kabul/ret, tek hedef tedarikçili RFQ ve tek paketli manuel kargo/teslimat pilotu tamamlandı. Karşı teklif/pazarlık, mesajlaşma, ek, çoklu tedarikçi/açık artırma, otomatik süre sonlandırma worker'ı, kabul edilen teklif fiyatının sepete taşınması, manuel banka transferi, gerçek kargo firması entegrasyonu, etiket/barkod, çoklu paket/split shipment, iade/refund, dropshipping ve pazaryeri entegrasyonları bilinçli olarak yoktur.
 - Bu Windows yerel ortamında `prisma migrate deploy` migration uygulandıktan sonra ayrıntısız `Schema engine error` ile non-zero döndü. `_prisma_migrations` applied kaydı, yeni tablolar, seed ve gerçek PostgreSQL integration testi şemanın uygulandığını doğruluyor; Prisma CLI teşhisi kurumsal/temiz ortamda ayrıca incelenmelidir.
-- Faz 3B-2 kritik E2E, mevcut yerel demo volume üzerinde yeni siparişler oluşturur. Aynı geliştirme verisiyle tekrar geniş bir E2E turu yapılacaksa katalog stoklarını yenilemek için seed bir kez çalıştırılmalıdır; geçmiş sipariş/audit kayıtları silinmez.
+- Faz 4A kritik E2E, mevcut yerel demo volume üzerinde yeni sipariş ve kargo geçmişi oluşturur. Aynı geliştirme verisiyle tekrar geniş bir E2E turu yapılacaksa katalog stoklarını yenilemek için seed bir kez çalıştırılmalıdır; geçmiş sipariş/kargo/audit kayıtları silinmez.
 - Süresi dolmuş rezervasyonlar pilotta sepet/checkout erişiminde ve checkout oluşturmadan önce lazy release edilir; sürekli çalışan production scheduler/worker Faz 3A kapsamı dışındadır.
 - Import pilotu tek process içinde request-time parse/confirm kullanır; background worker, object-storage dosya saklama ve büyük batch ölçeklemesi kapsam dışıdır. Harici görsel URL'leri fetch edilmez.
 - Public arama temel PostgreSQL `ILIKE`/trigram indeks yaklaşımıdır; gelişmiş relevance, typo tolerance veya ayrı arama servisi yoktur.
@@ -177,8 +191,8 @@
 - Gerçek servis kimlik bilgileri ve canlı feature flag'leri yoktur; hiçbir canlı çağrı yapılmadı.
 - Hukuk/KVKK, mali müşavir, ödeme kuruluşu ve pilot kategori doğrulamaları sonraki ilgili fazların dış bağımlılıklarıdır.
 
-## Önerilen sonraki faz
+## Sonraki kapsam
 
-Yeni ve açık bir kullanıcı talimatıyla yalnız Faz 3C sonrası onaylı teklifin sepete güvenli fiyat aktarımı veya ayrı kapsamda manuel banka transferi, kargo ya da iade/refund değerlendirilmelidir. Mevcut immutable sipariş, idempotency, stok ledger, tedarikçi kararı ve RFQ temeli korunmalıdır. Bu çalışmada sonraki faza geçilmedi.
+Yeni ve açık bir kullanıcı talimatı olmadan sonraki faz başlatılmamalıdır. Mevcut immutable sipariş, idempotency, stok ledger, tedarikçi kararı, RFQ ve manuel kargo temeli korunmalıdır.
 
 > Codex her faz sonunda bu dosyayı gerçek durumla güncellemelidir.

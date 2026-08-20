@@ -50,6 +50,7 @@ export default async function BuyerOrderDetailPage({ params }: Props) {
       payments: { include: { attempts: true }, take: 1 },
       statusHistory: { orderBy: { createdAt: "asc" } },
       checkout: { select: { expiresAt: true } },
+      shipment: { include: { statusHistory: { orderBy: { createdAt: "asc" } } } },
     },
   });
   if (!order) notFound();
@@ -145,12 +146,60 @@ export default async function BuyerOrderDetailPage({ params }: Props) {
           {order.status === "ACCEPTED" && (
             <p className="form-status success">Tedarikçi siparişinizi kabul etti.</p>
           )}
+          {order.status === "SHIPPED" && (
+            <p className="form-status success">Siparişiniz kargoya verildi.</p>
+          )}
+          {order.status === "DELIVERED" && (
+            <p className="form-status success">Siparişiniz teslim edildi.</p>
+          )}
           {order.status === "REJECTED" && (
             <p className="form-status error">
               Tedarikçi siparişi reddetti. Ödeme iadesi ve iade işlemleri henüz pilot kapsamı
               dışındadır.
             </p>
           )}
+        </section>
+      )}
+      {order.shipment && (
+        <section className="dashboard-card">
+          <h2>Kargo bilgileri</h2>
+          <span className="status-pill">{order.shipment.status}</span>
+          <p>Kargo firması: {order.shipment.carrier}</p>
+          <p>Takip numarası: {order.shipment.trackingNumber}</p>
+          <p>
+            Kargoya verilme: {" "}
+            {order.shipment.shippedAt.toLocaleDateString("tr-TR", {
+              timeZone: "Europe/Istanbul",
+            })}
+          </p>
+          {order.shipment.estimatedDeliveryAt && (
+            <p>
+              Tahmini teslim: {" "}
+              {order.shipment.estimatedDeliveryAt.toLocaleDateString("tr-TR", {
+                timeZone: "Europe/Istanbul",
+              })}
+            </p>
+          )}
+          {order.shipment.deliveredAt && (
+            <p>
+              Teslim edildi: {" "}
+              {order.shipment.deliveredAt.toLocaleString("tr-TR", {
+                timeZone: "Europe/Istanbul",
+              })}
+            </p>
+          )}
+          <h3>Kargo durum geçmişi</h3>
+          <ol className="status-history">
+            {order.shipment.statusHistory.map((entry) => (
+              <li key={entry.id}>
+                <strong>{entry.toStatus}</strong>
+                <span>
+                  {entry.reasonCode} · {" "}
+                  {entry.createdAt.toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" })}
+                </span>
+              </li>
+            ))}
+          </ol>
         </section>
       )}
       <section className="dashboard-card">

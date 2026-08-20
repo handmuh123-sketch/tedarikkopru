@@ -150,8 +150,15 @@ enum OrderStatus {
   PAYMENT_PROCESSING
   PAID
   ACCEPTED
+  SHIPPED
+  DELIVERED
   REJECTED
   CANCELLED
+}
+
+enum ShipmentStatus {
+  SHIPPED
+  DELIVERED
 }
 
 enum RfqStatus {
@@ -229,6 +236,7 @@ model User {
   paymentsInitiated    Payment[]                 @relation("PaymentInitiator")
   paymentAttempts      PaymentAttempt[]          @relation("PaymentAttemptActor")
   orderStatusChanges   OrderStatusHistory[]      @relation("OrderStatusActor")
+  shipmentStatusChanges ShipmentStatusHistory[]  @relation("ShipmentStatusActor")
   rfqStatusChanges     RfqStatusHistory[]        @relation("RfqStatusActor")
   quoteStatusChanges   QuoteStatusHistory[]      @relation("QuoteStatusActor")
 
@@ -335,6 +343,7 @@ model Organization {
   buyerOrders              Order[]                   @relation("BuyerOrders")
   supplierOrders           Order[]                   @relation("SupplierOrders")
   buyerPayments            Payment[]                 @relation("BuyerPayments")
+  supplierShipments        Shipment[]                @relation("SupplierShipments")
   buyerRfqs                RequestForQuote[]        @relation("BuyerRfqs")
   supplierRfqs             RequestForQuote[]        @relation("SupplierRfqs")
   supplierQuotes           Quote[]                   @relation("SupplierQuotes")
@@ -857,6 +866,7 @@ model Order {
   items                   OrderItem[]
   payments                Payment[]
   statusHistory           OrderStatusHistory[]
+  shipment                Shipment?
 
   @@index([buyerOrganizationId, createdAt])
   @@index([supplierOrganizationId, createdAt])
@@ -901,6 +911,49 @@ model OrderStatusHistory {
 
   @@index([orderId, createdAt])
   @@map("order_status_history")
+}
+
+model Shipment {
+  id                       String                @id @default(cuid()) @db.VarChar(36)
+  orderId                  String                @unique @map("order_id") @db.VarChar(36)
+  supplierOrganizationId   String                @map("supplier_organization_id") @db.VarChar(36)
+  status                   ShipmentStatus        @default(SHIPPED)
+  carrier                  String                @db.VarChar(120)
+  trackingNumber           String                @map("tracking_number") @db.VarChar(120)
+  shippedAt                DateTime              @map("shipped_at") @db.Timestamptz(3)
+  estimatedDeliveryAt      DateTime?             @map("estimated_delivery_at") @db.Timestamptz(3)
+  deliveredAt              DateTime?             @map("delivered_at") @db.Timestamptz(3)
+  shippingIdempotencyKey   String                @map("shipping_idempotency_key") @db.VarChar(128)
+  shippingRequestHash      String                @map("shipping_request_hash") @db.VarChar(64)
+  deliveryIdempotencyKey   String?               @map("delivery_idempotency_key") @db.VarChar(128)
+  deliveryRequestHash      String?               @map("delivery_request_hash") @db.VarChar(64)
+  createdAt                DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+  order                    Order                 @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  supplierOrganization     Organization          @relation("SupplierShipments", fields: [supplierOrganizationId], references: [id], onDelete: Restrict)
+  statusHistory            ShipmentStatusHistory[]
+
+  @@unique([supplierOrganizationId, shippingIdempotencyKey])
+  @@unique([supplierOrganizationId, deliveryIdempotencyKey])
+  @@index([supplierOrganizationId, status, createdAt])
+  @@map("shipments")
+}
+
+model ShipmentStatusHistory {
+  id         String         @id @default(cuid()) @db.VarChar(36)
+  shipmentId String         @map("shipment_id") @db.VarChar(36)
+  fromStatus ShipmentStatus? @map("from_status")
+  toStatus   ShipmentStatus @map("to_status")
+  reasonCode String         @map("reason_code") @db.VarChar(80)
+  actorType  AuditActorType @map("actor_type")
+  actorId    String?        @map("actor_id") @db.VarChar(36)
+  metadata   Json           @default("{}")
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  shipment   Shipment       @relation(fields: [shipmentId], references: [id], onDelete: Restrict)
+  actor      User?          @relation("ShipmentStatusActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([shipmentId, createdAt])
+  @@map("shipment_status_history")
 }
 
 model Payment {

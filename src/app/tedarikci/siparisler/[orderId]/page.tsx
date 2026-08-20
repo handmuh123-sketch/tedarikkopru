@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { SupplierOrderDecisionForm } from "@/components/orders/supplier-order-decision-form";
+import { SupplierShipmentForm } from "@/components/shipping/supplier-shipment-form";
 import { requirePageUser } from "@/lib/auth/page-session";
 import { database } from "@/lib/db/client";
 import { formatTryMinor } from "@/modules/catalog/domain/product-rules";
@@ -50,6 +51,7 @@ export default async function SupplierOrderDetailPage({ params }: Props) {
       buyerOrganization: { select: { tradeName: true } },
       items: { orderBy: { createdAt: "asc" } },
       statusHistory: { orderBy: { createdAt: "asc" } },
+      shipment: { include: { statusHistory: { orderBy: { createdAt: "asc" } } } },
     },
   });
   if (!order) notFound();
@@ -123,6 +125,22 @@ export default async function SupplierOrderDetailPage({ params }: Props) {
             orderId={order.id}
           />
         </section>
+      ) : order.status === "ACCEPTED" ? (
+        <section className="dashboard-card">
+          <SupplierShipmentForm
+            organizationId={membership.organizationId}
+            orderId={order.id}
+            state="ACCEPTED"
+          />
+        </section>
+      ) : order.status === "SHIPPED" && order.shipment ? (
+        <section className="dashboard-card">
+          <SupplierShipmentForm
+            organizationId={membership.organizationId}
+            orderId={order.id}
+            state="SHIPPED"
+          />
+        </section>
       ) : (
         <section className="dashboard-card">
           <h2>Sipariş kararı</h2>
@@ -133,6 +151,48 @@ export default async function SupplierOrderDetailPage({ params }: Props) {
               yoktur.
             </p>
           )}
+        </section>
+      )}
+      {order.shipment && (
+        <section className="dashboard-card">
+          <h2>Kargo bilgileri</h2>
+          <span className="status-pill">{order.shipment.status}</span>
+          <p>Kargo firması: {order.shipment.carrier}</p>
+          <p>Takip numarası: {order.shipment.trackingNumber}</p>
+          <p>
+            Kargoya verilme: {" "}
+            {order.shipment.shippedAt.toLocaleDateString("tr-TR", {
+              timeZone: "Europe/Istanbul",
+            })}
+          </p>
+          {order.shipment.estimatedDeliveryAt && (
+            <p>
+              Tahmini teslim: {" "}
+              {order.shipment.estimatedDeliveryAt.toLocaleDateString("tr-TR", {
+                timeZone: "Europe/Istanbul",
+              })}
+            </p>
+          )}
+          {order.shipment.deliveredAt && (
+            <p>
+              Teslim edildi: {" "}
+              {order.shipment.deliveredAt.toLocaleString("tr-TR", {
+                timeZone: "Europe/Istanbul",
+              })}
+            </p>
+          )}
+          <h3>Kargo durum geçmişi</h3>
+          <ol className="status-history">
+            {order.shipment.statusHistory.map((entry) => (
+              <li key={entry.id}>
+                <strong>{entry.toStatus}</strong>
+                <span>
+                  {entry.reasonCode} · {" "}
+                  {entry.createdAt.toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" })}
+                </span>
+              </li>
+            ))}
+          </ol>
         </section>
       )}
       <section className="dashboard-card">
