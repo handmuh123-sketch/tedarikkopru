@@ -1,12 +1,18 @@
 # PROJECT STATUS
 
-**Durum:** Faz 4A kargo ve teslimat pilotu tamamlandı
+**Durum:** Faz 4B iade/refund pilotu tamamlandı
 
-**Aktif faz:** Faz 4A — kargo ve teslimat pilotu (sonraki faz başlatılmadı)
+**Aktif faz:** Faz 4B — iade/refund pilotu (sonraki faz başlatılmadı)
 
 **Son güncelleme:** 21 Ağustos 2026, +03:00
 
 ## Tamamlananlar
+
+- `ReturnRequest`, satır bazlı `ReturnItem`, uygulama içi `Refund`/`RefundItem` ve append-only `ReturnStatusHistory` forward migration ile eklendi. İade state machine'i yalnız `REQUESTED → ACCEPTED → RETURN_RECEIVED` veya `REQUESTED → REJECTED` geçişine izin verir; sipariş `DELIVERED` kalır.
+- Alıcı yalnız kendi `DELIVERED` siparişindeki kalan satır miktarı için `purchase:manage` ile iade açabilir. Önceden açık, kabul edilmiş veya teslim alınmış iade miktarı tekrar istenemez; yabancı alıcı/supplier order veya return ID'si 404 döner.
+- Tedarikçi kendi talebini `order:fulfill` ile idempotent kabul/reddeder. Kabul, gerçek ödeme sağlayıcısına çağrı yapmadan OrderItem/miktar/tutar eşlemesi olan immutable integer minor-unit refund kaydı üretir; aynı karar ikinci refund, history veya audit üretmez.
+- Tedarikçi ayrı idempotent fiziksel teslim alma adımında ürünü işaretler. Yalnız bu anda append-only `RETURN_RESTORE` hareketi `onHand` değerini bir kez artırır; OrderItem snapshot'ları ve mevcut `SALE` ledger değişmez. Ret senaryosunda refund ve stok artışı oluşmaz.
+- Alıcı sipariş detayına iade formu/durum/refund görünümü, tedarikçiye `/tedarikci/iadeler` liste ve detay/karar/teslim alma ekranları eklendi. İade audit'i açıklama, adres veya secret saklamaz; `returns.version` demo seed kaydı Faz 4B olarak eklendi.
 
 - `Shipment`, append-only `ShipmentStatusHistory` ve `OrderStatus` için `SHIPPED`/`DELIVERED` forward migration ile eklendi. Merkezi serializable servis yalnız `ACCEPTED → SHIPPED → DELIVERED` geçişlerini uygular; terminal durumdan geri dönüş yoktur.
 - Onaylı tedarikçi `OWNER`/`ORG_ADMIN`/`WAREHOUSE_OPERATOR` üyeleri `order:fulfill` ile yalnız kendi kabul edilmiş siparişine kargo firması, manuel takip numarası, kargoya verilme ve tahmini teslim tarihini idempotent kaydeder; yalnız `SHIPPED` siparişi teslim edildi yapabilir. Aynı idempotency anahtarı history/audit çoğaltmaz, yabancı tedarikçi veya alıcı 404 alır.
@@ -74,6 +80,8 @@
 
 ## Çalışan özellikler
 
+- `/panel/siparisler/[orderId]` yalnız teslim edilmiş sipariş için satır bazlı iade talebi açar ve güncel iade/refund durumunu gösterir; `/tedarikci/iadeler` kendi iade taleplerini kabul/ret ve fiziksel teslim alma adımıyla yönetir.
+
 - `/tedarikci/siparisler/[orderId]` kabul edilmiş siparişi manuel takip bilgisiyle kargoya verir ve yalnız `SHIPPED` siparişi teslim edildi yapar; `/panel/siparisler/[orderId]` alıcıya org-scoped güncel kargo bilgisini ve `DELIVERED` durumunu gösterir.
 
 - `/urunler/[slug]` alıcıda RFQ oluşturma, `/panel/teklif-talepleri` alıcı RFQ/teklif liste-detal-karar ve `/tedarikci/teklifler` tedarikçi gelen RFQ/teklif akışını sunar.
@@ -106,6 +114,13 @@
 - Lint, format, strict typecheck, unit, integration, E2E ve production build kalite komutları.
 
 ## Doğrulama özeti
+
+- Faz 4B hedefli ESLint ve global strict `pnpm typecheck` başarılı; final `git diff --check` temiz.
+- Faz 4B unit: 1 dosya, 3/3 test başarılı; yalnız `DELIVERED` oluşturma, karar ve fiziksel teslim alma/replay kuralları kapsandı.
+- Gerçek PostgreSQL integration: 1 dosya, 2/2 test başarılı; buyer/supplier BOLA-RBAC, fazla/tekrar miktar reddi, kabulde tek refund, teslim almada tek `RETURN_RESTORE` ve ret sonrası sıfır refund/stok artışı kapsandı.
+- Prisma schema/client doğrulandı; `20260821010000_phase_04b_return_refund_pilot` forward migration'ı PostgreSQL'e uygulandı ve Faz 4B demo seed'i başarılı oldu.
+- Kritik Chrome E2E: `tests/e2e/return-refund.spec.ts` `.env` değerlerini `dotenv/config` ile secret göstermeden yükler. `chromium-desktop` kabul/ret 2/2 ve 360 px `chromium-mobile` kabul/ret 2/2 geçti; alıcı iadesi, supplier karar/refund, idempotent karar/teslim alma, tek stok geri koyma, ret yan etkisizliği ve mobil yatay taşma doğrulandı.
+- Docker image build ve tam sistem regresyonu FAST PILOT talimatı gereği çalıştırılmadı.
 
 - Faz 4A hedefli ESLint ve global strict `pnpm typecheck` başarılı; `git diff --check` temiz.
 - Faz 4A unit: 1 dosya, 2/2 test başarılı; dar shipment oluşturma/teslim transition ve terminal replay kuralları kapsandı.
@@ -177,9 +192,9 @@
 - MinIO'nun güvenlik yamalı son release'i resmi prebuilt image sunmadığı için ilk development build'i kaynak koddan yapılır ve bu makinede yaklaşık 11 dakika sürdü.
 - CSP şu an Faz 0 statik UI uyumluluğu için `style-src 'unsafe-inline'` içerir. Nonce/hash tabanlı sıkılaştırma sonraki UI güvenlik çalışmasında ele alınmalıdır; bu incelemede kapsam dışı karmaşıklık yaratmamak için değiştirilmedi.
 - `pnpm audit` yerel TLS zincirinde `UNABLE_TO_VERIFY_LEAF_SIGNATURE` ile tamamlanamadı; bu sonuç “açık yok” olarak yorumlanmadı ve CI/kurumsal güvenilir CA ortamında yeniden çalıştırılmalıdır.
-- Mock ödeme, rezervasyonu satışa dönüştürme, tedarikçi kabul/ret, tek hedef tedarikçili RFQ ve tek paketli manuel kargo/teslimat pilotu tamamlandı. Karşı teklif/pazarlık, mesajlaşma, ek, çoklu tedarikçi/açık artırma, otomatik süre sonlandırma worker'ı, kabul edilen teklif fiyatının sepete taşınması, manuel banka transferi, gerçek kargo firması entegrasyonu, etiket/barkod, çoklu paket/split shipment, iade/refund, dropshipping ve pazaryeri entegrasyonları bilinçli olarak yoktur.
+- Mock ödeme, rezervasyonu satışa dönüştürme, tedarikçi kabul/ret, tek hedef tedarikçili RFQ, tek paketli manuel kargo/teslimat ve uygulama içi iade/refund pilotu tamamlandı. Karşı teklif/pazarlık, mesajlaşma, ek, çoklu tedarikçi/açık artırma, otomatik süre sonlandırma worker'ı, kabul edilen teklif fiyatının sepete taşınması, manuel banka transferi, gerçek ödeme/refund sağlayıcısı, gerçek kargo/iade kargo firması entegrasyonu, etiket/barkod, çoklu paket/split shipment, kondisyon inceleme, değişim, kupon/mağaza kredisi, dispute, dropshipping ve pazaryeri entegrasyonları bilinçli olarak yoktur.
 - Bu Windows yerel ortamında `prisma migrate deploy` migration uygulandıktan sonra ayrıntısız `Schema engine error` ile non-zero döndü. `_prisma_migrations` applied kaydı, yeni tablolar, seed ve gerçek PostgreSQL integration testi şemanın uygulandığını doğruluyor; Prisma CLI teşhisi kurumsal/temiz ortamda ayrıca incelenmelidir.
-- Faz 4A kritik E2E, mevcut yerel demo volume üzerinde yeni sipariş ve kargo geçmişi oluşturur. Aynı geliştirme verisiyle tekrar geniş bir E2E turu yapılacaksa katalog stoklarını yenilemek için seed bir kez çalıştırılmalıdır; geçmiş sipariş/kargo/audit kayıtları silinmez.
+- Faz 4A/4B kritik E2E, mevcut yerel demo volume üzerinde yeni sipariş, kargo, iade/refund ve audit geçmişi oluşturur. Aynı geliştirme verisiyle tekrar geniş bir E2E turu yapılacaksa katalog stoklarını yenilemek için seed bir kez çalıştırılmalıdır; geçmiş kayıtlar silinmez.
 - Süresi dolmuş rezervasyonlar pilotta sepet/checkout erişiminde ve checkout oluşturmadan önce lazy release edilir; sürekli çalışan production scheduler/worker Faz 3A kapsamı dışındadır.
 - Import pilotu tek process içinde request-time parse/confirm kullanır; background worker, object-storage dosya saklama ve büyük batch ölçeklemesi kapsam dışıdır. Harici görsel URL'leri fetch edilmez.
 - Public arama temel PostgreSQL `ILIKE`/trigram indeks yaklaşımıdır; gelişmiş relevance, typo tolerance veya ayrı arama servisi yoktur.

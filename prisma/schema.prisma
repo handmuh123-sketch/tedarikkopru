@@ -129,6 +129,7 @@ enum InventoryMovementType {
   RESERVATION
   RESERVATION_RELEASE
   SALE
+  RETURN_RESTORE
 }
 
 enum CheckoutStatus {
@@ -159,6 +160,25 @@ enum OrderStatus {
 enum ShipmentStatus {
   SHIPPED
   DELIVERED
+}
+
+enum ReturnRequestStatus {
+  REQUESTED
+  ACCEPTED
+  REJECTED
+  RETURN_RECEIVED
+}
+
+enum ReturnReason {
+  DAMAGED
+  DEFECTIVE
+  WRONG_ITEM
+  NOT_AS_DESCRIBED
+  OTHER
+}
+
+enum RefundStatus {
+  RECORDED
 }
 
 enum RfqStatus {
@@ -237,6 +257,9 @@ model User {
   paymentAttempts      PaymentAttempt[]          @relation("PaymentAttemptActor")
   orderStatusChanges   OrderStatusHistory[]      @relation("OrderStatusActor")
   shipmentStatusChanges ShipmentStatusHistory[]  @relation("ShipmentStatusActor")
+  returnRequestsCreated ReturnRequest[]          @relation("ReturnRequester")
+  returnStatusChanges  ReturnStatusHistory[]     @relation("ReturnStatusActor")
+  refundsRecorded      Refund[]                  @relation("RefundRecorder")
   rfqStatusChanges     RfqStatusHistory[]        @relation("RfqStatusActor")
   quoteStatusChanges   QuoteStatusHistory[]      @relation("QuoteStatusActor")
 
@@ -344,6 +367,8 @@ model Organization {
   supplierOrders           Order[]                   @relation("SupplierOrders")
   buyerPayments            Payment[]                 @relation("BuyerPayments")
   supplierShipments        Shipment[]                @relation("SupplierShipments")
+  buyerReturnRequests      ReturnRequest[]           @relation("BuyerReturnRequests")
+  supplierReturnRequests   ReturnRequest[]           @relation("SupplierReturnRequests")
   buyerRfqs                RequestForQuote[]        @relation("BuyerRfqs")
   supplierRfqs             RequestForQuote[]        @relation("SupplierRfqs")
   supplierQuotes           Quote[]                   @relation("SupplierQuotes")
@@ -867,6 +892,8 @@ model Order {
   payments                Payment[]
   statusHistory           OrderStatusHistory[]
   shipment                Shipment?
+  returnRequests          ReturnRequest[]
+  refunds                 Refund[]
 
   @@index([buyerOrganizationId, createdAt])
   @@index([supplierOrganizationId, createdAt])
@@ -891,6 +918,8 @@ model OrderItem {
   totalAmountMinor     Int      @map("total_amount_minor")
   createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   order                Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  returnItems          ReturnItem[]
+  refundItems          RefundItem[]
 
   @@index([orderId])
   @@map("order_items")
@@ -979,6 +1008,7 @@ model Payment {
   buyerOrganization        Organization     @relation("BuyerPayments", fields: [buyerOrganizationId], references: [id], onDelete: Restrict)
   initiatedBy              User             @relation("PaymentInitiator", fields: [initiatedByUserId], references: [id], onDelete: Restrict)
   attempts                 PaymentAttempt[]
+  refunds                  Refund[]
 
   @@unique([buyerOrganizationId, initiationIdempotencyKey])
   @@index([buyerOrganizationId, createdAt])
@@ -1000,4 +1030,107 @@ model PaymentAttempt {
   @@unique([paymentId, idempotencyKey])
   @@index([actorUserId, createdAt])
   @@map("payment_attempts")
+}
+
+model ReturnRequest {
+  id                       String              @id @default(cuid()) @db.VarChar(36)
+  orderId                  String              @map("order_id") @db.VarChar(36)
+  buyerOrganizationId      String              @map("buyer_organization_id") @db.VarChar(36)
+  supplierOrganizationId   String              @map("supplier_organization_id") @db.VarChar(36)
+  status                   ReturnRequestStatus @default(REQUESTED)
+  reason                   ReturnReason
+  buyerNote                String?             @map("buyer_note") @db.VarChar(1000)
+  requestedByUserId        String              @map("requested_by_user_id") @db.VarChar(36)
+  createIdempotencyKey     String              @map("create_idempotency_key") @db.VarChar(128)
+  createRequestHash        String              @map("create_request_hash") @db.VarChar(64)
+  decisionIdempotencyKey   String?             @map("decision_idempotency_key") @db.VarChar(128)
+  decisionRequestHash      String?             @map("decision_request_hash") @db.VarChar(64)
+  receiptIdempotencyKey    String?             @map("receipt_idempotency_key") @db.VarChar(128)
+  receiptRequestHash       String?             @map("receipt_request_hash") @db.VarChar(64)
+  decidedAt                DateTime?           @map("decided_at") @db.Timestamptz(3)
+  receivedAt               DateTime?           @map("received_at") @db.Timestamptz(3)
+  createdAt                DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  order                    Order               @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  buyerOrganization        Organization        @relation("BuyerReturnRequests", fields: [buyerOrganizationId], references: [id], onDelete: Restrict)
+  supplierOrganization     Organization        @relation("SupplierReturnRequests", fields: [supplierOrganizationId], references: [id], onDelete: Restrict)
+  requestedBy              User                @relation("ReturnRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+  items                    ReturnItem[]
+  statusHistory            ReturnStatusHistory[]
+  refund                   Refund?
+
+  @@unique([buyerOrganizationId, createIdempotencyKey])
+  @@unique([supplierOrganizationId, decisionIdempotencyKey])
+  @@unique([supplierOrganizationId, receiptIdempotencyKey])
+  @@index([buyerOrganizationId, status, createdAt])
+  @@index([supplierOrganizationId, status, createdAt])
+  @@map("return_requests")
+}
+
+model ReturnItem {
+  id              String        @id @default(cuid()) @db.VarChar(36)
+  returnRequestId String        @map("return_request_id") @db.VarChar(36)
+  orderItemId     String        @map("order_item_id") @db.VarChar(36)
+  quantity        Int
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  returnRequest   ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Restrict)
+  orderItem       OrderItem     @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+
+  @@unique([returnRequestId, orderItemId])
+  @@index([orderItemId])
+  @@map("return_items")
+}
+
+model ReturnStatusHistory {
+  id              String              @id @default(cuid()) @db.VarChar(36)
+  returnRequestId String              @map("return_request_id") @db.VarChar(36)
+  fromStatus      ReturnRequestStatus? @map("from_status")
+  toStatus        ReturnRequestStatus @map("to_status")
+  reasonCode      String              @map("reason_code") @db.VarChar(80)
+  actorType       AuditActorType      @map("actor_type")
+  actorId         String?             @map("actor_id") @db.VarChar(36)
+  metadata        Json                @default("{}")
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  returnRequest   ReturnRequest       @relation(fields: [returnRequestId], references: [id], onDelete: Restrict)
+  actor           User?               @relation("ReturnStatusActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([returnRequestId, createdAt])
+  @@map("return_status_history")
+}
+
+model Refund {
+  id                 String       @id @default(cuid()) @db.VarChar(36)
+  returnRequestId    String       @unique @map("return_request_id") @db.VarChar(36)
+  orderId            String       @map("order_id") @db.VarChar(36)
+  paymentId          String       @map("payment_id") @db.VarChar(36)
+  status             RefundStatus @default(RECORDED)
+  currency           String       @default("TRY") @db.Char(3)
+  amountMinor        Int          @map("amount_minor")
+  recordedByUserId   String       @map("recorded_by_user_id") @db.VarChar(36)
+  recordedAt         DateTime     @default(now()) @map("recorded_at") @db.Timestamptz(3)
+  createdAt          DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  returnRequest      ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Restrict)
+  order              Order        @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  payment            Payment      @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  recordedBy         User         @relation("RefundRecorder", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  items              RefundItem[]
+
+  @@index([orderId, createdAt])
+  @@index([paymentId, createdAt])
+  @@map("refunds")
+}
+
+model RefundItem {
+  id          String    @id @default(cuid()) @db.VarChar(36)
+  refundId    String    @map("refund_id") @db.VarChar(36)
+  orderItemId String    @map("order_item_id") @db.VarChar(36)
+  quantity    Int
+  amountMinor Int       @map("amount_minor")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  refund      Refund    @relation(fields: [refundId], references: [id], onDelete: Restrict)
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+
+  @@unique([refundId, orderItemId])
+  @@index([orderItemId])
+  @@map("refund_items")
 }

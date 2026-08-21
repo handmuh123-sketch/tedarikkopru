@@ -82,6 +82,12 @@ async function main() {
   });
 
   await database.systemSetting.upsert({
+    where: { key: "returns.version" },
+    update: { value: { phase: "4B", status: "ready" } },
+    create: { key: "returns.version", value: { phase: "4B", status: "ready" } },
+  });
+
+  await database.systemSetting.upsert({
     where: { key: "catalog.version" },
     update: { value: { phase: "2B", status: "ready" } },
     create: { key: "catalog.version", value: { phase: "2B", status: "ready" } },
@@ -522,7 +528,7 @@ async function main() {
 
 try {
   await main();
-  console.info("Faz 4A için katalog ve güvenli alıcı/tedarikçi demo seed'i tamamlandı.");
+  console.info("Faz 4B için katalog ve güvenli alıcı/tedarikçi demo seed'i tamamlandı.");
 } finally {
   await database.$disconnect();
 }

@@ -1,106 +1,149 @@
-# Faz 4A — Kargo ve Teslimat Pilotu
+# Faz 4B — İade ve Refund Pilotu
 
-Bu yürütme planı yalnız manuel kargo/takip pilotunu kapsar. Faz 3A, Faz
-3B-1, Faz 3B-2 ve Faz 3C akışları korunacaktır.
+Bu yürütme planı yalnız iade/refund pilotunu kapsar. Faz 3A, Faz 3B-1,
+Faz 3B-2, Faz 3C ve Faz 4A akışları korunacaktır.
 
 ## Amaç ve kullanıcı sonucu
 
-Kabul edilmiş siparişin tedarikçi tarafından manuel takip bilgileriyle
-kargoya verilebilmesi, teslim edildi olarak idempotent işaretlenebilmesi ve
-alıcının kendi sipariş detayında güncel kargo bilgisini görebilmesi.
+Alıcı, yalnız teslim edilmiş kendi siparişindeki ürün satırları için güvenli
+tam/kısmi iade talebi açabilir. Tedarikçi kendi gelen talebini kabul veya
+reddeder; kabul yalnız uygulama içi refund kaydı üretir. Tedarikçi ürünün
+fiziksel olarak geri geldiğini ayrı bir idempotent adımda işaretlediğinde stok
+tek kez geri eklenir.
 
 ## Başlangıç durumu
 
-- Checkpoint: `fb543a512800f62cdaebf4077589c412818f3b06`
+- Checkpoint: `2375c209b0ca89ec4e988727a8310874ab4cc49b`
 - Çalışma ağacı temiz doğrulandı.
-- Siparişler Faz 3B-2 sonunda `ACCEPTED` veya `REJECTED` terminal
-  kararlarına sahiptir; stok ve ödeme ledger'ı immutable kalacaktır.
+- Faz 4A sonunda sipariş yalnız `ACCEPTED → SHIPPED → DELIVERED` ilerler;
+  OrderItem snapshot, `SALE` ledger ve ödeme kayıtları immutable kalır.
 
 ## Kapsam
 
 ### Dahil
 
-- Shipment ve append-only shipment durum geçmişi
-- Dar `ACCEPTED → SHIPPED → DELIVERED` order/kargo geçişleri
-- Tedarikçinin taşıyıcı, takip numarası, kargoya verme ve tahmini teslim
-  bilgilerini idempotent girmesi
-- Tedarikçi yönetim ve alıcı görünüm ekranları
-- Org-scoped RBAC/BOLA, audit, PostgreSQL migration ve testler
+- `ReturnRequest`, `ReturnItem`, `Refund`, `RefundItem` ve append-only iade
+  durum geçmişi
+- Dar `REQUESTED → ACCEPTED/REJECTED → RETURN_RECEIVED` iade state machine'i
+- `DELIVERED` siparişten tam/kısmi satır bazlı iade açma
+- Tedarikçi iade listesi/detayı, karar ve fiziksel teslim alma adımı
+- Integer minor-unit refund hesaplama, idempotency, audit, RBAC/BOLA ve
+  append-only `RETURN_RESTORE` stok hareketi
+- Alıcı sipariş detayında iade oluşturma ve güncel iade görünümü
 
 ### Dahil değil
 
-- Gerçek kargo sağlayıcıları, etiket/barkod/PDF, fiyat hesaplama
-- Çoklu paket, split shipment, iade/refund, banka transferi ve gerçek ödeme
-- Bildirim/outbox, Faz 4B veya sonraki fazlar
+- Gerçek banka/kart refundu, gerçek iade kargo/etiket entegrasyonu
+- Dosya, kondisyon inceleme, değişim, kupon/mağaza kredisi, dispute
+- Banka transferi, fatura/e-arşiv ve sonraki fazlar
 
 ## Bağlayıcı kararlar
 
-- D-004: Tedarikçi alıcı işletmenin adresine gönderir.
-- D-007: Manuel kargo takibi pilot kapsamındadır; gerçek kargo adaptörleri
-  sonraki fazdadır.
+- D-004: Fiziksel ürün tedarikçiye geri döner; stok yalnız geri teslim
+  doğrulamasından sonra artar.
+- D-005: Pilot refundu gerçek sağlayıcı çağrısı yapmaz.
 - D-008: Modüler monolit, PostgreSQL ve Prisma kullanılacaktır.
 
 ## Teknik kararlar
 
-- Karar: Kargo verisi sipariş başına tek `Shipment` modelinde tutulur.
-- Gerekçe: Pilot tek tedarikçi/tek paket varsayımını aşmadan idempotency,
-  BOLA ve audit sınırlarını açık tutar.
-- Alternatif: Çoklu paketli shipment aggregate.
-- Sonuç: Split shipment/multi-package sonraki faza bırakılır.
+- Karar: Sipariş `DELIVERED` durumunda kalır; iadenin kendi state machine'i
+  vardır.
+- Gerekçe: Kısmi/tam birden çok iade, teslimat durumunu geri almadan izlenir.
+- Karar: Kabul, sipariş satırı/miktar/tutar eşlemesi olan immutable application
+  `Refund` kaydı üretir; teslim alma stok geri koyma için ayrı adımdır.
+- Gerekçe: Para kaydı ile fiziksel stok hareketinin erken veya çift yazılmasını
+  engeller.
+- Alternatif: Kabulde stoku artırmak veya OrderStatus'a iade terminal değerleri
+  eklemek.
+- Sonuç: Fiziksel ürün doğrulanmadan satılabilir stok artmaz; mevcut kargo
+  state machine'i bozulmaz.
 
 ## Güvenlik ve veri etkisi
 
-- Tedarikçi mutation'ları `order:fulfill` ve supplier org scope ile
-  sınırlanır; yabancı sipariş 404 döner.
-- Alıcı kargo bilgisine yalnız kendi order scope'unda erişir.
-- Carrier/tracking formatı doğrulanır; takip numarası, adres veya notlar
-  audit payload'ına yazılmaz.
-- OrderItem, stok, rezervasyon ve SALE ledger'a dokunulmaz.
-- Yeni migration önceye dönük değiştirilmez; shipment history DB trigger ile
-  append-only olur.
+- Alıcı mutation'ları `purchase:manage` ve buyer org scope; tedarikçi
+  mutation'ları `order:fulfill` ve supplier org scope ile sınırlanır.
+- Yabancı order/return ID'leri 404 döner. `DELIVERED` olmayan order, fazla
+  miktar veya daha önce ayrılmış/iadelenmiş miktar reddedilir.
+- İade açıklaması, takip/adres veya secret audit payload'ına yazılmaz.
+- `Refund`, `RefundItem`, iade history ve `InventoryMovement` silinmez;
+  history append-only'dir. Mevcut `SALE` hareketi ve OrderItem snapshot'ı
+  değiştirilmez.
+- Stock restore serializable transaction ve koşullu inventory update ile yalnız
+  `RETURN_RECEIVED` geçişinde bir kez uygulanır.
 
 ## Uygulama adımları
 
-1. [x] Checkpoint, görev ve mimari bağlamı doğrula.
-2. [x] Shipment şeması, migration ve dar durum kurallarını ekle.
-3. [x] Merkezi shipping servisi ile org-scoped route'ları ekle.
-4. [x] Tedarikçi yönetimi ve alıcı görünümünü sipariş detaylarına bağla.
+1. [x] Checkpoint, görev ve mevcut ödeme/kargo/stok sınırlarını doğrula.
+2. [x] Return/refund şeması, forward migration ve durum kurallarını ekle.
+3. [x] Merkezi return servisi, org-scoped API route'ları ve idempotency ekle.
+4. [x] Alıcı iade formu/durumu ile tedarikçi iade liste/detay akışını ekle.
 5. [x] Hedefli unit, PostgreSQL integration, Chrome desktop/mobile E2E çalıştır.
 6. [x] Migration/seed ve durum belgelerini gerçek sonuçla güncelle.
 
+## Dosya değişiklikleri
+
+- `prisma/schema.prisma`, yeni Faz 4B forward migration ve `prisma/seed.ts`
+- `src/modules/returns/**`, iade/refund API route'ları ve UI bileşenleri
+- Alıcı/supplier order ve return ekranları
+- Hedefli unit, integration ve E2E testleri
+- `PROJECT_STATUS.md` ve bu plan
+
 ## Migration ve geri dönüş
 
-Yeni ileriye dönük migration, yeni order enum değerlerini ve shipment
-tablolarını ekler. Geri dönüş kod deploy'u ile durdurulur; immutable
-geçmiş/ledger satırları silinmez.
+Yeni ileriye dönük migration iade/refund tablolarını, enum değerini ve
+append-only trigger'ları ekler. Geri dönüş yeni kodun devre dışı bırakılmasıyla
+yapılır; refund, iade history ve stok hareketi satırları silinmez.
+
+## Test planı
+
+- Unit: iade durumları, uygun durum ve terminal replay kuralları
+- Integration: buyer/supplier BOLA-RBAC, iade miktarı, accept/reject,
+  idempotent refund, receive sonrası tek `RETURN_RESTORE`, ret sonrası sıfır
+  refund/stok artışı
+- E2E: demo alıcı ödeme/kargo/teslimat sonrası iade açar; tedarikçi kabul eder
+  ve teslim alır; alıcı güncel durumu görür; desktop ve 360 px yatay taşma
+  kontrolü
 
 ## Kabul kriterleri
 
-- Yalnız uygun `ACCEPTED` sipariş kargoya verilir.
-- Yalnız `SHIPPED` sipariş teslim edildi olur; geriye dönüş yoktur.
-- Aynı idempotency anahtarı ikinci shipment/history/audit kaydı üretmez.
-- Tedarikçi ve alıcı BOLA denemeleri engellenir.
-- Chrome desktop ve 360 px E2E alıcı-tedarikçi kargo akışını doğrular.
+- Yalnız `DELIVERED` sipariş için geçerli satır miktarında iade açılır.
+- Aynı karar veya teslim alma isteği ikinci refund/history/stock hareketi
+  üretmez.
+- Kabul edilen refund kaydı her OrderItem/miktar/tutar eşlemesini saklar;
+  gerçek ödeme sağlayıcısı çağrılmaz.
+- Stok yalnız `RETURN_RECEIVED` geçişinde ve bir kez artar; mevcut `SALE`
+  hareketi değişmez.
+- Alıcı/supplier BOLA denemeleri engellenir; Chrome desktop/360 px akışı geçer.
 
 ## İlerleme günlüğü
 
 - 2026-08-21:
-  - Yapılan: Faz 4A başlangıç bağlamı, checkpoint ve dar manuel kargo kapsamı doğrulandı.
-  - Kanıt: `git status` temiz, `git diff --check` temiz, HEAD `fb543a5`.
-  - Yapılan: `Shipment` ve append-only `ShipmentStatusHistory`, `SHIPPED`/`DELIVERED`
-    order enum değerleri, forward migration ve dar geçiş kuralları eklendi.
-  - Yapılan: Supplier org scope + `order:fulfill` RBAC ile kargo oluşturma ve teslim
-    endpointleri; idempotency hash'i, serializable transaction, history ve redacted audit
-    eklendi. Carrier/tracking audit payload'ına yazılmaz.
-  - Yapılan: Tedarikçi sipariş detayında manuel kargo/tamamla formu ve kargo geçmişi;
-    alıcı sipariş detayında org-scoped güncel kargo bilgisi/histories eklendi.
-  - Kanıt: `20260821000000_phase_04a_shipping_delivery` PostgreSQL'e uygulandı;
-    `pnpm db:seed`, `pnpm db:generate`, `pnpm db:validate` başarılı.
-  - Kanıt: Hedefli ESLint ve `pnpm typecheck` başarılı; unit 2/2, gerçek PostgreSQL
-    integration 2/2, Chrome `chromium-desktop` 1/1 ve 360 px `chromium-mobile` 1/1 geçti.
-  - Kapsam dışı: Docker image build, tam regresyon, gerçek kargo sağlayıcısı, çoklu paket,
-    split shipment, iade/refund ve Faz 4B çalıştırılmadı.
+  - Yapılan: Faz 4B bağlamı, checkpoint, çalışma ağacı ve mevcut
+    ödeme/kargo/stok sınırları doğrulandı.
+  - Kanıt: `git status` temiz, `git diff --check` temiz, HEAD `2375c20`.
+  - Sonraki: Return/refund şeması ve forward migration.
 
-## Durum
+- 2026-08-21:
+  - Yapılan: `ReturnRequest`/`ReturnItem`/`Refund`/`RefundItem`, append-only
+    history ve `RETURN_RESTORE` forward migration ile eklendi. Merkezi
+    serializable servis alıcı oluşturma, tedarikçi kabul/ret ve fiziksel teslim
+    alma adımlarını org scope, idempotency, audit ve miktar korumalarıyla
+    tamamladı. Alıcı sipariş detayı ile tedarikçi iade liste/detay ekranları
+    eklendi.
+  - Migration/seed: `20260821010000_phase_04b_return_refund_pilot` PostgreSQL'e
+    uygulandı; Faz 4B demo seed'i başarılı oldu.
+  - Kanıt: Hedefli ESLint ve `pnpm typecheck` başarılı; unit 3/3, gerçek
+    PostgreSQL integration 2/2; Chrome `chromium-desktop` kabul/ret 2/2 ve
+    360 px `chromium-mobile` kabul/ret 2/2 başarılı. E2E, aynı kabul/teslim
+    alma isteğinde tek refund ve tek stok hareketini, ret durumunda sıfır refund
+    ve stok artışını doğruladı.
+  - Kısıt: Docker image build ve tam sistem regresyonu çalıştırılmadı.
 
-- Tamamlandı — Faz 4A kargo ve teslimat pilotu; sonraki faz başlatılmadı.
+## Sürprizler ve öğrenilenler
+
+- Henüz yok.
+
+## Sonuç
+
+- Tamamlandı — Faz 4B iade/refund pilotu; commit oluşturulmadı ve sonraki faz
+  başlatılmadı.

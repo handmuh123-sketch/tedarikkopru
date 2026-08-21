@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { MockPaymentForm } from "@/components/payments/mock-payment-form";
+import { BuyerReturnRequestForm } from "@/components/returns/buyer-return-request-form";
 import { requirePageUser } from "@/lib/auth/page-session";
 import { database } from "@/lib/db/client";
 import { formatTryMinor } from "@/modules/catalog/domain/product-rules";
@@ -51,10 +52,47 @@ export default async function BuyerOrderDetailPage({ params }: Props) {
       statusHistory: { orderBy: { createdAt: "asc" } },
       checkout: { select: { expiresAt: true } },
       shipment: { include: { statusHistory: { orderBy: { createdAt: "asc" } } } },
+      returnRequests: {
+        include: {
+          items: {
+            include: {
+              orderItem: {
+                select: {
+                  productTitleSnapshot: true,
+                  variantTitleSnapshot: true,
+                  skuSnapshot: true,
+                },
+              },
+            },
+          },
+          statusHistory: { orderBy: { createdAt: "asc" } },
+          refund: { include: { items: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
   if (!order) notFound();
   const payment = order.payments[0] ?? null;
+  const claimedReturnQuantities = new Map<string, number>();
+  for (const returnRequest of order.returnRequests) {
+    if (returnRequest.status === "REJECTED") continue;
+    for (const item of returnRequest.items) {
+      claimedReturnQuantities.set(
+        item.orderItemId,
+        (claimedReturnQuantities.get(item.orderItemId) ?? 0) + item.quantity,
+      );
+    }
+  }
+  const returnableItems = order.items
+    .map((item) => ({
+      id: item.id,
+      productTitleSnapshot: item.productTitleSnapshot,
+      variantTitleSnapshot: item.variantTitleSnapshot,
+      skuSnapshot: item.skuSnapshot,
+      quantity: Math.max(0, item.quantity - (claimedReturnQuantities.get(item.id) ?? 0)),
+    }))
+    .filter((item) => item.quantity > 0);
   return (
     <main id="ana-icerik" className="dashboard-page order-detail" tabIndex={-1}>
       <header className="dashboard-header">
@@ -200,6 +238,59 @@ export default async function BuyerOrderDetailPage({ params }: Props) {
               </li>
             ))}
           </ol>
+        </section>
+      )}
+      {order.status === "DELIVERED" && returnableItems.length > 0 && (
+        <section className="dashboard-card">
+          <BuyerReturnRequestForm
+            organizationId={membership.organizationId}
+            orderId={order.id}
+            items={returnableItems}
+          />
+        </section>
+      )}
+      {order.returnRequests.length > 0 && (
+        <section className="dashboard-card">
+          <h2>İade taleplerim</h2>
+          <div className="order-list" aria-label="Sipariş iade talepleri">
+            {order.returnRequests.map((returnRequest) => (
+              <article className="dashboard-card order-card" key={returnRequest.id}>
+                <div>
+                  <span className="status-pill">{returnRequest.status}</span>
+                  <h3>{returnRequest.reason}</h3>
+                  <p>{returnRequest.buyerNote ?? "Açıklama eklenmedi."}</p>
+                  {returnRequest.items.map((item) => (
+                    <p key={item.id}>
+                      {item.orderItem.productTitleSnapshot} · {item.orderItem.variantTitleSnapshot} · {item.quantity} adet
+                    </p>
+                  ))}
+                </div>
+                <div>
+                  {returnRequest.refund ? (
+                    <p>
+                      Refund kaydı: {formatTryMinor(returnRequest.refund.amountMinor)} · {returnRequest.refund.status}
+                    </p>
+                  ) : (
+                    <p>Henüz refund kaydı yok.</p>
+                  )}
+                  <h4>İade durum geçmişi</h4>
+                  <ol className="status-history">
+                    {returnRequest.statusHistory.map((entry) => (
+                      <li key={entry.id}>
+                        <strong>{entry.toStatus}</strong>
+                        <span>
+                          {entry.reasonCode} · {" "}
+                          {entry.createdAt.toLocaleString("tr-TR", {
+                            timeZone: "Europe/Istanbul",
+                          })}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              </article>
+            ))}
+          </div>
         </section>
       )}
       <section className="dashboard-card">
