@@ -20,6 +20,10 @@ değiştirilmemiştir.
   sipariş durum filtresi tamamlandı. Support görüntüleme yapar; doğrulama ve
   banka transferi kararları yalnız operasyon rollerine açıktır. Hedefli
   PostgreSQL güvenlik integration'ı 8/8 geçti.
+- Güvenlik turunda E2E demo parola fallback'leri kaldırıldı; test ortamı `.env`
+  değerini sessiz ve override ile tek kaynaktan alır. Playwright güvenilen
+  `APP_URL`/`localhost` kökenini varsayılan kullanır; mock ödeme Chrome desktop
+  ve mobile 2/2 geçti.
 
 ## Sonraki bağımsız iş
 

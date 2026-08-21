@@ -1,12 +1,5 @@
-import "dotenv/config";
-
 import { expect, test, type Page } from "@playwright/test";
-
-function requiredEnvironment(name: "DEMO_USER_PASSWORD" | "DEMO_ADMIN_PASSWORD") {
-  const value = process.env[name];
-  if (!value) throw new Error(`E2E için ${name} .env içinde tanımlı olmalıdır.`);
-  return value;
-}
+import { demoAdminPassword, demoUserPassword } from "./test-environment";
 
 async function login(page: Page, email: string, password: string) {
   await page.goto("/giris");
@@ -23,7 +16,7 @@ async function logout(page: Page) {
 }
 
 test("alıcı banka transferi bildirir, admin tek onayla siparişi PAID yapar", async ({ page }) => {
-  await login(page, "alici@demo.tedarikkopru.local", requiredEnvironment("DEMO_USER_PASSWORD"));
+  await login(page, "alici@demo.tedarikkopru.local", demoUserPassword);
   await page.goto("/urunler/20w-usb-c-hizli-sarj-adaptoru");
   await page.getByLabel("Miktar", { exact: true }).fill("6");
   await page.getByRole("button", { name: "Sepete ekle" }).click();
@@ -38,7 +31,7 @@ test("alıcı banka transferi bildirir, admin tek onayla siparişi PAID yapar", 
   const orderUrl = page.url();
   await logout(page);
 
-  await login(page, "admin@demo.tedarikkopru.local", requiredEnvironment("DEMO_ADMIN_PASSWORD"));
+  await login(page, "admin@demo.tedarikkopru.local", demoAdminPassword);
   await page.goto("/admin/odemeler");
   await page.getByRole("link", { name: "Ödeme detayını aç" }).first().click();
   const approve = page.waitForResponse((response) => response.url().includes("/bank-transfer-decision"));
@@ -46,7 +39,7 @@ test("alıcı banka transferi bildirir, admin tek onayla siparişi PAID yapar", 
   expect((await approve).status()).toBe(200);
   await logout(page);
 
-  await login(page, "alici@demo.tedarikkopru.local", requiredEnvironment("DEMO_USER_PASSWORD"));
+  await login(page, "alici@demo.tedarikkopru.local", demoUserPassword);
   await page.goto(orderUrl);
   await expect(page.getByText("PAID", { exact: true }).first()).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);

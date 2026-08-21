@@ -1,21 +1,10 @@
-import "dotenv/config";
-
 import { expect, test, type Page } from "@playwright/test";
-
-function requiredDemoPassword() {
-  const password = process.env.DEMO_USER_PASSWORD;
-  if (!password) {
-    throw new Error("E2E için DEMO_USER_PASSWORD .env içinde tanımlı olmalıdır.");
-  }
-  return password;
-}
-
-const demoPassword = requiredDemoPassword();
+import { demoUserPassword } from "./test-environment";
 
 async function login(page: Page, email: string) {
   await page.goto("/giris");
   await page.getByLabel("E-posta").fill(email);
-  await page.getByLabel("Parola").fill(demoPassword);
+  await page.getByLabel("Parola").fill(demoUserPassword);
   await page.getByRole("button", { name: "Giriş yap" }).click();
   await expect(page).toHaveURL(/panel/);
 }

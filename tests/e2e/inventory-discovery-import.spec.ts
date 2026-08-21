@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { demoUserPassword } from "./test-environment";
 
 async function login(page: import("@playwright/test").Page, email: string, password: string) {
   await page.goto("/giris");
@@ -14,7 +15,7 @@ test("tedarikçi stoğu günceller; public arama ve filtre kullanılabilir ürü
   await login(
     page,
     "tedarikci@demo.tedarikkopru.local",
-    process.env.DEMO_USER_PASSWORD ?? "Faz1-Isletme-Demo-2026!",
+    demoUserPassword,
   );
   await page.getByRole("link", { name: "Stokları yönet" }).click();
   const stockCard = page.locator("article").filter({ hasText: "60W Örgülü USB-C Kablo" });
@@ -48,7 +49,7 @@ test("alıcı ürünü favoriler ve kendi favori ekranında görür", async ({ p
   await login(
     page,
     "alici@demo.tedarikkopru.local",
-    process.env.DEMO_USER_PASSWORD ?? "Faz1-Isletme-Demo-2026!",
+    demoUserPassword,
   );
   await page.goto("/urunler?q=60W");
   const card = page.locator("article").filter({ hasText: "60W Örgülü USB-C Kablo" });
@@ -75,7 +76,7 @@ test("CSV import önce önizleme ve satır hatası üretir, sonra geçerli satı
   await login(
     page,
     "tedarikci@demo.tedarikkopru.local",
-    process.env.DEMO_USER_PASSWORD ?? "Faz1-Isletme-Demo-2026!",
+    demoUserPassword,
   );
   await page.goto("/tedarikci/import");
   await page.getByLabel("CSV veya XLSX ürün dosyası").setInputFiles({

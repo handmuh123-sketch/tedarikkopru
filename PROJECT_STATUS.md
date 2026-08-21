@@ -8,6 +8,8 @@
 
 ## Tamamlananlar
 
+- E2E testleri demo parolası için tek, sessiz ve `.env` öncelikli yardımcı kullanır; kaynakta fallback veya hardcode demo parola yoktur. Playwright varsayılanı güvenilen `APP_URL`/`localhost` kökenini kullanır; aynı isimli RFQ ve sepet miktar alanları exact accessible locator ile ayrıştırılır.
+
 - Platform için tutarlı `/admin` navigasyonu, sipariş/iade operasyon listesi ve detayları eklendi. Yetkili kullanıcılar sipariş, ödeme, kargo, iade ve uygulama içi refund durumunu adres veya gereksiz PII göstermeden takip eder; basit sipariş durum filtresi bulunur.
 - Doğrulama, katalog/import, banka transferi ve operasyon ekranları deny-by-default server-side platform rolü ile korunur. `PLATFORM_SUPPORT` görüntüleme yapabilir; doğrulama ve banka transferi kararları yalnız SUPER_ADMIN/ADMIN/OPERATIONS rollerine daraltıldı. Mevcut karar transaction'ları idempotent audit izini korur.
 
@@ -200,6 +202,8 @@
 - Mailpit: `/livez`, `/readyz` ve `http://localhost:8025` `200`; SMTP smoke mesajı UI/API içinde doğrulandı.
 
 ## Bilinen eksikler ve ortam kısıtları
+
+- Pilot güvenlik turunda tespit edilen düşük riskli teknik borç: teklif-sepete ekleme işlemi tekrar çağrıda satırı/audit'i korur, ancak bu endpoint ayrı bir idempotency header protokolü kullanmaz; sepet akışının mevcut basit upsert davranışı korunmuştur.
 
 - Docker Desktop 4.82.0 / Engine 29.6.1 / Compose v5.3.0 kullanıldı; servisler çalışır ve development smoke verileri yerel volume'larda bırakıldı.
 - MinIO'nun güvenlik yamalı son release'i resmi prebuilt image sunmadığı için ilk development build'i kaynak koddan yapılır ve bu makinede yaklaşık 11 dakika sürdü.

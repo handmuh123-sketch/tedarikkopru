@@ -1,33 +1,17 @@
-import "dotenv/config";
-
 import { expect, test, type Page } from "@playwright/test";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 import { PrismaClient } from "../../src/generated/prisma/client";
+import { demoUserPassword, e2eDatabaseUrl } from "./test-environment";
 
-function requiredDemoPassword() {
-  const password = process.env.DEMO_USER_PASSWORD;
-  if (!password) {
-    throw new Error("E2E için DEMO_USER_PASSWORD .env içinde tanımlı olmalıdır.");
-  }
-  return password;
-}
-
-function requiredDatabaseUrl() {
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) throw new Error("E2E için DATABASE_URL .env içinde tanımlı olmalıdır.");
-  return databaseUrl;
-}
-
-const demoPassword = requiredDemoPassword();
-const database = new PrismaClient({ adapter: new PrismaPg({ connectionString: requiredDatabaseUrl() }) });
+const database = new PrismaClient({ adapter: new PrismaPg({ connectionString: e2eDatabaseUrl }) });
 
 test.afterAll(async () => database.$disconnect());
 
 async function login(page: Page, email: string) {
   await page.goto("/giris");
   await page.getByLabel("E-posta").fill(email);
-  await page.getByLabel("Parola").fill(demoPassword);
+  await page.getByLabel("Parola").fill(demoUserPassword);
   await page.getByRole("button", { name: "Giriş yap" }).click();
   await expect(page).toHaveURL(/panel/);
 }

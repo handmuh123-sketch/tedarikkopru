@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { demoAdminPassword, demoUserPassword } from "./test-environment";
 
 test("tedarikçi ürün oluşturur, admin onaylar ve ürün public görünür", async ({ page }) => {
   const suffix = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
@@ -7,7 +8,7 @@ test("tedarikçi ürün oluşturur, admin onaylar ve ürün public görünür", 
 
   await page.goto("/giris");
   await page.getByLabel("E-posta").fill("tedarikci@demo.tedarikkopru.local");
-  await page.getByLabel("Parola").fill(process.env.DEMO_USER_PASSWORD ?? "Faz1-Isletme-Demo-2026!");
+  await page.getByLabel("Parola").fill(demoUserPassword);
   await page.getByRole("button", { name: "Giriş yap" }).click();
   await expect(page).toHaveURL(/panel/);
   await page.getByRole("link", { name: "Ürünleri yönet" }).click();
@@ -55,7 +56,7 @@ test("tedarikçi ürün oluşturur, admin onaylar ve ürün public görünür", 
   await page.getByRole("button", { name: "Çıkış yap" }).click();
   await page.goto("/giris");
   await page.getByLabel("E-posta").fill("admin@demo.tedarikkopru.local");
-  await page.getByLabel("Parola").fill(process.env.DEMO_ADMIN_PASSWORD ?? "Faz1-Admin-Demo-2026!");
+  await page.getByLabel("Parola").fill(demoAdminPassword);
   await page.getByRole("button", { name: "Giriş yap" }).click();
   await page.getByRole("link", { name: "Ürün moderasyonu" }).click();
   const moderationCard = page.locator("article").filter({ hasText: title });

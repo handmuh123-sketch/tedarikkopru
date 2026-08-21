@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import { demoAdminPassword } from "./test-environment";
 
 const password = "E2E-Strong-Password-2026!";
 
@@ -118,7 +119,7 @@ test("alıcı onboarding ve admin doğrulama state akışı", async ({ page, req
   await expect(page).toHaveURL(/giris/);
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.getByLabel("E-posta").fill("admin@demo.tedarikkopru.local");
-  await page.getByLabel("Parola").fill(process.env.DEMO_ADMIN_PASSWORD ?? "Faz1-Admin-Demo-2026!");
+  await page.getByLabel("Parola").fill(demoAdminPassword);
   const adminLoginButton = page.getByRole("button", { name: "Giriş yap" });
   await expect(adminLoginButton).toBeEnabled();
   await adminLoginButton.click();

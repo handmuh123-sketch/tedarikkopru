@@ -1,8 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
+import { config as loadEnvironment } from "dotenv";
+
+loadEnvironment({ path: ".env", override: true, quiet: true });
 
 const localChannel = process.env.CI ? undefined : process.env.PLAYWRIGHT_CHANNEL;
 const channelOptions = localChannel ? { channel: localChannel } : {};
 const reuseExistingServer = process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === "true";
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? process.env.APP_URL ?? "http://localhost:3000";
 const executionOptions = process.env.CI
   ? { retries: 2, workers: 1, reporter: "github" as const }
   : { retries: 0, workers: 1, reporter: "list" as const };
@@ -16,7 +20,7 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   ...executionOptions,
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000",
+    baseURL,
     trace: "on-first-retry",
   },
   projects: [
@@ -35,7 +39,7 @@ export default defineConfig({
   ],
   webServer: {
     command: "pnpm dev",
-    url: "http://127.0.0.1:3000/api/health/live",
+    url: `${baseURL}/api/health/live`,
     reuseExistingServer,
     timeout: 120_000,
   },

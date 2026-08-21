@@ -1,18 +1,17 @@
 import { expect, test } from "@playwright/test";
+import { demoUserPassword } from "./test-environment";
 
 test("alıcı ürünü tek tedarikçili sepete ekler ve rezervasyonlu checkout taslağı oluşturur", async ({
   page,
 }) => {
   await page.goto("/giris");
   await page.getByLabel("E-posta").fill("alici@demo.tedarikkopru.local");
-  await page
-    .getByLabel("Parola")
-    .fill(process.env.DEMO_USER_PASSWORD ?? "Faz1-Isletme-Demo-2026!");
+  await page.getByLabel("Parola").fill(demoUserPassword);
   await page.getByRole("button", { name: "Giriş yap" }).click();
   await expect(page).toHaveURL(/panel/);
 
   await page.goto("/urunler/60w-orgulu-usb-c-kablo");
-  await page.getByLabel("Miktar").fill("10");
+  await page.getByLabel("Miktar", { exact: true }).fill("10");
   const addResponse = page.waitForResponse(
     (response) => response.url().endsWith("/cart") && response.request().method() === "POST",
   );

@@ -1,14 +1,15 @@
 import { expect, test } from "@playwright/test";
+import { demoUserPassword } from "./test-environment";
 
 test("alıcı checkout taslağını mock ödeme ile PAID siparişe dönüştürür", async ({ page }) => {
   await page.goto("/giris");
   await page.getByLabel("E-posta").fill("alici@demo.tedarikkopru.local");
-  await page.getByLabel("Parola").fill(process.env.DEMO_USER_PASSWORD ?? "Faz1-Isletme-Demo-2026!");
+  await page.getByLabel("Parola").fill(demoUserPassword);
   await page.getByRole("button", { name: "Giriş yap" }).click();
   await expect(page).toHaveURL(/panel/);
 
   await page.goto("/urunler/20w-usb-c-hizli-sarj-adaptoru");
-  await page.getByLabel("Miktar").fill("6");
+  await page.getByLabel("Miktar", { exact: true }).fill("6");
   const addResponse = page.waitForResponse(
     (response) => response.url().endsWith("/cart") && response.request().method() === "POST",
   );
