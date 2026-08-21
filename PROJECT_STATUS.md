@@ -8,6 +8,11 @@
 
 ## Tamamlananlar
 
+- Pilot MVP final QA tamamlandı. Ana sayfadaki eski faz/foundation dili güncel pilot akışlarıyla değiştirildi; 360 px üst menü katalog bağlantısını korur, ikincil bölüm ve sistem bağlantılarını gizler. Uzun ürün adları kırılabilir, boş katalog sonucu filtre temizleme yolunu açıkça gösterir; sepet miktarı güncellemesi görünür başarı geri bildirimi verir.
+- Genel hata deneyimi Türkçeleştirildi: bulunamayan rota kullanıcı dostu 404 ekranına, beklenmeyen istemci hatası yeniden deneme düğmeli 500 sınırına gider. Tüm yetki yokluğu dallarındaki skip-link hedefleri klavye odağı alır.
+- Final responsive/erişilebilirlik turu: Chrome desktop ve 360 px temel sayfa, katalog, favori, sepet/checkout, admin operasyonları ve kritik ticari akışlarda yatay taşma göstermedi. Ek public kontrol 390 px ve 768 px'te ana sayfa, katalog ve ürün detayını doğruladı; skip link, ana landmark, görünür focus, form label/status ve Türkçe 404 kontrol edildi.
+- Final kalite kanıtı: global ESLint/typecheck, unit 44/44 ve PostgreSQL integration 32/32 başarılı. İzole Chrome desktop/360 px smoke: katalog/favori/import 4/4, mock ödeme 1/1, kargo/teslimat 1/1, banka transferi/admin onayı 1/1, RFQ/teklif/checkout 2/2, iade/refund 2/2 ve admin operasyonları 1/1 geçti. Iade mobil koşusunda geniş turla tüketilen demo stok 409 üretti; bir kez tekrar seed sonrası aynı senaryo geçti, uygulama davranışı değiştirilmedi.
+
 - Mobilde genel `nav` gizleme kuralı yalnız site üst menüsüne daraltıldı; admin, katalog ve içerik navigasyonları 360 px'te erişilebilir kaldı. Yeni admin operasyon E2E'si platform menüsü, ana landmark, görünür odak akışı ve yatay taşmayı desktop/mobile doğrular.
 
 - E2E testleri demo parolası için tek, sessiz ve `.env` öncelikli yardımcı kullanır; kaynakta fallback veya hardcode demo parola yoktur. Playwright varsayılanı güvenilen `APP_URL`/`localhost` kökenini kullanır; aynı isimli RFQ ve sepet miktar alanları exact accessible locator ile ayrıştırılır.

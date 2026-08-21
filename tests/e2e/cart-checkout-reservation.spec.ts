@@ -22,6 +22,13 @@ test("alıcı ürünü tek tedarikçili sepete ekler ve rezervasyonlu checkout t
 
   await expect(page.getByRole("heading", { level: 1, name: "Sepet" })).toBeVisible();
   await expect(page.getByText("Demo Mobil Tedarik", { exact: true }).first()).toBeVisible();
+  await page.getByLabel("Miktar", { exact: true }).fill("15");
+  const updateResponse = page.waitForResponse(
+    (response) => response.url().includes("/cart/items/") && response.request().method() === "PATCH",
+  );
+  await page.getByRole("button", { name: "Güncelle" }).click();
+  expect((await updateResponse).status()).toBe(200);
+  await expect(page.getByText("Sepet miktarı güncellendi.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Checkout'a geç" })).toBeVisible();
   await page.getByRole("link", { name: "Checkout'a geç" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Checkout" })).toBeVisible();
@@ -39,7 +46,7 @@ test("alıcı ürünü tek tedarikçili sepete ekler ve rezervasyonlu checkout t
   };
   expect(payload.data.status).toBe("DRAFT");
   expect(payload.data.reservations).toEqual([
-    expect.objectContaining({ quantity: 10, status: "ACTIVE" }),
+    expect.objectContaining({ quantity: 15, status: "ACTIVE" }),
   ]);
   await expect(page.getByRole("heading", { name: "Sipariş taslağı hazır" })).toBeVisible();
   await expect(page.getByText(/Rezervasyon bitişi:/)).toBeVisible();

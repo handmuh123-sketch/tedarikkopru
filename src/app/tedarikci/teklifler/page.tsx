@@ -26,7 +26,7 @@ export default async function SupplierRfqsPage() {
   });
   if (!membership) {
     return (
-      <main id="ana-icerik" className="dashboard-page">
+      <main id="ana-icerik" className="dashboard-page" tabIndex={-1}>
         <h1>Teklif talebi yetkisi bulunamadı</h1>
         <p>Owner, işletme admini veya katalog yöneticisi rolü gerekir.</p>
       </main>

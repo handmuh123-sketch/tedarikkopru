@@ -26,7 +26,7 @@ export default async function BuyerOrdersPage() {
   });
   if (!membership) {
     return (
-      <main id="ana-icerik" className="dashboard-page">
+      <main id="ana-icerik" className="dashboard-page" tabIndex={-1}>
         <h1>Siparişler kullanılamıyor</h1>
       </main>
     );

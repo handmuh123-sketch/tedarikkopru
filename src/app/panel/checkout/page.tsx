@@ -31,7 +31,7 @@ export default async function CheckoutPage() {
   });
   if (!membership)
     return (
-      <main id="ana-icerik" className="dashboard-page">
+      <main id="ana-icerik" className="dashboard-page" tabIndex={-1}>
         <h1>Checkout kullanılamıyor</h1>
       </main>
     );

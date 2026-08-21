@@ -62,6 +62,17 @@ test("alıcı ürünü favoriler ve kendi favori ekranında görür", async ({ p
   await expect(page.getByRole("heading", { name: "60W Örgülü USB-C Kablo" })).toBeVisible();
 });
 
+test("public katalog boş sonucu ve filtreleri temizleme yolunu açıkça gösterir", async ({ page }) => {
+  await page.goto("/urunler");
+  await page.getByLabel("Ürün ara").fill("sonucu-olmayan-qa-arama");
+  await page.getByRole("button", { name: "Filtrele" }).click();
+
+  await expect(page.getByRole("heading", { name: "Sonuç bulunamadı" })).toBeVisible();
+  await page.getByRole("link", { name: "Temizle" }).click();
+  await expect(page).toHaveURL(/\/urunler$/);
+  await expect(page.getByText(/kullanılabilir ürün bulundu\./)).toBeVisible();
+});
+
 test("CSV import önce önizleme ve satır hatası üretir, sonra geçerli satırı uygular", async ({
   page,
 }) => {

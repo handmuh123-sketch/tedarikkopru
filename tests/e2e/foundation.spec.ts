@@ -14,6 +14,7 @@ test("ana sayfa erişilebilir temel içeriği gösterir", async ({ page }) => {
   await expect(page.getByRole("banner")).toBeVisible();
   await expect(page.getByRole("main")).toBeVisible();
   await expect(page.getByRole("contentinfo")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Ürünler", exact: true })).toBeVisible();
 
   await page.keyboard.press("Tab");
   const skipLink = page.getByRole("link", { name: "Ana içeriğe geç" });
@@ -26,6 +27,34 @@ test("ana sayfa erişilebilir temel içeriği gösterir", async ({ page }) => {
     () => document.documentElement.scrollWidth > window.innerWidth,
   );
   expect(hasHorizontalOverflow).toBe(false);
+});
+
+test("bulunamayan sayfa kullanıcı dostu Türkçe yönlendirme gösterir", async ({ page }) => {
+  await page.goto("/bu-sayfa-yok");
+
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Aradığınız sayfaya ulaşamadık." }),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Ürünlere dön" })).toHaveAttribute(
+    "href",
+    "/urunler",
+  );
+});
+
+test("public katalog 390 px ve tablet genişliğinde yatay taşmaz", async ({ page }) => {
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 768, height: 1024 },
+  ]) {
+    await page.setViewportSize(viewport);
+    for (const path of ["/", "/urunler", "/urunler/60w-orgulu-usb-c-kablo"]) {
+      await page.goto(path, { waitUntil: "domcontentloaded" });
+      const hasHorizontalOverflow = await page.evaluate(
+        () => document.documentElement.scrollWidth > window.innerWidth,
+      );
+      expect(hasHorizontalOverflow).toBe(false);
+    }
+  }
 });
 
 test("liveness endpoint request ID ve güvenlik başlıkları döndürür", async ({ request }) => {

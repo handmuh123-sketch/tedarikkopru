@@ -26,7 +26,7 @@ export default async function SupplierOrdersPage() {
   });
   if (!membership) {
     return (
-      <main id="ana-icerik" className="dashboard-page">
+      <main id="ana-icerik" className="dashboard-page" tabIndex={-1}>
         <h1>Sipariş yetkisi bulunamadı</h1>
         <p>Owner, işletme admini veya depo operatörü rolü gerekir.</p>
       </main>

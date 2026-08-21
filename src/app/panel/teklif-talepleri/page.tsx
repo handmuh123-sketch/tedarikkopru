@@ -26,7 +26,7 @@ export default async function BuyerRfqsPage() {
   });
   if (!membership) {
     return (
-      <main id="ana-icerik" className="dashboard-page">
+      <main id="ana-icerik" className="dashboard-page" tabIndex={-1}>
         <h1>Teklif talepleri kullanılamıyor</h1>
       </main>
     );

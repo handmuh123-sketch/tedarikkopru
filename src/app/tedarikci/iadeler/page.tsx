@@ -25,7 +25,7 @@ export default async function SupplierReturnsPage() {
   });
   if (!membership) {
     return (
-      <main id="ana-icerik" className="dashboard-page">
+      <main id="ana-icerik" className="dashboard-page" tabIndex={-1}>
         <h1>İade yetkisi bulunamadı</h1>
         <p>Owner, işletme admini veya depo operatörü rolü gerekir.</p>
       </main>

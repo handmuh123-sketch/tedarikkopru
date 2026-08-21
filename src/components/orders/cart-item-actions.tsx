@@ -20,12 +20,12 @@ export function CartItemActions({
 }: Props) {
   const router = useRouter();
   const [quantity, setQuantity] = useState(initialQuantity);
-  const [message, setMessage] = useState("");
+  const [status, setStatus] = useState<null | { ok: boolean; message: string }>(null);
   const [pending, setPending] = useState(false);
 
   async function mutate(method: "PATCH" | "DELETE") {
     setPending(true);
-    setMessage("");
+    setStatus(null);
     const response = await fetch(
       `/api/v1/organizations/${organizationId}/cart/items/${itemId}`,
       method === "PATCH"
@@ -39,8 +39,11 @@ export function CartItemActions({
     const payload = (await response.json()) as { error?: { message?: string } };
     setPending(false);
     if (!response.ok) {
-      setMessage(payload.error?.message ?? "Sepet güncellenemedi.");
+      setStatus({ ok: false, message: payload.error?.message ?? "Sepet güncellenemedi." });
       return;
+    }
+    if (method === "PATCH") {
+      setStatus({ ok: true, message: "Sepet miktarı güncellendi." });
     }
     router.refresh();
   }
@@ -73,9 +76,12 @@ export function CartItemActions({
       >
         Sil
       </button>
-      {message && (
-        <p className="form-status error" role="alert">
-          {message}
+      {status && (
+        <p
+          className={`form-status ${status.ok ? "success" : "error"}`}
+          role={status.ok ? "status" : "alert"}
+        >
+          {status.message}
         </p>
       )}
     </div>

@@ -1,9 +1,9 @@
-# Pilot Sağlamlaştırma — RFQ Tekliften Checkout'a
+# Pilot MVP — Final QA ve Yayın Hazırlığı
 
-Bu yürütme kaydı Faz 4C checkpoint'i `e03b918` sonrasında kabul edilmiş RFQ
-tekliflerinin güvenli biçimde mevcut sepet/checkout akışına taşınmasını kapsar.
-Sipariş snapshot, rezervasyon, ödeme, kargo ve iade state machine'leri
-değiştirilmemiştir.
+Bu yürütme kaydı, `1c22ee3` yayın hazırlığı checkpoint'i sonrasında yürütülen
+son kullanıcı QA turunu kapsar. Yeni iş özelliği eklenmedi; yalnız gerçek UX,
+responsive ve erişilebilirlik sorunları düzeltildi. Önceki RFQ, ödeme, sipariş,
+kargo ve iade bölümleri tarihsel kayıt olarak korunur.
 
 ## Güncel sonuç
 
@@ -30,6 +30,20 @@ değiştirilmemiştir.
 
 ## Final sonuç
 
+- Ana sayfadaki eski faz/foundation metinleri güncel pilot diliyle değiştirildi.
+  360 px'te katalog bağlantısı üst menüde erişilebilir kalırken ikincil bağlantılar
+  güvenle gizlenir. Uzun katalog adları satır kırar, boş arama sonucu temizleme
+  bağlantısını sunar; sepet miktar güncellemesi erişilebilir başarı durumu gösterir.
+- Türkçe 404 ve yeniden deneme düğmeli beklenmeyen hata ekranı eklendi. Yetki
+  yokluğu dallarındaki bütün ana içerik hedefleri skip-link ile odaklanabilir.
+- Chrome QA: foundation desktop 5/5, mobile 4/4; katalog/favori/import desktop
+  ve mobile 4/4; cart/checkout, mock ödeme, kargo, banka transferi, RFQ,
+  iade/refund ve admin operasyonları iki viewportta geçti. 390 px/768 px public
+  katalog turunda yatay taşma yoktu. Mobil iade turunda geçici demo stok yetersiz
+  kaldığında bir kez seed yenilendi; tekrar koşusu geçti.
+- Final kalite kapısı: ESLint, strict typecheck, unit 44/44, PostgreSQL
+  integration 32/32, Prisma schema/migration durumu ve tekrar seed başarılı.
+  Docker image build çalıştırılmadı.
 - Geniş kalite turu tamamlandı: ESLint, typecheck, unit 44/44 ve PostgreSQL
   integration 32/32 başarılı.
 - Kritik Chrome akışları izole desktop/mobile projelerinde geçti: mock ödeme

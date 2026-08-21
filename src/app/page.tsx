@@ -20,9 +20,15 @@ export default function HomePage() {
           <span>TedarikKöprü</span>
         </a>
         <nav aria-label="Sayfa bağlantıları">
-          <Link href="/urunler">Ürünler</Link>
-          <a href="#altyapi">Altyapı</a>
-          <a href="#guven">Güven yaklaşımı</a>
+          <Link className="nav-products" href="/urunler">
+            Ürünler
+          </Link>
+          <a className="nav-section-link" href="#altyapi">
+            Pilot akışları
+          </a>
+          <a className="nav-section-link" href="#guven">
+            Güven yaklaşımı
+          </a>
           <a className="nav-status" href="/api/health/live">
             Sistem durumu
           </a>
@@ -32,19 +38,19 @@ export default function HomePage() {
       <main id="ana-icerik" tabIndex={-1}>
         <section className="hero page-shell" aria-labelledby="hero-title">
           <div className="hero-copy">
-            <p className="eyebrow">Faz 1 · Güvenli işletme kimliği</p>
+            <p className="eyebrow">Pilot MVP · B2B tedarik</p>
             <h1 id="hero-title">İşletmeler arası tedarik için güvenilir bir köprü.</h1>
             <p className="hero-lead">
-              TedarikKöprü; tedarikçileri ve pazaryeri satıcısı işletmeleri, doğrulanabilir ve
-              izlenebilir süreçler üzerinde buluşturmak için kuruluyor.
+              TedarikKöprü; doğrulanmış tedarikçileri ve alıcı işletmeleri katalog, teklif,
+              sipariş, ödeme ve teslimat süreçlerinde güvenle buluşturur.
             </p>
             <div className="hero-actions">
               <Link className="button button-primary" href="/urunler">
                 Pilot ürünleri incele
               </Link>
-              <a className="button button-secondary" href="/kayit">
+              <Link className="button button-secondary" href="/kayit">
                 İşletme hesabı oluştur
-              </a>
+              </Link>
             </div>
             <ul className="trust-list" aria-label="Temel güven ilkeleri">
               {trustPoints.map((point) => (
@@ -53,9 +59,9 @@ export default function HomePage() {
             </ul>
           </div>
 
-          <aside className="foundation-card" aria-label="Foundation özeti">
+          <aside className="foundation-card" aria-label="Pilot özeti">
             <div className="card-topline">
-              <span>Foundation / 00</span>
+              <span>Pilot MVP</span>
               <span className="status-dot">Çalışıyor</span>
             </div>
             <div className="bridge-visual" aria-hidden="true">
@@ -87,11 +93,11 @@ export default function HomePage() {
         <section className="foundation-section" id="altyapi" aria-labelledby="foundation-title">
           <div className="page-shell">
             <div className="section-heading">
-              <p className="eyebrow">Gözlemlenebilir başlangıç</p>
-              <h2 id="foundation-title">Temel bileşenler görünür ve sınırları belirli.</h2>
+              <p className="eyebrow">Çalışan pilot akışları</p>
+              <h2 id="foundation-title">Tedarik sürecinin kritik adımları tek yerde.</h2>
               <p>
-                Bu aşama ürün akışlarını taklit etmez. Sonraki fazların güvenle kurulacağı çalışma,
-                veri ve kalite altyapısını sağlar.
+                Onaylı katalog, tek tedarikçili checkout, pilot ödeme, manuel kargo, iade ve
+                teklif akışları güvenli durum geçişleriyle çalışır.
               </p>
             </div>
             <div className="capability-grid">
@@ -129,7 +135,7 @@ export default function HomePage() {
       <footer className="site-footer">
         <div className="page-shell footer-inner">
           <span>TedarikKöprü</span>
-          <span>Faz 2A · pilot katalog</span>
+          <span>Pilot MVP · yerel geliştirme</span>
         </div>
       </footer>
     </>

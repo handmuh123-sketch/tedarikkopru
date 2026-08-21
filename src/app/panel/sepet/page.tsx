@@ -32,7 +32,7 @@ export default async function CartPage() {
   });
   if (!membership) {
     return (
-      <main id="ana-icerik" className="dashboard-page">
+      <main id="ana-icerik" className="dashboard-page" tabIndex={-1}>
         <h1>Sepet kullanılamıyor</h1>
         <p>Onaylı alıcı işletmesi ve satın alma yetkisi gerekir.</p>
       </main>
