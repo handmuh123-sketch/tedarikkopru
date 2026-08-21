@@ -43,6 +43,7 @@ describe("server environment", () => {
       expect(result.data.FEATURE_LIVE_PAYMENTS).toBe(false);
       expect(result.data.S3_FORCE_PATH_STYLE).toBe(true);
       expect(result.data.EMAIL_SMTP_PORT).toBe(1025);
+      expect(result.data.DEPLOYMENT_ENV).toBe("development");
     }
   });
 
@@ -86,10 +87,14 @@ describe("server environment", () => {
     const result = parseServerEnvironment({
       ...validEnvironment,
       NODE_ENV: "production",
+      DEPLOYMENT_ENV: "production",
       APP_URL: "https://tedarikkopru.example",
       AUTH_SECRET: "3zL7vQ1nR8cM4pK9xT6wH2jF5sD0aB7eG1uN8yC4",
       DATA_ENCRYPTION_KEY: "9pT2xK6mR1vB8dH4sW7nC3fJ0qL5aG2uY6eN9kD1",
       CRON_SECRET: "5hM8cV2qA7rN1xF4pK9sD6wT3jB0uL8eR2yG7nC5",
+      EMAIL_PROVIDER: "smtp",
+      EMAIL_SMTP_USER: "staging-user",
+      EMAIL_SMTP_PASSWORD: "staging-password",
     });
 
     expect(result.success).toBe(true);
@@ -108,6 +113,25 @@ describe("server environment", () => {
     );
 
     expect(result.success).toBe(true);
+  });
+
+  it("production Node çalışma zamanında SMTP kimlik bilgisini zorunlu tutar", () => {
+    const result = parseServerEnvironment({
+      ...validEnvironment,
+      NODE_ENV: "production",
+      DEPLOYMENT_ENV: "staging",
+      APP_URL: "https://staging.tedarikkopru.example",
+      AUTH_SECRET: "3zL7vQ1nR8cM4pK9xT6wH2jF5sD0aB7eG1uN8yC4",
+      DATA_ENCRYPTION_KEY: "9pT2xK6mR1vB8dH4sW7nC3fJ0qL5aG2uY6eN9kD1",
+      CRON_SECRET: "5hM8cV2qA7rN1xF4pK9sD6wT3jB0uL8eR2yG7nC5",
+      EMAIL_PROVIDER: "smtp",
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const paths = result.error.issues.map((issue) => issue.path.join("."));
+      expect(paths).toEqual(expect.arrayContaining(["EMAIL_SMTP_USER", "EMAIL_SMTP_PASSWORD"]));
+    }
   });
 
   it("canlı ödeme sağlayıcısı seçilmesine izin vermez", () => {

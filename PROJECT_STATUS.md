@@ -8,6 +8,13 @@
 
 ## Tamamlananlar
 
+- Staging/deploy hazırlığı tamamlandı; gerçek deploy yapılmadı. Runtime artık
+  `DEPLOYMENT_ENV` ile staging/production ayrımını fail-fast doğrular. Production Node
+  runtime doğrulanmış SMTP, TLS seçeneği ve SMTP kimlik bilgisi ister; uygulama
+  `DEPLOYMENT_ENV=production` altında demo seed oluşturmaz. README ve deployment runbook;
+  external PostgreSQL/S3/SMTP, release-job migration, health smoke, HTTPS proxy, kalıcı veri
+  ve staging demo seed sınırlarını açıkça tanımlar.
+
 - Pilot MVP final QA tamamlandı. Ana sayfadaki eski faz/foundation dili güncel pilot akışlarıyla değiştirildi; 360 px üst menü katalog bağlantısını korur, ikincil bölüm ve sistem bağlantılarını gizler. Uzun ürün adları kırılabilir, boş katalog sonucu filtre temizleme yolunu açıkça gösterir; sepet miktarı güncellemesi görünür başarı geri bildirimi verir.
 - Genel hata deneyimi Türkçeleştirildi: bulunamayan rota kullanıcı dostu 404 ekranına, beklenmeyen istemci hatası yeniden deneme düğmeli 500 sınırına gider. Tüm yetki yokluğu dallarındaki skip-link hedefleri klavye odağı alır.
 - Final responsive/erişilebilirlik turu: Chrome desktop ve 360 px temel sayfa, katalog, favori, sepet/checkout, admin operasyonları ve kritik ticari akışlarda yatay taşma göstermedi. Ek public kontrol 390 px ve 768 px'te ana sayfa, katalog ve ürün detayını doğruladı; skip link, ana landmark, görünür focus, form label/status ve Türkçe 404 kontrol edildi.

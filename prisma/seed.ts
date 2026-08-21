@@ -105,7 +105,7 @@ async function main() {
     create: { key: "identity.version", value: { phase: 1, status: "ready" } },
   });
 
-  if (seedEnvironment.NODE_ENV === "production" || !seedEnvironment.DEMO_SEED_ENABLED) {
+  if (seedEnvironment.DEPLOYMENT_ENV === "production" || !seedEnvironment.DEMO_SEED_ENABLED) {
     console.info("Demo hesap seed'i kapalı; yalnız teknik ayarlar güncellendi.");
     return;
   }

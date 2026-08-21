@@ -94,6 +94,38 @@ docker compose down
 
 Bu komut volume verilerini silmez. `docker compose down -v` yerel veriyi siler ve normal akışta kullanılmamalıdır.
 
+## Staging deployment
+
+Staging, uygulamanın internete açık fakat production verisinden, secret'ından ve ödeme
+sağlayıcısından tamamen ayrı ortamıdır. Yerel `docker-compose.yml` yalnız development
+içindir; staging'de uygulama Docker image'ı, ayrı PostgreSQL, private S3 uyumlu object
+storage ve doğrulanmış SMTP hizmeti kullanılır. Uygulama image'ı `output: "standalone"`
+ile üretilir; uygulama container'ı stateless kalır.
+
+Staging secret manager'ında en az şunları tanımlayın:
+
+- `NODE_ENV=production`, `DEPLOYMENT_ENV=staging` ve HTTPS public origin olan `APP_URL`.
+- Ayrı ve TLS zorunlu PostgreSQL için `DATABASE_URL` (uygulama bağlantısı) ile
+  `DIRECT_URL` (migration/release bağlantısı).
+- En az 32 karakterli, gerçek ve birbirinden farklı `AUTH_SECRET`,
+  `DATA_ENCRYPTION_KEY`, `CRON_SECRET`.
+- Private bucket'a erişebilen S3 endpoint/region/bucket/access key/secret key değerleri.
+- Doğrulanmış SMTP için `EMAIL_PROVIDER=smtp`, gönderici, host, port, TLS ayarları ve
+  SMTP kullanıcı/parolası.
+
+Staging runtime'da `DEMO_SEED_ENABLED=false` kullanın. Demo veri gerekirse yalnız açıkça
+onaylanmış ve `DEPLOYMENT_ENV=staging` olan tek seferlik seed job'ında açılır; production
+deploy'i `DEPLOYMENT_ENV=production` ile demo seed'ini koşulsuz engeller. Migration'ı app
+container'ından ayrı, tek release job olarak `pnpm db:migrate` ile çalıştırın; `db:push`,
+`migrate dev` veya reset staging/production'da kullanılmaz. Ardından public domain üzerinden
+`/api/health/live` ve `/api/health/ready` kontrollerini yapın.
+
+TLS reverse proxy yalnız HTTPS'i internete açmalı; upstream'e `Host`,
+`X-Forwarded-Proto: https`, `X-Forwarded-For` ve istek boyutu sınırlarını iletmelidir.
+`APP_URL` proxy'nin public domain'iyle tam eşleşmelidir; böylece trusted origin ve secure
+cookie ayarları doğru çalışır. Ayrıntılı değişken matrisi, release sırası, kalıcı veri ve
+geri alma kuralları için [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) dosyasını izleyin.
+
 ## Kalite ve test komutları
 
 ```bash
@@ -112,7 +144,7 @@ Entegrasyon testi gerçek PostgreSQL ve MinIO ister; önce servisleri, migration
 
 ## Demo hesapları
 
-`.env.example` içindeki `DEMO_SEED_ENABLED=true` yalnız development ortamında aşağıdaki localhost hesaplarını idempotent oluşturur. Seed production ortamında demo hesap oluşturmaz; parolalar veritabanında Better Auth scrypt hash'i olarak tutulur.
+`.env.example` içindeki `DEMO_SEED_ENABLED=true` yalnız development ortamında aşağıdaki localhost hesaplarını idempotent oluşturur. Staging demo seed'i yalnız `DEPLOYMENT_ENV=staging` ile açıkça seçilen tek seferlik job'da kullanılabilir; `DEPLOYMENT_ENV=production` demo hesap oluşturmaz. Parolalar veritabanında Better Auth scrypt hash'i olarak tutulur.
 
 - Platform admini: `admin@demo.tedarikkopru.local`
 - Tedarikçi: `tedarikci@demo.tedarikkopru.local`

@@ -26,6 +26,7 @@ function createServerEnvSchema(validationContext: "runtime" | "build") {
   return z
     .object({
       NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+      DEPLOYMENT_ENV: z.enum(["development", "staging", "production"]).default("development"),
       APP_URL: z.string().url(),
       APP_TIMEZONE: z.literal("Europe/Istanbul"),
 
@@ -48,6 +49,10 @@ function createServerEnvSchema(validationContext: "runtime" | "build") {
       EMAIL_FROM: z.string().trim().min(3),
       EMAIL_SMTP_HOST: z.string().trim().min(1),
       EMAIL_SMTP_PORT: z.coerce.number().int().min(1).max(65_535),
+      EMAIL_SMTP_SECURE: booleanFromEnvironment.default(false),
+      EMAIL_SMTP_REQUIRE_TLS: booleanFromEnvironment.default(false),
+      EMAIL_SMTP_USER: optionalString,
+      EMAIL_SMTP_PASSWORD: optionalString,
       RESEND_API_KEY: optionalString,
 
       DOCUMENT_MAX_BYTES: z.coerce.number().int().min(1).max(10_485_760).default(5_242_880),
@@ -110,6 +115,14 @@ function createServerEnvSchema(validationContext: "runtime" | "build") {
         return;
       }
 
+      if (environment.DEPLOYMENT_ENV === "development") {
+        context.addIssue({
+          code: "custom",
+          path: ["DEPLOYMENT_ENV"],
+          message: "production Node çalışma zamanında staging veya production olarak tanımlanmalıdır",
+        });
+      }
+
       if (
         environment.FEATURE_BANK_TRANSFER_PAYMENTS &&
         (!environment.BANK_TRANSFER_ACCOUNT_NAME || !environment.BANK_TRANSFER_IBAN)
@@ -141,6 +154,24 @@ function createServerEnvSchema(validationContext: "runtime" | "build") {
             path: [key],
             message:
               "production ortamında en az 32 karakterli, yerel örnek olmayan bir değer olmalıdır",
+          });
+        }
+      }
+
+      if (environment.EMAIL_PROVIDER !== "smtp") {
+        context.addIssue({
+          code: "custom",
+          path: ["EMAIL_PROVIDER"],
+          message: "production Node çalışma zamanında doğrulanmış SMTP sağlayıcısı kullanılmalıdır",
+        });
+      }
+
+      for (const key of ["EMAIL_SMTP_USER", "EMAIL_SMTP_PASSWORD"] as const) {
+        if (!environment[key]) {
+          context.addIssue({
+            code: "custom",
+            path: [key],
+            message: "production Node çalışma zamanında SMTP kimlik bilgisi tanımlanmalıdır",
           });
         }
       }

@@ -17,9 +17,14 @@ const developmentMailbox = emailGlobal.developmentMailbox ?? [];
 if (process.env.NODE_ENV !== "production") emailGlobal.developmentMailbox = developmentMailbox;
 
 const smtpTransport = nodemailer.createTransport({
-  host: emailConfig.developmentSmtp.host,
-  port: emailConfig.developmentSmtp.port,
-  secure: false,
+  host: emailConfig.smtp.host,
+  port: emailConfig.smtp.port,
+  secure: emailConfig.smtp.secure,
+  requireTLS: emailConfig.smtp.requireTls,
+  auth:
+    emailConfig.smtp.user && emailConfig.smtp.password
+      ? { user: emailConfig.smtp.user, pass: emailConfig.smtp.password }
+      : undefined,
   disableFileAccess: true,
   disableUrlAccess: true,
 });

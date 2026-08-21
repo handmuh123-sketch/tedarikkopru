@@ -5,6 +5,18 @@ son kullanıcı QA turunu kapsar. Yeni iş özelliği eklenmedi; yalnız gerçek
 responsive ve erişilebilirlik sorunları düzeltildi. Önceki RFQ, ödeme, sipariş,
 kargo ve iade bölümleri tarihsel kayıt olarak korunur.
 
+## Staging deployment hazırlığı
+
+- Gerçek deploy veya sağlayıcı seçimi yapılmadı. Deployment runbook; stateless standalone
+  app container, external PostgreSQL/S3/SMTP, TLS reverse proxy, release-job migration,
+  health smoke ve kalıcı veri sınırlarını tanımlar.
+- `DEPLOYMENT_ENV` development/staging/production ayrımını yapar. Production Node runtime;
+  HTTPS public origin, güçlü secret'lar, doğrulanmış SMTP/TLS/kimlik bilgisi ve staging ya
+  da production deploy ortamı olmadan başlamaz.
+- `DEPLOYMENT_ENV=production` demo seed'i koşulsuz engeller. Staging demo verisi yalnız
+  açıkça onaylanan, ayrı tek seferlik seed job'ında seçilebilir; normal staging runtime
+  `DEMO_SEED_ENABLED=false` kullanır.
+
 ## Güncel sonuç
 
 - Yalnız kabul edilmiş, süresi dolmamış teklif alıcının kendi sepetine eklenir.
