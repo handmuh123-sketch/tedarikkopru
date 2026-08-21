@@ -1,0 +1,87 @@
+services:
+  - type: web
+    name: tedarikkopru
+    runtime: docker
+    region: frankfurt
+    plan: free
+    branch: main
+    autoDeployTrigger: commit
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health/live
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DEPLOYMENT_ENV
+        value: staging
+      - key: APP_URL
+        sync: false
+      - key: APP_TIMEZONE
+        value: Europe/Istanbul
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: DATA_ENCRYPTION_KEY
+        generateValue: true
+      - key: CRON_SECRET
+        generateValue: true
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_REGION
+        sync: false
+      - key: S3_BUCKET_PRIVATE
+        sync: false
+      - key: S3_BUCKET_PUBLIC
+        sync: false
+      - key: S3_ACCESS_KEY
+        sync: false
+      - key: S3_SECRET_KEY
+        sync: false
+      - key: S3_FORCE_PATH_STYLE
+        sync: false
+      - key: EMAIL_PROVIDER
+        value: smtp
+      - key: EMAIL_FROM
+        sync: false
+      - key: EMAIL_SMTP_HOST
+        sync: false
+      - key: EMAIL_SMTP_PORT
+        sync: false
+      - key: EMAIL_SMTP_SECURE
+        sync: false
+      - key: EMAIL_SMTP_REQUIRE_TLS
+        sync: false
+      - key: EMAIL_SMTP_USER
+        sync: false
+      - key: EMAIL_SMTP_PASSWORD
+        sync: false
+      - key: DOCUMENT_MAX_BYTES
+        value: "5242880"
+      - key: DEMO_SEED_ENABLED
+        value: "false"
+      - key: PAYMENT_PROVIDER
+        value: mock
+      - key: FEATURE_LIVE_PAYMENTS
+        value: "false"
+      - key: FEATURE_MOCK_PAYMENTS
+        value: "true"
+      - key: FEATURE_BANK_TRANSFER_PAYMENTS
+        value: "false"
+      - key: FEATURE_DROPSHIPPING
+        value: "false"
+      - key: FEATURE_MARKETPLACE_TRENDYOL
+        value: "false"
+      - key: FEATURE_MARKETPLACE_HEPSIBURADA
+        value: "false"
+      - key: FEATURE_MARKETPLACE_AMAZON_TR
+        value: "false"
+      - key: FEATURE_CARRIER_INTEGRATIONS
+        value: "false"
+      - key: FEATURE_RFQ
+        value: "false"
+      - key: FEATURE_REVIEWS
+        value: "false"
+      - key: FEATURE_MULTI_SUPPLIER_CHECKOUT
+        value: "false"

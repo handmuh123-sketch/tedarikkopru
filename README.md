@@ -126,6 +126,22 @@ TLS reverse proxy yalnız HTTPS'i internete açmalı; upstream'e `Host`,
 cookie ayarları doğru çalışır. Ayrıntılı değişken matrisi, release sırası, kalıcı veri ve
 geri alma kuralları için [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) dosyasını izleyin.
 
+### Render Blueprint ile staging deploy
+
+Repository kökündeki `render.yaml`, Frankfurt bölgesinde `tedarikkopru` adlı ücretsiz Docker
+web servisini oluşturur; Render Dockerfile'ı, liveness kontrolünü ve güvenli varsayılanları
+otomatik uygular. Yalnız şu adımlar gerekir:
+
+1. GitHub repository'yi seçin.
+2. Render Dashboard'da Blueprint'i oluşturun.
+3. İlk oluşturma iletişim kutusunda yalnız `sync: false` değerlerini girin.
+4. Deploy edin.
+
+`APP_URL` Render'ın public HTTPS origin'i olmalıdır. Render Free planında pre-deploy release
+komutu yoktur; yeni staging veritabanında veya migration değiştiğinde deploy'dan önce güvenilir
+source+CLI release runner ile `pnpm db:migrate` çalıştırın. `migrate dev`, `db push`, reset ve
+otomatik demo seed kullanmayın.
+
 ## Kalite ve test komutları
 
 ```bash
