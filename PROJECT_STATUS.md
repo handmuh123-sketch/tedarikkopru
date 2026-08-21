@@ -1,8 +1,8 @@
 # PROJECT STATUS
 
-**Durum:** RFQ kabul edilen teklif → checkout bağlantısı tamamlandı
+**Durum:** Pilot MVP sağlamlaştırma ve yayın hazırlığı tamamlandı
 
-**Aktif faz:** Pilot operasyonları ve güvenlik/erişilebilirlik sağlamlaştırması
+**Aktif faz:** Sonraki faz başlatılmadı
 
 **Son güncelleme:** 21 Ağustos 2026, +03:00
 
@@ -129,6 +129,9 @@
 - Lint, format, strict typecheck, unit, integration, E2E ve production build kalite komutları.
 
 ## Doğrulama özeti
+
+- Final kalite turu: `pnpm lint`, `pnpm typecheck`, unit suite 44/44 ve gerçek PostgreSQL integration suite 32/32 başarılı. Kritik Chrome akışları izole çalıştırıldı: mock ödeme 2/2, banka transferi 2/2, kargo/teslim 2/2, RFQ/teklif→checkout 4/4, iade/refund 4/4; cross-org/admin yetki sınırları security integration kapsamında doğrulandı.
+- Release hazırlığı: `pnpm build` başarılı; Prisma schema doğrulandı/client üretildi, `prisma migrate status` 13 forward migration için güncel, development seed tekrar çalıştırılabilir biçimde başarılı. Docker image build çalıştırılmadı.
 
 - Responsive/erişilebilirlik turu: admin operasyon Chrome desktop 1/1 ve 360 px mobile 1/1; foundation landmark, skip-link, focus, liveness/readiness ve yatay taşma desktop/mobile 6/6 geçti.
 

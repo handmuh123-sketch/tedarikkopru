@@ -1,6 +1,6 @@
 # TedarikKöprü
 
-Türkiye odaklı B2B tedarikçi pazaryerinin Faz 2B hızlı pilot uygulamasıdır. Faz 2A kataloğuna güvenli stok ve immutable hareket defteri, arama/filtre, ürün favorileri, CSV/XLSX önizleme-onay importu, formula-injection güvenli CSV export ve admin import kuyruğu eklenmiştir. Stok rezervasyonu, kademe fiyat, sepet, sipariş, ödeme, kargo ve canlı entegrasyonlar henüz yoktur.
+Türkiye odaklı B2B tedarikçi pazaryerinin hızlı pilot uygulamasıdır. Onaylı katalog, stok ve immutable hareket defteri, tek tedarikçili sepet/checkout rezervasyonu, mock ödeme, tedarikçi kararları, RFQ/tekliften checkout'a fiyat bağlantısı, manuel kargo/teslimat, uygulama içi iade/refund ve admin onaylı manuel banka transferi içerir. Gerçek ödeme, banka, kargo, refund ve fatura sağlayıcısı entegrasyonları bilinçli olarak yoktur.
 
 ## Gereksinimler
 
@@ -65,6 +65,13 @@ Uygulama açıldığında:
 - Favoriler: <http://localhost:3000/panel/favoriler>
 - Ürün moderasyonu: <http://localhost:3000/admin/urunler>
 - Admin import işleri: <http://localhost:3000/admin/importlar>
+- Sipariş/iade operasyonları: <http://localhost:3000/admin/operasyonlar>
+- Banka transferi operasyonları: <http://localhost:3000/admin/odemeler>
+- Alıcı siparişleri ve iade talebi: <http://localhost:3000/panel/siparisler>
+- Alıcı RFQ/teklifleri: <http://localhost:3000/panel/teklif-talepleri>
+- Tedarikçi sipariş, kargo ve teslimat: <http://localhost:3000/tedarikci/siparisler>
+- Tedarikçi iade talepleri: <http://localhost:3000/tedarikci/iadeler>
+- Tedarikçi RFQ/teklifleri: <http://localhost:3000/tedarikci/teklifler>
 - Kategori/marka: <http://localhost:3000/admin/kategoriler> / <http://localhost:3000/admin/markalar>
 
 Readiness, PostgreSQL erişilemiyorsa kasıtlı olarak `503 not_ready` döndürür. Liveness dış bağımlılıklardan bağımsızdır.
@@ -103,17 +110,21 @@ docker compose build app
 
 Entegrasyon testi gerçek PostgreSQL ve MinIO ister; önce servisleri, migration'ı ve seed'i çalıştırın. E2E ayrıca Mailpit SMTP/API akışını kullanır. Playwright varsayılan olarak kendi temiz development sunucusunu başlatır ve eski bir `localhost:3000` sürecini başarı saymaz. Yalnız bilinçli yerel hata ayıklamada mevcut sunucuyu kullanmak için `PLAYWRIGHT_REUSE_EXISTING_SERVER=true` verilebilir. Playwright varsayılan olarak kurduğu Chromium'u kullanır. Kurulu Microsoft Edge'i özellikle kullanmak isterseniz PowerShell'de testten önce `$env:PLAYWRIGHT_CHANNEL="msedge"` ayarlayabilirsiniz.
 
-## Faz 1 demo hesapları
+## Demo hesapları
 
 `.env.example` içindeki `DEMO_SEED_ENABLED=true` yalnız development ortamında aşağıdaki localhost hesaplarını idempotent oluşturur. Seed production ortamında demo hesap oluşturmaz; parolalar veritabanında Better Auth scrypt hash'i olarak tutulur.
 
-- Platform admini: `admin@demo.tedarikkopru.local` / `Faz1-Admin-Demo-2026!`
-- Tedarikçi: `tedarikci@demo.tedarikkopru.local` / `Faz1-Isletme-Demo-2026!`
-- Alıcı: `alici@demo.tedarikkopru.local` / `Faz1-Isletme-Demo-2026!`
+- Platform admini: `admin@demo.tedarikkopru.local`
+- Tedarikçi: `tedarikci@demo.tedarikkopru.local`
+- Alıcı: `alici@demo.tedarikkopru.local`
+
+Parolalar yalnız yerel `.env` içindeki `DEMO_ADMIN_PASSWORD` ve
+`DEMO_USER_PASSWORD` değerlerinden gelir. Bunları kaynak koda, test çıktısına,
+loglara veya Git'e yazmayın.
 
 Kayıt e-postaları, parola sıfırlama ile üyelik davetleri development ortamında Mailpit'e gider. İşletme belgesi PDF/JPEG/PNG ve en fazla 5 MB olmalıdır; private MinIO bucket'tan yalnız yetkili uygulama endpoint'i üzerinden okunur.
 
-Seed ayrıca `Demo Mobil Tedarik` adlı doğrulanmış tedarikçi, telefon aksesuarı kategori ağacı, üç marka, dört yayındaki demo ürün ve safety stock üstü demo stokları oluşturur. Demo tedarikçi hesabıyla ürün/stok yönetebilir, CSV/XLSX önizleyip uygulayabilir ve güvenli CSV indirebilir; demo alıcı ürünleri arayıp favorileyebilir; demo admin `/admin/urunler` ve `/admin/importlar` kuyruklarını görebilir.
+Seed ayrıca `Demo Mobil Tedarik` adlı doğrulanmış tedarikçi, telefon aksesuarı kategori ağacı, üç marka, dört yayındaki demo ürün ve safety stock üstü demo stokları oluşturur. Demo tedarikçi ürün/stok, RFQ, sipariş, kargo ve iade akışlarını yönetebilir; demo alıcı RFQ, sepet, checkout, ödeme, teslimat ve iade akışlarını deneyebilir; demo admin doğrulama, katalog/import, ödeme ve operasyon kuyruklarını görür.
 
 Diğer Faz 0 komutları:
 
@@ -128,6 +139,14 @@ OpenAPI çıktısı `docs/openapi.json` dosyasına deterministik olarak yazılı
 
 ## Güvenli varsayımlar
 
-`.env.example` içindeki tüm kimlik bilgileri yalnız localhost development örneğidir ve canlı secret değildir. Gerçek `.env` dosyası Git tarafından yok sayılır. Runtime her ortamda en az 32 karakterli auth ve veri şifreleme anahtarı ister; `NODE_ENV=production` olduğunda localhost arkasında dahi bilinen development/build placeholder secret'ları reddedilir. `pnpm build` yalnız derleme süresinde runtime-only kontrolleri ayrı bir compile bağlamıyla atlar; çalışan production sunucusu bu istisnayı kullanmaz. Vergi numarası AES-256-GCM ile şifreli ve HMAC hashli, reset/doğrulama/davet tokenları hashli saklanır. Tüm canlı ödeme, kargo ve pazaryeri bayrakları kapalıdır.
+`.env.example` içindeki tüm kimlik bilgileri yalnız localhost development örneğidir ve canlı secret değildir. Gerçek `.env` dosyası Git tarafından yok sayılır. Runtime her ortamda en az 32 karakterli auth ve veri şifreleme anahtarı ister; `NODE_ENV=production` olduğunda localhost arkasında dahi bilinen development/build placeholder secret'ları reddedilir. `pnpm build` yalnız derleme süresinde runtime-only kontrolleri ayrı bir compile bağlamıyla atlar; çalışan production sunucusu bu istisnayı kullanmaz. Vergi numarası AES-256-GCM ile şifreli ve HMAC hashli, reset/doğrulama/davet tokenları hashli saklanır. Mock ödeme ve manuel banka transferi yalnız pilot feature flag'leriyle kullanılabilir; tüm canlı ödeme, kargo ve pazaryeri bayrakları kapalıdır.
+
+## Production öncesi dış işler
+
+- Gerçek kart/ödeme gateway'i ve banka transfer reconciliation.
+- Gerçek kargo/iade kargo API'leri, etiket/barkod ve takip webhook'ları.
+- Gerçek refund sağlayıcısı, e-fatura/e-arşiv ve mali süreçler.
+- Production mail/object storage, deployment secret'ları, observability ve alerting.
+- KVKK saklama/anonimleştirme, hukuk ve pilot kategori onayları.
 
 Development servislerinin sürüm ve güvenlik ayrıntıları için [docs/DEVELOPMENT_SERVICES.md](docs/DEVELOPMENT_SERVICES.md), yayın sınırları için [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) dosyasına bakın.

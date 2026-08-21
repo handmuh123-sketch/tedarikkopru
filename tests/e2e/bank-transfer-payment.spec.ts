@@ -19,7 +19,11 @@ test("alıcı banka transferi bildirir, admin tek onayla siparişi PAID yapar", 
   await login(page, "alici@demo.tedarikkopru.local", demoUserPassword);
   await page.goto("/urunler/20w-usb-c-hizli-sarj-adaptoru");
   await page.getByLabel("Miktar", { exact: true }).fill("6");
+  const addToCart = page.waitForResponse(
+    (response) => response.url().endsWith("/cart") && response.request().method() === "POST",
+  );
   await page.getByRole("button", { name: "Sepete ekle" }).click();
+  expect((await addToCart).status()).toBe(201);
   await page.getByRole("link", { name: "Sepete git" }).click();
   await page.getByRole("link", { name: "Checkout'a geç" }).click();
   await page.getByRole("button", { name: "Checkout taslağı oluştur" }).click();
