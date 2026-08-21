@@ -1,6 +1,8 @@
-import "dotenv/config";
+import { config as loadEnvironment } from "dotenv";
 
 import { expect, test, type Page } from "@playwright/test";
+
+loadEnvironment({ path: ".env", override: true, quiet: true });
 
 function requiredDemoPassword() {
   const password = process.env.DEMO_USER_PASSWORD;
@@ -74,7 +76,20 @@ for (const decision of ["ACCEPTED", "REJECTED"] as const) {
       expect((await decisionResponse).status()).toBe(200);
       await expect(page.getByText(decision, { exact: true }).first()).toBeVisible();
       if (decision === "ACCEPTED") {
-        await expect(page.getByRole("link", { name: "Ürünü sepete ekle" })).toBeVisible();
+        const addToCartResponse = page.waitForResponse(
+          (response) => response.url().endsWith("/cart") && response.request().method() === "POST",
+        );
+        await page.getByRole("button", { name: "Teklifi sepete ekle" }).click();
+        expect((await addToCartResponse).status()).toBe(201);
+        await page.getByRole("link", { name: "Sepete git" }).click();
+        await expect(page.getByText("Kabul edilen teklif fiyatı")).toBeVisible();
+        await page.getByRole("link", { name: "Checkout'a geç" }).click();
+        const checkoutResponse = page.waitForResponse(
+          (response) => response.url().endsWith("/checkout") && response.request().method() === "POST",
+        );
+        await page.getByRole("button", { name: "Checkout taslağı oluştur" }).click();
+        expect((await checkoutResponse).status()).toBe(201);
+        await expect(page.getByRole("heading", { name: "Sipariş taslağı hazır" })).toBeVisible();
       }
       expect(
         await page.evaluate(

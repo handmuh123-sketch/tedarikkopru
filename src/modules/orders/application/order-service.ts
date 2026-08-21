@@ -49,6 +49,20 @@ const cartInclude = {
           },
         },
       },
+      quote: {
+        include: {
+          rfq: {
+            select: {
+              buyerOrganizationId: true,
+              supplierOrganizationId: true,
+              productId: true,
+              variantId: true,
+              status: true,
+              targetQuantity: true,
+            },
+          },
+        },
+      },
     },
   },
 } satisfies Prisma.CartInclude;
@@ -68,9 +82,11 @@ export function cartView(cart: CartRecord | null) {
     image: item.variant.product.images[0]?.storageKey ?? null,
     moq: item.variant.moq,
     quantityStep: item.variant.quantityStep,
-    unitPriceAmountMinor: item.variant.priceAmountMinor,
+    quoteId: item.quoteId,
+    isQuoted: Boolean(item.quoteId),
+    unitPriceAmountMinor: item.quotedUnitPriceMinor ?? item.variant.priceAmountMinor,
     subtotalAmountMinor: calculateLineAmounts(
-      item.variant.priceAmountMinor,
+      item.quotedUnitPriceMinor ?? item.variant.priceAmountMinor,
       item.quantity,
       item.variant.product.vatRateBasisPoints,
     ).subtotalAmountMinor,
@@ -184,7 +200,12 @@ export async function addCartItem(input: {
     }
     await transaction.cartItem.upsert({
       where: { cartId_variantId: { cartId: cart.id, variantId: variant.id } },
-      update: { quantity: input.quantity, addedUnitPriceMinor: variant.priceAmountMinor },
+      update: {
+        quantity: input.quantity,
+        addedUnitPriceMinor: variant.priceAmountMinor,
+        quoteId: null,
+        quotedUnitPriceMinor: null,
+      },
       create: {
         cartId: cart.id,
         variantId: variant.id,
@@ -192,6 +213,122 @@ export async function addCartItem(input: {
         addedUnitPriceMinor: variant.priceAmountMinor,
       },
     });
+    return transaction.cart.findUniqueOrThrow({ where: { id: cart.id }, include: cartInclude });
+  });
+}
+
+export async function addAcceptedQuoteToCart(input: RequestEvidence & {
+  buyerOrganizationId: string;
+  rfqId: string;
+  quoteId: string;
+  now?: Date;
+}) {
+  const now = input.now ?? new Date();
+  return database.$transaction(async (transaction) => {
+    await requireBuyerOrganization(transaction, input.buyerOrganizationId);
+    const quote = await transaction.quote.findFirst({
+      where: {
+        id: input.quoteId,
+        rfqId: input.rfqId,
+        rfq: { buyerOrganizationId: input.buyerOrganizationId },
+      },
+      include: {
+        rfq: true,
+      },
+    });
+    if (!quote) throw new HttpError(404, "Teklif bulunamadı.", "QUOTE_NOT_FOUND");
+    if (quote.status !== "ACCEPTED" || quote.rfq.status !== "ACCEPTED") {
+      throw new HttpError(409, "Yalnız kabul edilen teklifler sepete eklenebilir.", "QUOTE_NOT_ACCEPTED");
+    }
+    if (quote.validUntil <= now) {
+      throw new HttpError(409, "Teklifin geçerlilik süresi doldu.", "QUOTE_EXPIRED");
+    }
+    if (quote.currency !== "TRY" || quote.unitPriceAmountMinor < 0) {
+      throw new HttpError(409, "Teklif fiyatı checkout için uygun değil.", "QUOTE_INVALID_PRICE");
+    }
+    const variant = await transaction.productVariant.findFirst({
+      where: {
+        id: quote.rfq.variantId,
+        productId: quote.rfq.productId,
+        supplierOrganizationId: quote.rfq.supplierOrganizationId,
+        status: "ACTIVE",
+        product: {
+          status: "ACTIVE",
+          supplierOrganization: { status: "ACTIVE", verificationStatus: "APPROVED" },
+        },
+      },
+      include: { inventory: true },
+    });
+    if (!variant) throw new HttpError(409, "Teklif edilen ürün artık satışta değil.", "VARIANT_UNAVAILABLE");
+    assertQuantity(quote.rfq.targetQuantity, variant.moq, variant.quantityStep);
+    assertAvailable(quote.rfq.targetQuantity, variant.inventory);
+
+    const cart = await transaction.cart.upsert({
+      where: { buyerOrganizationId: input.buyerOrganizationId },
+      update: {},
+      create: { buyerOrganizationId: input.buyerOrganizationId },
+      select: { id: true },
+    });
+    const supplierClaim = await transaction.cart.updateMany({
+      where: {
+        id: cart.id,
+        OR: [
+          { supplierOrganizationId: null },
+          { supplierOrganizationId: quote.rfq.supplierOrganizationId },
+        ],
+      },
+      data: { supplierOrganizationId: quote.rfq.supplierOrganizationId },
+    });
+    if (supplierClaim.count !== 1) {
+      throw new HttpError(
+        409,
+        "Sepette yalnız bir tedarikçinin ürünleri bulunabilir.",
+        "SINGLE_SUPPLIER_CART",
+      );
+    }
+    const existingCartItem = await transaction.cartItem.findUnique({
+      where: { cartId_variantId: { cartId: cart.id, variantId: variant.id } },
+      select: {
+        quoteId: true,
+        quantity: true,
+        quotedUnitPriceMinor: true,
+      },
+    });
+    await transaction.cartItem.upsert({
+      where: { cartId_variantId: { cartId: cart.id, variantId: variant.id } },
+      update: {
+        quantity: quote.rfq.targetQuantity,
+        addedUnitPriceMinor: quote.unitPriceAmountMinor,
+        quoteId: quote.id,
+        quotedUnitPriceMinor: quote.unitPriceAmountMinor,
+      },
+      create: {
+        cartId: cart.id,
+        variantId: variant.id,
+        quantity: quote.rfq.targetQuantity,
+        addedUnitPriceMinor: quote.unitPriceAmountMinor,
+        quoteId: quote.id,
+        quotedUnitPriceMinor: quote.unitPriceAmountMinor,
+      },
+    });
+    const alreadyAdded =
+      existingCartItem?.quoteId === quote.id &&
+      existingCartItem.quantity === quote.rfq.targetQuantity &&
+      existingCartItem.quotedUnitPriceMinor === quote.unitPriceAmountMinor;
+    if (!alreadyAdded) {
+      await transaction.auditLog.create({
+        data: buildAuditLogData({
+          actorId: input.actorUserId,
+          organizationId: input.buyerOrganizationId,
+          action: "rfq.quote_added_to_cart",
+          targetType: "Quote",
+          targetId: quote.id,
+          after: { rfqId: quote.rfqId, quantity: quote.rfq.targetQuantity },
+          requestId: input.requestId,
+          ...(input.network ? { network: input.network } : {}),
+        }),
+      });
+    }
     return transaction.cart.findUniqueOrThrow({ where: { id: cart.id }, include: cartInclude });
   });
 }
@@ -213,10 +350,37 @@ export async function updateCartItem(input: {
     }
     assertQuantity(input.quantity, item.variant.moq, item.variant.quantityStep);
     assertAvailable(input.quantity, item.variant.inventory);
-    await transaction.cartItem.update({
-      where: { id: item.id },
-      data: { quantity: input.quantity, addedUnitPriceMinor: item.variant.priceAmountMinor },
-    });
+    if (item.quoteId) {
+      const quote = await transaction.quote.findFirst({
+        where: {
+          id: item.quoteId,
+          status: "ACCEPTED",
+          validUntil: { gt: new Date() },
+          rfq: {
+            buyerOrganizationId: input.buyerOrganizationId,
+            supplierOrganizationId: item.variant.supplierOrganizationId,
+            productId: item.variant.productId,
+            variantId: item.variantId,
+            status: "ACCEPTED",
+            targetQuantity: input.quantity,
+          },
+        },
+        select: { id: true, unitPriceAmountMinor: true },
+      });
+      if (!quote || item.quotedUnitPriceMinor !== quote.unitPriceAmountMinor) {
+        throw new HttpError(
+          409,
+          "Teklifli satır yalnız geçerli teklif miktarıyla satın alınabilir.",
+          "QUOTE_CART_ITEM_INVALID",
+        );
+      }
+      await transaction.cartItem.update({ where: { id: item.id }, data: { quantity: input.quantity } });
+    } else {
+      await transaction.cartItem.update({
+        where: { id: item.id },
+        data: { quantity: input.quantity, addedUnitPriceMinor: item.variant.priceAmountMinor },
+      });
+    }
     return transaction.cart.findUniqueOrThrow({ where: { id: item.cartId }, include: cartInclude });
   });
 }
@@ -356,12 +520,38 @@ export async function createCheckoutDraft(input: CheckoutInput) {
           }
           assertQuantity(item.quantity, variant.moq, variant.quantityStep);
           assertAvailable(item.quantity, variant.inventory);
+          let unitPriceAmountMinor = variant.priceAmountMinor;
+          if (item.quoteId) {
+            const quote = item.quote;
+            if (
+              !quote ||
+              quote.status !== "ACCEPTED" ||
+              quote.validUntil <= now ||
+              quote.currency !== "TRY" ||
+              quote.unitPriceAmountMinor < 0 ||
+              item.quotedUnitPriceMinor !== quote.unitPriceAmountMinor ||
+              quote.rfq.status !== "ACCEPTED" ||
+              quote.rfq.buyerOrganizationId !== input.buyerOrganizationId ||
+              quote.rfq.supplierOrganizationId !== cart.supplierOrganizationId ||
+              quote.supplierOrganizationId !== cart.supplierOrganizationId ||
+              quote.rfq.productId !== variant.productId ||
+              quote.rfq.variantId !== variant.id ||
+              quote.rfq.targetQuantity !== item.quantity
+            ) {
+              throw new HttpError(
+                409,
+                "Sepetteki teklif artık checkout için uygun değil.",
+                "QUOTE_CART_ITEM_INVALID",
+              );
+            }
+            unitPriceAmountMinor = quote.unitPriceAmountMinor;
+          }
           const amounts = calculateLineAmounts(
-            variant.priceAmountMinor,
+            unitPriceAmountMinor,
             item.quantity,
             variant.product.vatRateBasisPoints,
           );
-          return { item, amounts };
+          return { item, amounts, unitPriceAmountMinor };
         });
         const totals = sumOrderAmounts(lineSnapshots.map(({ amounts }) => amounts));
         if (
@@ -454,7 +644,7 @@ export async function createCheckoutDraft(input: CheckoutInput) {
             invoiceAddressSnapshot: invoiceSnapshot,
           },
         });
-        for (const { item, amounts } of lineSnapshots) {
+        for (const { item, amounts, unitPriceAmountMinor } of lineSnapshots) {
           const variant = item.variant;
           const image = variant.product.images[0];
           await transaction.orderItem.create({
@@ -473,7 +663,7 @@ export async function createCheckoutDraft(input: CheckoutInput) {
                 ? { storageKey: image.storageKey, altText: image.altText }
                 : Prisma.DbNull,
               quantity: item.quantity,
-              unitPriceAmountMinor: variant.priceAmountMinor,
+              unitPriceAmountMinor,
               subtotalAmountMinor: amounts.subtotalAmountMinor,
               vatRateBasisPoints: variant.product.vatRateBasisPoints,
               vatAmountMinor: amounts.vatAmountMinor,

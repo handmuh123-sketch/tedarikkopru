@@ -1,3 +1,30 @@
+# Pilot Sağlamlaştırma — RFQ Tekliften Checkout'a
+
+Bu yürütme kaydı Faz 4C checkpoint'i `e03b918` sonrasında kabul edilmiş RFQ
+tekliflerinin güvenli biçimde mevcut sepet/checkout akışına taşınmasını kapsar.
+Sipariş snapshot, rezervasyon, ödeme, kargo ve iade state machine'leri
+değiştirilmemiştir.
+
+## Güncel sonuç
+
+- Yalnız kabul edilmiş, süresi dolmamış teklif alıcının kendi sepetine eklenir.
+- Sunucu; alıcı, tedarikçi, ürün, varyant, hedef miktar, TRY para birimi ve
+  teklif fiyatını eklemede ve checkout transaction'ında doğrular.
+- Fiyat integer minor-unit olarak korunur; client fiyatı kabul edilmez.
+- Yabancı org erişimi 404; geçersiz/süresi dolmuş teklif 409 döner.
+- Tekrar ekleme aynı sepet satırını korur ve ikinci audit yan etkisi üretmez.
+- Prisma client/schema doğrulandı; `20260821030000_rfq_quote_checkout_pilot`
+  migration'ı PostgreSQL'e uygulandı. Hedefli unit 6/6, PostgreSQL integration
+  3/3, Chrome desktop 2/2 ve 360 px mobile 2/2 geçti.
+
+## Sonraki bağımsız iş
+
+Admin operasyonları, ardından güvenlik/erişilebilirlik sağlamlaştırması. Bu
+kayıttaki aşağıdaki Faz 4C bölümü tarihsel bağlam içindir; checkpoint ilk Git
+yazma hatasından sonra başarıyla `e03b918` olarak alınmıştır.
+
+---
+
 # Faz 4C — Manuel Banka Transferi ve Ödeme Onayı
 
 Bu yürütme planı, Faz 4B checkpoint'i `f6854f9` sonrasında yalnız manuel banka
@@ -69,8 +96,7 @@ red, mevcut rezervasyon serbest bırakma/iptal akışını uygular.
   4C seed'i başarılı. `pnpm typecheck`, hedefli ESLint ve Chrome desktop/360 px
   E2E geçti.
 
-## Sonuç
+## Tarihsel sonuç
 
-- Uygulama ve hedefli E2E tamamlandı; Git checkpoint'i `.git/objects` yazma
-  izni hatası nedeniyle alınamadı. Çalışma ağacı korunuyor; checkpoint
-  alınmadan sonraki faz başlatılmamalı.
+- Uygulama ve hedefli E2E tamamlandı; ilk geçici Git yazma hatası tekrar
+  denemede çözüldü ve checkpoint `e03b918` olarak başarıyla alındı.

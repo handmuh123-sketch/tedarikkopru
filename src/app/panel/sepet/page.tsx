@@ -71,6 +71,7 @@ export default async function CartPage() {
                   <p>
                     {item.sku} · {formatTryMinor(item.unitPriceAmountMinor)}
                   </p>
+                  {item.isQuoted && <p className="form-help">Kabul edilen teklif fiyatı</p>}
                   <strong>{formatTryMinor(item.subtotalAmountMinor)}</strong>
                 </div>
                 <CartItemActions

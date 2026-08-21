@@ -1,12 +1,16 @@
 # PROJECT STATUS
 
-**Durum:** Faz 4C manuel banka transferi pilotu tamamlandı
+**Durum:** RFQ kabul edilen teklif → checkout bağlantısı tamamlandı
 
-**Aktif faz:** Faz 4C — manuel banka transferi pilotu (sonraki faz başlatılmadı)
+**Aktif faz:** Pilot operasyonları ve güvenlik/erişilebilirlik sağlamlaştırması
 
 **Son güncelleme:** 21 Ağustos 2026, +03:00
 
 ## Tamamlananlar
+
+- Kabul edilmiş ve süresi dolmamış RFQ teklifi, yalnız teklifin alıcısı tarafından yeni org-scoped endpoint ile sepete eklenebilir. Sepet satırı teklif kimliğini ve server-side yazılan integer TRY minor-unit fiyatını taşır; normal katalog eklemesi teklif bağını açıkça kaldırır.
+- Checkout, teklifli her satırda RFQ/teklif kabul durumu, süre, alıcı, tedarikçi, ürün/varyant, hedef miktar ve fiyat snapshot eşleşmesini serializable transaction içinde tekrar doğrular. Başarılı sipariş satırı immutable teklif fiyatını snapshot olarak alır; yabancı alıcı 404, süresi dolmuş/değişmiş teklif 409 alır.
+- RFQ detayına teklif-sepete ekleme aksiyonu ve sepete teklif fiyatı etiketi eklendi. PostgreSQL integration BOLA, tekrar ekleme, fiyat değişimine karşı server-side checkout fiyatı ve gerçek sipariş snapshot'ını kapsar; Chrome desktop/360 px akışı kabul → sepet → checkout taslağı ile geçti.
 
 - `BANK_TRANSFER` payment provider ve transfer referansı/notu forward migration ile eklendi. Hesap adı ve IBAN yalnız environment kaynaklıdır; feature flag veya talimatlar yoksa akış kapalı kalır.
 - Alıcı kendi checkout siparişi için transfer bildirimi başlatır; platform yetkilisi `/admin/odemeler` kuyruğunda idempotent onay/red verir. Onay mevcut tek `PAID`/`SALE`, ret tek reservation release akışını kullanır; gerçek banka API'si veya para transferi yapılmaz.
@@ -25,7 +29,7 @@
 
 - `RequestForQuote`, `Quote`, append-only RFQ/teklif durum geçmişi ve `RfqStatus`/`QuoteStatus` forward migration ile eklendi. RFQ açık → teklifli → kabul/red akışı merkezi serializable transaction ile yürür; teklif birim fiyatı pozitif integer TRY minor-unit olarak DB CHECK ile korunur.
 - Onaylı alıcı OWNER/ORG_ADMIN/ORDER_MANAGER üyeleri ürün varyantından hedef tedarikçiye RFQ oluşturur; onaylı tedarikçi OWNER/ORG_ADMIN/CATALOG_MANAGER üyeleri yalnız kendi gelen RFQ'larına idempotent teklif verir. Alıcı kararı aynı idempotency anahtarıyla history/audit çoğaltmaz; yabancı alıcı veya tedarikçi API'de 404 alır.
-- Alıcı için ürün detayındaki teklif talep formu, `/panel/teklif-talepleri` liste/detay ve kabul/ret görünümü; tedarikçi için `/tedarikci/teklifler` liste/detay ve fiyat teklifi formu tamamlandı. Kabul edilen teklif mevcut ürün detayına, oradan mevcut sepet/checkout akışına basit bağlantı verir; sipariş snapshot, rezervasyon, ödeme veya sepet tasarımı değiştirilmedi.
+- Alıcı için ürün detayındaki teklif talep formu, `/panel/teklif-talepleri` liste/detay ve kabul/ret görünümü; tedarikçi için `/tedarikci/teklifler` liste/detay ve fiyat teklifi formu tamamlandı. Kabul edilen geçerli teklif doğrudan fiyat/miktar bağını koruyarak mevcut sepet/checkout akışına eklenir; sipariş snapshot, rezervasyon ve ödeme state machine'leri korunur.
 - Audit kayıtları notları kaydetmeden RFQ oluşturma, teklif verme ve kabul/ret olaylarını kaydeder. Demo seed, mevcut demo hesapların parolasını `.env` ile hashleyip eşitler ve eski demo oturumlarını kapatır; secret loglanmaz.
 
 - `OrderStatus` için forward migration ile `ACCEPTED` ve `REJECTED` terminal durumları eklendi; mevcut append-only `OrderStatusHistory` tedarikçi kararlarını kaydeder.
@@ -196,7 +200,7 @@
 - MinIO'nun güvenlik yamalı son release'i resmi prebuilt image sunmadığı için ilk development build'i kaynak koddan yapılır ve bu makinede yaklaşık 11 dakika sürdü.
 - CSP şu an Faz 0 statik UI uyumluluğu için `style-src 'unsafe-inline'` içerir. Nonce/hash tabanlı sıkılaştırma sonraki UI güvenlik çalışmasında ele alınmalıdır; bu incelemede kapsam dışı karmaşıklık yaratmamak için değiştirilmedi.
 - `pnpm audit` yerel TLS zincirinde `UNABLE_TO_VERIFY_LEAF_SIGNATURE` ile tamamlanamadı; bu sonuç “açık yok” olarak yorumlanmadı ve CI/kurumsal güvenilir CA ortamında yeniden çalıştırılmalıdır.
-- Mock ödeme, rezervasyonu satışa dönüştürme, tedarikçi kabul/ret, tek hedef tedarikçili RFQ, tek paketli manuel kargo/teslimat ve uygulama içi iade/refund pilotu tamamlandı. Karşı teklif/pazarlık, mesajlaşma, ek, çoklu tedarikçi/açık artırma, otomatik süre sonlandırma worker'ı, kabul edilen teklif fiyatının sepete taşınması, manuel banka transferi, gerçek ödeme/refund sağlayıcısı, gerçek kargo/iade kargo firması entegrasyonu, etiket/barkod, çoklu paket/split shipment, kondisyon inceleme, değişim, kupon/mağaza kredisi, dispute, dropshipping ve pazaryeri entegrasyonları bilinçli olarak yoktur.
+- Mock ödeme, rezervasyonu satışa dönüştürme, tedarikçi kabul/ret, tek hedef tedarikçili RFQ ve kabul edilen teklifin checkout fiyatına taşınması, tek paketli manuel kargo/teslimat, uygulama içi iade/refund ve admin onaylı manuel banka transferi pilotu tamamlandı. Karşı teklif/pazarlık, mesajlaşma, ek, çoklu tedarikçi/açık artırma, otomatik süre sonlandırma worker'ı, gerçek ödeme/refund sağlayıcısı, gerçek kargo/iade kargo firması entegrasyonu, etiket/barkod, çoklu paket/split shipment, kondisyon inceleme, değişim, kupon/mağaza kredisi, dispute, dropshipping ve pazaryeri entegrasyonları bilinçli olarak yoktur.
 - Bu Windows yerel ortamında `prisma migrate deploy` migration uygulandıktan sonra ayrıntısız `Schema engine error` ile non-zero döndü. `_prisma_migrations` applied kaydı, yeni tablolar, seed ve gerçek PostgreSQL integration testi şemanın uygulandığını doğruluyor; Prisma CLI teşhisi kurumsal/temiz ortamda ayrıca incelenmelidir.
 - Faz 4A/4B kritik E2E, mevcut yerel demo volume üzerinde yeni sipariş, kargo, iade/refund ve audit geçmişi oluşturur. Aynı geliştirme verisiyle tekrar geniş bir E2E turu yapılacaksa katalog stoklarını yenilemek için seed bir kez çalıştırılmalıdır; geçmiş kayıtlar silinmez.
 - Süresi dolmuş rezervasyonlar pilotta sepet/checkout erişiminde ve checkout oluşturmadan önce lazy release edilir; sürekli çalışan production scheduler/worker Faz 3A kapsamı dışındadır.

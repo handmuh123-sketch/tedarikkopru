@@ -4,7 +4,9 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { POST as offerQuote } from "@/app/api/v1/organizations/[organizationId]/rfqs/[rfqId]/quote/route";
 import { POST as decideQuote } from "@/app/api/v1/organizations/[organizationId]/rfqs/[rfqId]/quotes/[quoteId]/decision/route";
+import { POST as addQuoteToCart } from "@/app/api/v1/organizations/[organizationId]/rfqs/[rfqId]/quotes/[quoteId]/cart/route";
 import { POST as createRfq } from "@/app/api/v1/organizations/[organizationId]/rfqs/route";
+import { POST as createCheckout } from "@/app/api/v1/organizations/[organizationId]/checkout/route";
 import { auth } from "@/lib/auth/server";
 import { database } from "@/lib/db/client";
 
@@ -89,6 +91,8 @@ describe("Faz 3C gerçek PostgreSQL RFQ ve teklif", () => {
   let foreignBuyerOrganizationId: string;
   let foreignSupplierOrganizationId: string;
   let variantId: string;
+  let deliveryAddressId: string;
+  let invoiceAddressId: string;
 
   beforeAll(async () => {
     await database.$connect();
@@ -153,6 +157,42 @@ describe("Faz 3C gerçek PostgreSQL RFQ ve teklif", () => {
       },
     });
     variantId = variant.id;
+    await database.inventory.create({
+      data: {
+        variantId: variant.id,
+        supplierOrganizationId,
+        onHand: 100,
+        safetyStock: 0,
+      },
+    });
+    const [deliveryAddress, invoiceAddress] = await Promise.all([
+      database.address.create({
+        data: {
+          organizationId: buyerOrganizationId,
+          type: "WAREHOUSE",
+          title: "RFQ Teslimat",
+          contactName: "Test Yetkilisi",
+          phone: "+90 212 555 0808",
+          city: "İstanbul",
+          district: "Kadıköy",
+          line1: "Test teslimat adresi",
+        },
+      }),
+      database.address.create({
+        data: {
+          organizationId: buyerOrganizationId,
+          type: "BILLING",
+          title: "RFQ Fatura",
+          contactName: "Test Yetkilisi",
+          phone: "+90 212 555 0808",
+          city: "İstanbul",
+          district: "Kadıköy",
+          line1: "Test fatura adresi",
+        },
+      }),
+    ]);
+    deliveryAddressId = deliveryAddress.id;
+    invoiceAddressId = invoiceAddress.id;
   }, 40_000);
 
   afterAll(async () => database.$disconnect());
@@ -354,6 +394,93 @@ describe("Faz 3C gerçek PostgreSQL RFQ ve teklif", () => {
       await database.auditLog.count({
         where: { targetId: rejectedQuote.id, action: "rfq.quote_rejected" },
       }),
+    ).toBe(1);
+  });
+
+  it("kabul edilen teklif fiyatını BOLA korumalı biçimde sepete ve checkout'a taşır", async () => {
+    const rfq = await createRequest();
+    const offered = await offer(supplierOrganizationId, rfq.id, supplier.cookie, "quote-" + randomUUID());
+    const quote = (await offered.json()).data as { id: string };
+    expect(
+      (
+        await decide(
+          buyerOrganizationId,
+          rfq.id,
+          quote.id,
+          buyer.cookie,
+          "decision-" + randomUUID(),
+          "ACCEPTED",
+        )
+      ).status,
+    ).toBe(200);
+
+    const foreignCartResponse = await addQuoteToCart(
+      request(
+        "/api/v1/organizations/" +
+          foreignBuyerOrganizationId +
+          "/rfqs/" +
+          rfq.id +
+          "/quotes/" +
+          quote.id +
+          "/cart",
+        "POST",
+        undefined,
+        foreignBuyer.cookie,
+      ),
+      {
+        params: Promise.resolve({
+          organizationId: foreignBuyerOrganizationId,
+          rfqId: rfq.id,
+          quoteId: quote.id,
+        }),
+      },
+    );
+    expect(foreignCartResponse.status).toBe(404);
+
+    const ownCartRequest = () =>
+      request(
+        "/api/v1/organizations/" + buyerOrganizationId + "/rfqs/" + rfq.id + "/quotes/" + quote.id + "/cart",
+        "POST",
+        undefined,
+        buyer.cookie,
+      );
+    expect(
+      (
+        await addQuoteToCart(ownCartRequest(), {
+          params: Promise.resolve({ organizationId: buyerOrganizationId, rfqId: rfq.id, quoteId: quote.id }),
+        })
+      ).status,
+    ).toBe(201);
+    expect(
+      (
+        await addQuoteToCart(ownCartRequest(), {
+          params: Promise.resolve({ organizationId: buyerOrganizationId, rfqId: rfq.id, quoteId: quote.id }),
+        })
+      ).status,
+    ).toBe(201);
+    const cartItem = await database.cartItem.findFirstOrThrow({
+      where: { cart: { buyerOrganizationId }, quoteId: quote.id },
+    });
+    expect(cartItem.quantity).toBe(10);
+    expect(cartItem.quotedUnitPriceMinor).toBe(11_000);
+
+    await database.productVariant.update({ where: { id: variantId }, data: { priceAmountMinor: 30_000 } });
+    const checkout = await createCheckout(
+      request(
+        "/api/v1/organizations/" + buyerOrganizationId + "/checkout",
+        "POST",
+        { deliveryAddressId, invoiceAddressId },
+        buyer.cookie,
+        "checkout-" + randomUUID(),
+      ),
+      { params: Promise.resolve({ organizationId: buyerOrganizationId }) },
+    );
+    expect(checkout.status).toBe(201);
+    const payload = (await checkout.json()).data as { order: { id: string } };
+    const orderItem = await database.orderItem.findFirstOrThrow({ where: { orderId: payload.order.id } });
+    expect(orderItem.unitPriceAmountMinor).toBe(11_000);
+    expect(
+      await database.auditLog.count({ where: { targetId: quote.id, action: "rfq.quote_added_to_cart" } }),
     ).toBe(1);
   });
 });
