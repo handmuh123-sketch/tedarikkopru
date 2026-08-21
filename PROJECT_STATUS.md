@@ -8,6 +8,8 @@
 
 ## Tamamlananlar
 
+- Mobilde genel `nav` gizleme kuralı yalnız site üst menüsüne daraltıldı; admin, katalog ve içerik navigasyonları 360 px'te erişilebilir kaldı. Yeni admin operasyon E2E'si platform menüsü, ana landmark, görünür odak akışı ve yatay taşmayı desktop/mobile doğrular.
+
 - E2E testleri demo parolası için tek, sessiz ve `.env` öncelikli yardımcı kullanır; kaynakta fallback veya hardcode demo parola yoktur. Playwright varsayılanı güvenilen `APP_URL`/`localhost` kökenini kullanır; aynı isimli RFQ ve sepet miktar alanları exact accessible locator ile ayrıştırılır.
 
 - Platform için tutarlı `/admin` navigasyonu, sipariş/iade operasyon listesi ve detayları eklendi. Yetkili kullanıcılar sipariş, ödeme, kargo, iade ve uygulama içi refund durumunu adres veya gereksiz PII göstermeden takip eder; basit sipariş durum filtresi bulunur.
@@ -127,6 +129,8 @@
 - Lint, format, strict typecheck, unit, integration, E2E ve production build kalite komutları.
 
 ## Doğrulama özeti
+
+- Responsive/erişilebilirlik turu: admin operasyon Chrome desktop 1/1 ve 360 px mobile 1/1; foundation landmark, skip-link, focus, liveness/readiness ve yatay taşma desktop/mobile 6/6 geçti.
 
 - Pilot admin operasyonları hedefli ESLint ve strict `pnpm typecheck` ile geçti. Gerçek PostgreSQL güvenlik integration'ı 8/8 geçti; normal kullanıcının admin kuyruğundan engellenmesi ve `PLATFORM_SUPPORT` rolünün yalnız görüntüleme sınırı kapsandı.
 

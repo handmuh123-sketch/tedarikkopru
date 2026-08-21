@@ -24,6 +24,9 @@ değiştirilmemiştir.
   değerini sessiz ve override ile tek kaynaktan alır. Playwright güvenilen
   `APP_URL`/`localhost` kökenini varsayılan kullanır; mock ödeme Chrome desktop
   ve mobile 2/2 geçti.
+- Responsive/erişilebilirlik turunda mobil genel `nav` gizleme kuralı yalnız
+  site üst menüsüne daraltıldı. Admin operasyon E2E desktop/mobile 2/2 ve
+  foundation landmark/skip-link/focus testi desktop/mobile 6/6 geçti.
 
 ## Sonraki bağımsız iş
 

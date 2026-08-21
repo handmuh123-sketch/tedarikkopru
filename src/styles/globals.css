@@ -1164,7 +1164,7 @@ td {
 }
 
 @media (max-width: 860px) {
-  nav > a:not(.nav-status) {
+  .site-header nav > a:not(.nav-status) {
     display: none;
   }
 
