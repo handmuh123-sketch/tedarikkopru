@@ -127,6 +127,11 @@ export default async function PanelPage() {
           Import işleri
         </Link>
       )}
+      {["PLATFORM_SUPER_ADMIN", "PLATFORM_ADMIN", "PLATFORM_OPERATIONS", "PLATFORM_SUPPORT"].includes(user.platformRole) && (
+        <Link className="button button-secondary" href="/admin/odemeler">
+          Banka transferleri
+        </Link>
+      )}
     </main>
   );
 }

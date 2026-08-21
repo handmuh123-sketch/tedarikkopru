@@ -200,6 +200,7 @@ enum QuoteStatus {
 
 enum PaymentProvider {
   MOCK
+  BANK_TRANSFER
 }
 
 enum PaymentStatus {
@@ -992,6 +993,8 @@ model Payment {
   buyerOrganizationId      String           @map("buyer_organization_id") @db.VarChar(36)
   provider                 PaymentProvider  @default(MOCK)
   mockReference            String           @unique @map("mock_reference") @db.VarChar(64)
+  bankTransferReference    String?          @unique @map("bank_transfer_reference") @db.VarChar(80)
+  bankTransferNote         String?          @map("bank_transfer_note") @db.VarChar(500)
   status                   PaymentStatus    @default(PENDING)
   currency                 String           @default("TRY") @db.Char(3)
   amountMinor              Int              @map("amount_minor")

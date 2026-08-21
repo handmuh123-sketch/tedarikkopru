@@ -62,9 +62,12 @@ function createServerEnvSchema(validationContext: "runtime" | "build") {
       PAYTR_MERCHANT_ID: optionalString,
       PAYTR_MERCHANT_KEY: optionalString,
       PAYTR_MERCHANT_SALT: optionalString,
+      BANK_TRANSFER_ACCOUNT_NAME: optionalString,
+      BANK_TRANSFER_IBAN: optionalString,
 
       FEATURE_LIVE_PAYMENTS: booleanFromEnvironment.default(false),
       FEATURE_MOCK_PAYMENTS: booleanFromEnvironment.default(false),
+      FEATURE_BANK_TRANSFER_PAYMENTS: booleanFromEnvironment.default(false),
       FEATURE_DROPSHIPPING: booleanFromEnvironment.default(false),
       FEATURE_MARKETPLACE_TRENDYOL: booleanFromEnvironment.default(false),
       FEATURE_MARKETPLACE_HEPSIBURADA: booleanFromEnvironment.default(false),
@@ -94,7 +97,28 @@ function createServerEnvSchema(validationContext: "runtime" | "build") {
       }
 
       if (environment.NODE_ENV !== "production") {
+        if (
+          environment.FEATURE_BANK_TRANSFER_PAYMENTS &&
+          (!environment.BANK_TRANSFER_ACCOUNT_NAME || !environment.BANK_TRANSFER_IBAN)
+        ) {
+          context.addIssue({
+            code: "custom",
+            path: ["BANK_TRANSFER_IBAN"],
+            message: "banka transferi açıkken hesap adı ve IBAN tanımlı olmalıdır",
+          });
+        }
         return;
+      }
+
+      if (
+        environment.FEATURE_BANK_TRANSFER_PAYMENTS &&
+        (!environment.BANK_TRANSFER_ACCOUNT_NAME || !environment.BANK_TRANSFER_IBAN)
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: ["BANK_TRANSFER_IBAN"],
+          message: "banka transferi açıkken hesap adı ve IBAN tanımlı olmalıdır",
+        });
       }
 
       const appUrl = new URL(environment.APP_URL);

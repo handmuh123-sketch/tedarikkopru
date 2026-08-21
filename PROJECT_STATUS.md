@@ -1,12 +1,16 @@
 # PROJECT STATUS
 
-**Durum:** Faz 4B iade/refund pilotu tamamlandı
+**Durum:** Faz 4C manuel banka transferi pilotu tamamlandı
 
-**Aktif faz:** Faz 4B — iade/refund pilotu (sonraki faz başlatılmadı)
+**Aktif faz:** Faz 4C — manuel banka transferi pilotu (sonraki faz başlatılmadı)
 
 **Son güncelleme:** 21 Ağustos 2026, +03:00
 
 ## Tamamlananlar
+
+- `BANK_TRANSFER` payment provider ve transfer referansı/notu forward migration ile eklendi. Hesap adı ve IBAN yalnız environment kaynaklıdır; feature flag veya talimatlar yoksa akış kapalı kalır.
+- Alıcı kendi checkout siparişi için transfer bildirimi başlatır; platform yetkilisi `/admin/odemeler` kuyruğunda idempotent onay/red verir. Onay mevcut tek `PAID`/`SALE`, ret tek reservation release akışını kullanır; gerçek banka API'si veya para transferi yapılmaz.
+- Hedefli typecheck/ESLint ve Chrome `chromium-desktop` ile 360 px `chromium-mobile` banka transferi E2E geçti; migration ve seed uygulandı.
 
 - `ReturnRequest`, satır bazlı `ReturnItem`, uygulama içi `Refund`/`RefundItem` ve append-only `ReturnStatusHistory` forward migration ile eklendi. İade state machine'i yalnız `REQUESTED → ACCEPTED → RETURN_RECEIVED` veya `REQUESTED → REJECTED` geçişine izin verir; sipariş `DELIVERED` kalır.
 - Alıcı yalnız kendi `DELIVERED` siparişindeki kalan satır miktarı için `purchase:manage` ile iade açabilir. Önceden açık, kabul edilmiş veya teslim alınmış iade miktarı tekrar istenemez; yabancı alıcı/supplier order veya return ID'si 404 döner.

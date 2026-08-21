@@ -25,6 +25,8 @@ type RequestEvidence = {
   now?: Date;
 };
 
+type PaymentProvider = "MOCK" | "BANK_TRANSFER";
+
 const paymentInclude = {
   order: { select: { id: true, publicNumber: true, status: true } },
   attempts: { orderBy: { createdAt: "asc" as const } },
@@ -89,9 +91,24 @@ async function existingInitiation(
   return payment;
 }
 
-export async function initiateMockPayment(input: RequestEvidence & { orderId: string }) {
-  assertMockPaymentEnabled();
-  const hash = requestHash({ orderId: input.orderId });
+export async function initiateMockPayment(
+  input: RequestEvidence & {
+    orderId: string;
+    provider?: PaymentProvider;
+    bankTransferReference?: string;
+    bankTransferNote?: string;
+  },
+) {
+  const provider = input.provider ?? "MOCK";
+  if (provider === "MOCK") assertMockPaymentEnabled();
+  const hash =
+    provider === "MOCK"
+      ? requestHash({ orderId: input.orderId })
+      : requestHash({
+          orderId: input.orderId,
+          provider,
+          bankTransferNote: input.bankTransferNote ?? "",
+        });
   const existing = await existingInitiation(input.buyerOrganizationId, input.idempotencyKey, hash);
   if (existing) return existing;
   const now = input.now ?? new Date();
@@ -133,7 +150,13 @@ export async function initiateMockPayment(input: RequestEvidence & { orderId: st
             orderId: order.id,
             checkoutId: order.checkoutId,
             buyerOrganizationId: input.buyerOrganizationId,
-            mockReference: `MOCK-${randomUUID()}`,
+            provider,
+            mockReference: `${provider === "MOCK" ? "MOCK" : "BANK"}-${randomUUID()}`,
+            bankTransferReference:
+              provider === "BANK_TRANSFER"
+                ? (input.bankTransferReference ?? `BT-${randomUUID().replaceAll("-", "").slice(0, 20).toUpperCase()}`)
+                : null,
+            bankTransferNote: input.bankTransferNote ?? null,
             amountMinor: order.totalAmountMinor,
             currency: order.currency,
             initiationIdempotencyKey: input.idempotencyKey,
@@ -161,7 +184,7 @@ export async function initiateMockPayment(input: RequestEvidence & { orderId: st
             orderId: order.id,
             fromStatus: "DRAFT",
             toStatus: "PAYMENT_PROCESSING",
-            reasonCode: "mock_payment_started",
+            reasonCode: provider === "MOCK" ? "mock_payment_started" : "bank_transfer_started",
             actorType: "USER",
             actorId: input.actorUserId,
             metadata: { paymentId: payment.id },
@@ -171,7 +194,7 @@ export async function initiateMockPayment(input: RequestEvidence & { orderId: st
           data: buildAuditLogData({
             actorId: input.actorUserId,
             organizationId: input.buyerOrganizationId,
-            action: "payment.mock_started",
+            action: provider === "MOCK" ? "payment.mock_started" : "payment.bank_transfer_started",
             targetType: "Payment",
             targetId: payment.id,
             after: { orderId: order.id, amountMinor: payment.amountMinor, status: payment.status },
@@ -213,12 +236,13 @@ async function existingCompletion(
   paymentId: string,
   idempotencyKey: string,
   hash: string,
+  provider: PaymentProvider,
 ) {
   const attempt = await database.paymentAttempt.findFirst({
     where: {
       paymentId,
       idempotencyKey,
-      payment: { buyerOrganizationId, orderId },
+      payment: { buyerOrganizationId, orderId, provider },
     },
     include: { payment: { include: paymentInclude } },
   });
@@ -234,9 +258,15 @@ async function existingCompletion(
 }
 
 export async function completeMockPayment(
-  input: RequestEvidence & { orderId: string; paymentId: string; outcome: MockPaymentOutcome },
+  input: RequestEvidence & {
+    orderId: string;
+    paymentId: string;
+    outcome: MockPaymentOutcome;
+    provider?: PaymentProvider;
+  },
 ) {
-  assertMockPaymentEnabled();
+  const provider = input.provider ?? "MOCK";
+  if (provider === "MOCK") assertMockPaymentEnabled();
   const hash = requestHash({ outcome: input.outcome });
   const existing = await existingCompletion(
     input.buyerOrganizationId,
@@ -244,6 +274,7 @@ export async function completeMockPayment(
     input.paymentId,
     input.idempotencyKey,
     hash,
+    provider,
   );
   if (existing) return existing;
   const now = input.now ?? new Date();
@@ -258,6 +289,7 @@ export async function completeMockPayment(
             id: input.paymentId,
             orderId: input.orderId,
             buyerOrganizationId: input.buyerOrganizationId,
+            provider,
           },
           include: {
             order: true,
@@ -374,7 +406,7 @@ export async function completeMockPayment(
               orderId: payment.orderId,
               fromStatus: "PAYMENT_PROCESSING",
               toStatus: "PAID",
-              reasonCode: "mock_payment_succeeded",
+              reasonCode: provider === "MOCK" ? "mock_payment_succeeded" : "bank_transfer_approved",
               actorType: "USER",
               actorId: input.actorUserId,
               metadata: { paymentId: payment.id },
@@ -401,8 +433,12 @@ export async function completeMockPayment(
             organizationId: input.buyerOrganizationId,
             action:
               decision.paymentStatus === "SUCCEEDED"
-                ? "payment.mock_succeeded"
-                : "payment.mock_failed",
+                ? provider === "MOCK"
+                  ? "payment.mock_succeeded"
+                  : "payment.bank_transfer_approved"
+                : provider === "MOCK"
+                  ? "payment.mock_failed"
+                  : "payment.bank_transfer_rejected",
             targetType: "Payment",
             targetId: payment.id,
             before: { status: "PENDING" },
@@ -430,6 +466,7 @@ export async function completeMockPayment(
         input.paymentId,
         input.idempotencyKey,
         hash,
+        provider,
       );
       if (replay) return replay;
       throw new HttpError(409, "Ödeme zaten tamamlanmış.", "PAYMENT_ALREADY_COMPLETED");

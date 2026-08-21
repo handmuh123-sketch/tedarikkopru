@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BankTransferPaymentForm } from "@/components/payments/bank-transfer-payment-form";
 import { MockPaymentForm } from "@/components/payments/mock-payment-form";
 import { BuyerReturnRequestForm } from "@/components/returns/buyer-return-request-form";
 import { requirePageUser } from "@/lib/auth/page-session";
 import { database } from "@/lib/db/client";
+import { featureFlags, serverEnvironment } from "@/lib/env/server";
 import { formatTryMinor } from "@/modules/catalog/domain/product-rules";
 import { releaseExpiredReservations } from "@/modules/orders/application/order-service";
 
@@ -74,6 +76,9 @@ export default async function BuyerOrderDetailPage({ params }: Props) {
   });
   if (!order) notFound();
   const payment = order.payments[0] ?? null;
+  const bankTransferAvailable =
+    featureFlags.bankTransferPayments &&
+    Boolean(serverEnvironment.BANK_TRANSFER_ACCOUNT_NAME && serverEnvironment.BANK_TRANSFER_IBAN);
   const claimedReturnQuantities = new Map<string, number>();
   for (const returnRequest of order.returnRequests) {
     if (returnRequest.status === "REJECTED") continue;
@@ -171,11 +176,30 @@ export default async function BuyerOrderDetailPage({ params }: Props) {
       </section>
       {order.status === "DRAFT" || order.status === "PAYMENT_PROCESSING" ? (
         <section className="dashboard-card">
-          <MockPaymentForm
-            organizationId={membership.organizationId}
-            orderId={order.id}
-            initialPayment={payment ? { id: payment.id, status: payment.status } : null}
-          />
+          {(!payment || payment.provider === "MOCK") && (
+            <MockPaymentForm
+              organizationId={membership.organizationId}
+              orderId={order.id}
+              initialPayment={payment ? { id: payment.id, status: payment.status } : null}
+            />
+          )}
+          {bankTransferAvailable && (!payment || payment.provider === "BANK_TRANSFER") && (
+            <BankTransferPaymentForm
+              organizationId={membership.organizationId}
+              orderId={order.id}
+              accountName={serverEnvironment.BANK_TRANSFER_ACCOUNT_NAME!}
+              iban={serverEnvironment.BANK_TRANSFER_IBAN!}
+              initialPayment={
+                payment
+                  ? {
+                      id: payment.id,
+                      status: payment.status,
+                      bankTransferReference: payment.bankTransferReference,
+                    }
+                  : null
+              }
+            />
+          )}
         </section>
       ) : (
         <section className="dashboard-card">
