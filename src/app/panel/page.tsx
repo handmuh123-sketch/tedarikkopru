@@ -112,12 +112,7 @@ export default async function PanelPage() {
           Doğrulama kuyruğu
         </Link>
       )}
-      {[
-        "PLATFORM_SUPER_ADMIN",
-        "PLATFORM_ADMIN",
-        "PLATFORM_OPERATIONS",
-        "PLATFORM_SUPPORT",
-      ].includes(user.platformRole) && (
+      {["PLATFORM_SUPER_ADMIN", "PLATFORM_ADMIN"].includes(user.platformRole) && (
         <Link className="button button-secondary" href="/admin/urunler">
           Ürün moderasyonu
         </Link>
@@ -130,6 +125,16 @@ export default async function PanelPage() {
       {["PLATFORM_SUPER_ADMIN", "PLATFORM_ADMIN", "PLATFORM_OPERATIONS", "PLATFORM_SUPPORT"].includes(user.platformRole) && (
         <Link className="button button-secondary" href="/admin/odemeler">
           Banka transferleri
+        </Link>
+      )}
+      {[
+        "PLATFORM_SUPER_ADMIN",
+        "PLATFORM_ADMIN",
+        "PLATFORM_OPERATIONS",
+        "PLATFORM_SUPPORT",
+      ].includes(user.platformRole) && (
+        <Link className="button button-secondary" href="/admin/operasyonlar">
+          Sipariş operasyonları
         </Link>
       )}
     </main>

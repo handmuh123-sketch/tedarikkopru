@@ -1,4 +1,4 @@
-import { requirePlatformAdmin } from "@/lib/auth/access";
+import { requirePlatformOperator } from "@/lib/auth/access";
 import { database } from "@/lib/db/client";
 import { errorResponse, HttpError, parseJsonBody } from "@/lib/http/errors";
 import { resolveRequestId } from "@/lib/logging/request-id";
@@ -12,7 +12,7 @@ type Context = { params: Promise<{ applicationId: string }> };
 export async function POST(request: Request, context: Context) {
   try {
     const { applicationId } = await context.params;
-    const { user } = await requirePlatformAdmin(request);
+    const { user } = await requirePlatformOperator(request);
     const limit = await consumeRateLimit(`admin-verification:${user.id}`, { window: 600, max: 50 });
     if (!limit.allowed) throw new HttpError(429, "Çok fazla doğrulama işlemi.", "RATE_LIMITED");
     const input = verificationTransitionSchema.parse(await parseJsonBody(request));

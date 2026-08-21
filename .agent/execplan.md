@@ -16,12 +16,16 @@ değiştirilmemiştir.
 - Prisma client/schema doğrulandı; `20260821030000_rfq_quote_checkout_pilot`
   migration'ı PostgreSQL'e uygulandı. Hedefli unit 6/6, PostgreSQL integration
   3/3, Chrome desktop 2/2 ve 360 px mobile 2/2 geçti.
+- Platform `/admin` navigasyonu, sipariş/iade liste-detay ekranları ve basit
+  sipariş durum filtresi tamamlandı. Support görüntüleme yapar; doğrulama ve
+  banka transferi kararları yalnız operasyon rollerine açıktır. Hedefli
+  PostgreSQL güvenlik integration'ı 8/8 geçti.
 
 ## Sonraki bağımsız iş
 
-Admin operasyonları, ardından güvenlik/erişilebilirlik sağlamlaştırması. Bu
-kayıttaki aşağıdaki Faz 4C bölümü tarihsel bağlam içindir; checkpoint ilk Git
-yazma hatasından sonra başarıyla `e03b918` olarak alınmıştır.
+Güvenlik/erişilebilirlik sağlamlaştırması, ardından final regression ve sürüm
+hazırlığı. Bu kayıttaki aşağıdaki Faz 4C bölümü tarihsel bağlam içindir;
+checkpoint ilk Git yazma hatasından sonra başarıyla `e03b918` olarak alınmıştır.
 
 ---
 

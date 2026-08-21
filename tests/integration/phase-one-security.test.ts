@@ -308,6 +308,41 @@ describe("Phase 1 PostgreSQL security integration", () => {
     expect(transition.status).toBe(403);
   });
 
+  it("platform support doğrulama kuyruğunu görebilir ama durum değiştiremez", async () => {
+    const support = await registerAndLogin("platform-support-read-only");
+    await database.user.update({
+      where: { id: support.user.id },
+      data: { platformRole: "PLATFORM_SUPPORT" },
+    });
+    const organization = await createTestOrganization(support.cookie, "support-read-only");
+    const application = await database.verificationApplication.findFirstOrThrow({
+      where: { organizationId: organization.id },
+    });
+    await database.verificationApplication.update({
+      where: { id: application.id },
+      data: { status: "SUBMITTED", submittedAt: new Date() },
+    });
+    expect(
+      (
+        await adminQueue(
+          new Request(`${baseUrl}/api/v1/admin/verifications`, { headers: { cookie: support.cookie } }),
+        )
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await adminTransition(
+          apiRequest(
+            `/api/v1/admin/verifications/${application.id}/transition`,
+            { status: "IN_REVIEW" },
+            support.cookie,
+          ),
+          { params: Promise.resolve({ applicationId: application.id }) },
+        )
+      ).status,
+    ).toBe(403);
+  });
+
   it("platform admini başvuruyu onaylar, değişiklik ister ve reddeder", async () => {
     const admin = await registerAndLogin("platform-admin");
     await database.user.update({

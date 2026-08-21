@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { AdminNavigation } from "@/components/admin/admin-navigation";
 import { requirePageUser } from "@/lib/auth/page-session";
 import { database } from "@/lib/db/client";
 import { formatTryMinor } from "@/modules/catalog/domain/product-rules";
@@ -20,7 +21,7 @@ export default async function AdminPaymentsPage() {
   });
   return (
     <main id="ana-icerik" className="dashboard-page" tabIndex={-1}>
-      <header className="dashboard-header"><div><p className="eyebrow">Operasyon</p><h1>Banka transferi kuyruğu</h1></div></header>
+      <header className="dashboard-header"><div><p className="eyebrow">Operasyon</p><h1>Banka transferi kuyruğu</h1></div><AdminNavigation platformRole={user.platformRole} /></header>
       {payments.length === 0 ? <p className="form-status">Bekleyen banka transferi yok.</p> : <section className="order-list" aria-label="Banka transferleri">
         {payments.map((payment) => <article className="dashboard-card order-card" key={payment.id}>
           <div><span className="status-pill">{payment.status}</span><h2>{payment.order.publicNumber}</h2><p>{payment.buyerOrganization.tradeName}</p></div>

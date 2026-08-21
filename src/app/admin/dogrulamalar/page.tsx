@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { AdminNavigation } from "@/components/admin/admin-navigation";
 import { VerificationQueue } from "@/components/admin/verification-queue";
 import { requirePageUser } from "@/lib/auth/page-session";
 export default async function AdminVerificationPage() {
@@ -16,11 +17,15 @@ export default async function AdminVerificationPage() {
           <p className="eyebrow">Platform yönetimi</p>
           <h1>Şirket doğrulama kuyruğu</h1>
         </div>
-        <a className="button button-secondary" href="/panel">
-          Panele dön
-        </a>
+        <AdminNavigation platformRole={user.platformRole} />
       </header>
-      <VerificationQueue />
+      <VerificationQueue
+        canOperate={[
+          "PLATFORM_SUPER_ADMIN",
+          "PLATFORM_ADMIN",
+          "PLATFORM_OPERATIONS",
+        ].includes(user.platformRole)}
+      />
     </main>
   );
 }

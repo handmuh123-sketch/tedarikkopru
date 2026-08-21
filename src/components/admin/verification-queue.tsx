@@ -10,7 +10,7 @@ type Application = {
   documents: Array<{ id: string; type: string; scanStatus: string }>;
 };
 
-export function VerificationQueue() {
+export function VerificationQueue({ canOperate }: { canOperate: boolean }) {
   const [applications, setApplications] = useState<Application[]>([]);
   const [status, setStatus] = useState("Kuyruk yükleniyor…");
   async function load() {
@@ -81,7 +81,7 @@ export function VerificationQueue() {
               ))}
             </ul>
             <div className="queue-actions">
-              {application.status === "SUBMITTED" && (
+              {canOperate && application.status === "SUBMITTED" && (
                 <button
                   className="button button-secondary"
                   onClick={() => transition(application.id, "IN_REVIEW")}
@@ -89,7 +89,7 @@ export function VerificationQueue() {
                   İncelemeye al
                 </button>
               )}
-              {application.status === "IN_REVIEW" && (
+              {canOperate && application.status === "IN_REVIEW" && (
                 <>
                   <button
                     className="button button-primary"

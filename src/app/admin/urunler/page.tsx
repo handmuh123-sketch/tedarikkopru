@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AdminNavigation } from "@/components/admin/admin-navigation";
 import { ProductModerationActions } from "@/components/catalog/product-actions";
 import { requirePageUser } from "@/lib/auth/page-session";
 import { database } from "@/lib/db/client";
@@ -20,14 +20,7 @@ export default async function AdminProductsPage() {
           <p className="eyebrow">Platform yönetimi</p>
           <h1>Ürün moderasyonu</h1>
         </div>
-        <div className="dashboard-actions">
-          <Link className="button button-secondary" href="/admin/kategoriler">
-            Kategori ve marka
-          </Link>
-          <Link className="button button-secondary" href="/panel">
-            Panele dön
-          </Link>
-        </div>
+        <AdminNavigation platformRole={user.platformRole} />
       </header>
       {products.length === 0 && <p>Moderasyon bekleyen ürün yok.</p>}
       <section className="dashboard-grid">

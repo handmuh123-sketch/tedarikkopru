@@ -1,4 +1,4 @@
-import { requirePlatformAdmin } from "@/lib/auth/access";
+import { requirePlatformOperator } from "@/lib/auth/access";
 import { errorResponse, HttpError, parseJsonBody } from "@/lib/http/errors";
 import { resolveRequestId } from "@/lib/logging/request-id";
 import { consumeRateLimit, requestNetworkKey } from "@/lib/security/rate-limit";
@@ -11,7 +11,7 @@ type Context = { params: Promise<{ paymentId: string }> };
 export async function POST(request: Request, context: Context) {
   try {
     const { paymentId } = await context.params;
-    const { user } = await requirePlatformAdmin(request);
+    const { user } = await requirePlatformOperator(request);
     const limit = await consumeRateLimit(`bank-transfer-decision:${user.id}`, { window: 60, max: 20 });
     if (!limit.allowed) throw new HttpError(429, "Çok fazla ödeme kararı işlemi.", "RATE_LIMITED");
     const idempotencyKey = request.headers.get("idempotency-key")?.trim() ?? "";

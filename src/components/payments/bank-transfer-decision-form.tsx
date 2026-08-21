@@ -3,7 +3,15 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export function BankTransferDecisionForm({ paymentId, status }: { paymentId: string; status: string }) {
+export function BankTransferDecisionForm({
+  paymentId,
+  status,
+  canDecide,
+}: {
+  paymentId: string;
+  status: string;
+  canDecide: boolean;
+}) {
   const router = useRouter();
   const [key] = useState(() => crypto.randomUUID());
   const [pending, setPending] = useState(false);
@@ -28,6 +36,7 @@ export function BankTransferDecisionForm({ paymentId, status }: { paymentId: str
   }
 
   if (status !== "PENDING") return <span className="status-pill">{status}</span>;
+  if (!canDecide) return <p className="form-help">Bu ödeme için yalnız görüntüleme yetkiniz var.</p>;
   return (
     <section className="supplier-order-decision" aria-label="Banka transferi kararı">
       <h2>Ödeme kararı</h2>

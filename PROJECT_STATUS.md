@@ -8,6 +8,9 @@
 
 ## Tamamlananlar
 
+- Platform için tutarlı `/admin` navigasyonu, sipariş/iade operasyon listesi ve detayları eklendi. Yetkili kullanıcılar sipariş, ödeme, kargo, iade ve uygulama içi refund durumunu adres veya gereksiz PII göstermeden takip eder; basit sipariş durum filtresi bulunur.
+- Doğrulama, katalog/import, banka transferi ve operasyon ekranları deny-by-default server-side platform rolü ile korunur. `PLATFORM_SUPPORT` görüntüleme yapabilir; doğrulama ve banka transferi kararları yalnız SUPER_ADMIN/ADMIN/OPERATIONS rollerine daraltıldı. Mevcut karar transaction'ları idempotent audit izini korur.
+
 - Kabul edilmiş ve süresi dolmamış RFQ teklifi, yalnız teklifin alıcısı tarafından yeni org-scoped endpoint ile sepete eklenebilir. Sepet satırı teklif kimliğini ve server-side yazılan integer TRY minor-unit fiyatını taşır; normal katalog eklemesi teklif bağını açıkça kaldırır.
 - Checkout, teklifli her satırda RFQ/teklif kabul durumu, süre, alıcı, tedarikçi, ürün/varyant, hedef miktar ve fiyat snapshot eşleşmesini serializable transaction içinde tekrar doğrular. Başarılı sipariş satırı immutable teklif fiyatını snapshot olarak alır; yabancı alıcı 404, süresi dolmuş/değişmiş teklif 409 alır.
 - RFQ detayına teklif-sepete ekleme aksiyonu ve sepete teklif fiyatı etiketi eklendi. PostgreSQL integration BOLA, tekrar ekleme, fiyat değişimine karşı server-side checkout fiyatı ve gerçek sipariş snapshot'ını kapsar; Chrome desktop/360 px akışı kabul → sepet → checkout taslağı ile geçti.
@@ -122,6 +125,8 @@
 - Lint, format, strict typecheck, unit, integration, E2E ve production build kalite komutları.
 
 ## Doğrulama özeti
+
+- Pilot admin operasyonları hedefli ESLint ve strict `pnpm typecheck` ile geçti. Gerçek PostgreSQL güvenlik integration'ı 8/8 geçti; normal kullanıcının admin kuyruğundan engellenmesi ve `PLATFORM_SUPPORT` rolünün yalnız görüntüleme sınırı kapsandı.
 
 - Faz 4B hedefli ESLint ve global strict `pnpm typecheck` başarılı; final `git diff --check` temiz.
 - Faz 4B unit: 1 dosya, 3/3 test başarılı; yalnız `DELIVERED` oluşturma, karar ve fiziksel teslim alma/replay kuralları kapsandı.

@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AdminNavigation } from "@/components/admin/admin-navigation";
 import { requirePageUser } from "@/lib/auth/page-session";
 import { database } from "@/lib/db/client";
 
@@ -26,9 +26,7 @@ export default async function AdminImportsPage() {
           <p className="eyebrow">Platform yönetimi</p>
           <h1>Import işleri</h1>
         </div>
-        <Link className="button button-secondary" href="/panel">
-          Panele dön
-        </Link>
+        <AdminNavigation platformRole={user.platformRole} />
       </header>
       {jobs.length === 0 && <p>Henüz import işi yok.</p>}
       <div className="table-scroll">
