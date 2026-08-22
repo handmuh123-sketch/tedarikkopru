@@ -42,7 +42,7 @@ services:
       - key: S3_SECRET_KEY
         sync: false
       - key: S3_FORCE_PATH_STYLE
-        sync: false
+        value: "true"
       - key: EMAIL_PROVIDER
         value: smtp
       - key: EMAIL_FROM
