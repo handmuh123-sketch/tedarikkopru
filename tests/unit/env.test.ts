@@ -35,6 +35,26 @@ const validEnvironment = {
 } as const;
 
 describe("server environment", () => {
+  it.each([
+    ["boolean true", true, true],
+    ["quoted environment true", "true", true],
+    ["whitespace true", " \tTrUe\n", true],
+    ["whitespace false", " false ", false],
+  ])("S3 path style %s değerini ayrıştırır", (_label, value, expected) => {
+    const result = parseServerEnvironment({ ...validEnvironment, S3_FORCE_PATH_STYLE: value });
+
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.S3_FORCE_PATH_STYLE).toBe(expected);
+  });
+
+  it("S3 path style verilmediğinde R2 uyumlu false varsayılanını kullanır", () => {
+    const { S3_FORCE_PATH_STYLE: _pathStyle, ...environmentWithoutPathStyle } = validEnvironment;
+    const result = parseServerEnvironment(environmentWithoutPathStyle);
+
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.S3_FORCE_PATH_STYLE).toBe(false);
+  });
+
   it("false metnini boolean false olarak ayrıştırır", () => {
     const result = parseServerEnvironment(validEnvironment);
 

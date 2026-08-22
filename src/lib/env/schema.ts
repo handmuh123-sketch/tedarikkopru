@@ -5,9 +5,15 @@ const optionalString = z.preprocess(
   z.string().trim().min(1).optional(),
 );
 
-const booleanFromEnvironment = z
-  .union([z.boolean(), z.enum(["true", "false"])])
-  .transform((value) => value === true || value === "true");
+const booleanFromEnvironment = z.preprocess((value) => {
+  if (typeof value !== "string") return value;
+
+  const normalizedValue = value.trim().toLowerCase();
+  if (normalizedValue === "true") return true;
+  if (normalizedValue === "false") return false;
+
+  return value;
+}, z.boolean());
 
 const productionPlaceholderMarkers = [
   "local-development",
@@ -43,7 +49,7 @@ function createServerEnvSchema(validationContext: "runtime" | "build") {
       S3_BUCKET_PUBLIC: z.string().trim().min(3),
       S3_ACCESS_KEY: z.string().trim().min(3),
       S3_SECRET_KEY: z.string().trim().min(8),
-      S3_FORCE_PATH_STYLE: booleanFromEnvironment.default(true),
+      S3_FORCE_PATH_STYLE: booleanFromEnvironment.default(false),
 
       EMAIL_PROVIDER: z.enum(["log", "smtp", "resend"]).default("log"),
       EMAIL_FROM: z.string().trim().min(3),
