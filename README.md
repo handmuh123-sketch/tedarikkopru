@@ -130,7 +130,8 @@ geri alma kuralları için [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) dosyasını 
 
 Repository kökündeki `render.yaml`, Frankfurt bölgesinde `tedarikkopru` adlı ücretsiz Docker
 web servisini oluşturur; Render Dockerfile'ı, liveness kontrolünü ve güvenli varsayılanları
-otomatik uygular. Yalnız şu adımlar gerekir:
+otomatik uygular. Blueprint, Docker image'ındaki yerel `3000` varsayımını ezerek Render'ın
+beklediği `PORT=10000` üzerinde dinlemeyi açıkça ayarlar. Yalnız şu adımlar gerekir:
 
 1. GitHub repository'yi seçin.
 2. Render Dashboard'da Blueprint'i oluşturun.
