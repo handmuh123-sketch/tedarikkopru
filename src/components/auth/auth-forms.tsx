@@ -31,7 +31,7 @@ export function RegisterForm() {
       });
       return;
     }
-    window.location.assign("/e-posta-dogrula");
+    window.location.assign("/panel");
   }
 
   return (
@@ -89,7 +89,7 @@ export function LoginForm() {
     if (result.error) {
       setStatus({
         kind: "error",
-        message: "Giriş yapılamadı. E-posta doğrulaması ve parolanızı kontrol edin.",
+        message: "Giriş yapılamadı. E-posta adresinizi ve parolanızı kontrol edin.",
       });
       return;
     }
