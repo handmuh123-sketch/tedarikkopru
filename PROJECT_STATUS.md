@@ -14,15 +14,18 @@
   publish kapısı gerçek provider metadata olmadan aktarımı reddeder.
 - `/admin/entegrasyonlar/trendyol` cache tabanlı kategori/marka/attribute mapping merkezi,
   `/panel/entegrasyonlar/trendyol/onizleme` kartlı kullanıcı önizlemesi ve safety-first
-  readiness nedenleri eklendi. Yeni kullanıcı alıcı işletme CTA’sı; draft, review ve approved
-  organization durumları anlaşılır biçimde gösterilir; kullanıcı kendi başvurusunu onaylayamaz.
+  readiness nedenleri eklendi. Kategori, marka ve attribute mappingleri oluşturulabilir,
+  güncellenebilir veya devre dışı bırakılabilir; her değişiklik audit kaydı üretir. Yeni kullanıcı
+  alıcı işletme CTA’sı görür; aktif owner/org admin, yalnız kendi `DRAFT`/`NEEDS_CHANGES`
+  başvurusunu org-scoped onboarding akışında sürdürebilir. Kullanıcı kendi başvurusunu onaylayamaz.
 - İdempotent seed dört pilot ürünün attribute, barkod, stok, favorite ve özgün public demo
   görselini güncelledi. Faz 7A connection güvenliği, immutable order snapshot ve stock ledger
   değiştirilmedi.
 - Faz 7B kalite kanıtı: global ESLint ve strict typecheck, unit 56/56, izole Neon PostgreSQL
   marketplace integration 4/4, Chrome `chromium-desktop` 2/2 ve 360 px `chromium-mobile` 2/2
-  ile `pnpm build` başarılıdır. İzole Neon dalında 15 forward migration applied ve schema
-  günceldir; gerçek Trendyol ağına çağrı veya Docker image build yapılmadı.
+  ile `pnpm build` başarılıdır. İzole Neon dalında 15 forward migration applied, seed iki ardışık
+  çalışmada idempotent ve schema günceldir; gerçek Trendyol ağına çağrı veya Docker image build
+  yapılmadı.
 
 - Faz 7A tamamlandı: kullanıcı favorilerinden canonical marketplace product loader, mevcut
   genel XML export ile ortak serializer ve Trendyol V2 preview/JSON export akışı eklendi.

@@ -108,9 +108,13 @@ export default async function MarketplaceIntegrationsPage() {
                   Bağlantı ve canlı aktarım, platform onayı sonrasında açılır. İşletme sahibi kendi
                   başvurusunu onaylayamaz.
                 </p>
-                {organization.verificationStatus === "DRAFT" ||
-                organization.verificationStatus === "NEEDS_CHANGES" ? (
-                  <Link className="button button-primary" href="/onboarding">
+                {(organization.verificationStatus === "DRAFT" ||
+                  organization.verificationStatus === "NEEDS_CHANGES") &&
+                canManage ? (
+                  <Link
+                    className="button button-primary"
+                    href={`/onboarding?organizationId=${organization.id}`}
+                  >
                     Başvuruyu tamamla
                   </Link>
                 ) : (

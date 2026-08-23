@@ -15,17 +15,18 @@ verisini birbirinden ayırmak, admin mapping merkezi ve canlı readiness kapıs�
        cache ve mapping kaynak etiketleri eklendi.
 3. [x] Credential/flag olmadan ağ çağrısı yapmayan `TrendyolMetadataClient`, idempotent cache
        servisi, admin metadata API’si ve safe audit akışı eklendi.
-4. [x] Mapping merkezi, kullanıcı kartlı preview ekranı, onboarding/readiness durumları ve canlı
-       publish öncesi server-side readiness kapısı eklendi.
+4. [x] Mapping merkezi, kullanıcı kartlı preview ekranı, org-scoped onboarding devam akışı ve
+       canlı publish öncesi server-side readiness kapısı eklendi. Kategori/marka/attribute
+       eşleşmeleri güvenli biçimde devre dışı bırakılabilir.
 5. [x] Dört pilot demo ürün attribute/barkod/favorite/public-image bilgileri idempotent seed’e
-   taşındı; test, build ve isolated database doğrulaması tamamlandı.
+       taşındı; test, build ve isolated database doğrulaması tamamlandı.
 
 ### Doğrulama kanıtı
 
 - `pnpm lint`, `pnpm typecheck` ve `pnpm build` başarılı.
 - `pnpm test`: 16 dosya, 56 test başarılı.
-- İzole Neon PostgreSQL: migration deploy + status ile 15 migration güncel; Faz 7 marketplace
-  integration 4/4 başarılı.
+- İzole Neon PostgreSQL: migration deploy + status ile 15 migration güncel; seed iki kez
+  idempotent çalıştı; Faz 7 marketplace integration 4/4 başarılı.
 - Chrome kanalında `marketplace-integrations.spec.ts`: desktop 2/2 ve 360 px mobile 2/2 başarılı.
 
 ### Kabul notu

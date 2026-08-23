@@ -550,7 +550,7 @@ async function main() {
 
 try {
   await main();
-  console.info("Faz 4C için katalog ve güvenli alıcı/tedarikçi demo seed'i tamamlandı.");
+  console.info("Faz 7B için katalog ve güvenli alıcı/tedarikçi demo seed'i tamamlandı.");
 } finally {
   await database.$disconnect();
 }

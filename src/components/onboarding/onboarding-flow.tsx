@@ -5,6 +5,12 @@ import { useState, type FormEvent } from "react";
 import { useHydrated } from "@/lib/react/use-hydrated";
 
 type Stage = "organization" | "address" | "document" | "review" | "done";
+type ResumeStage = Exclude<Stage, "organization" | "done">;
+
+type OnboardingFlowProps = {
+  initialOrganizationId?: string;
+  initialStage?: ResumeStage;
+};
 
 async function apiJson(url: string, options: RequestInit) {
   const response = await fetch(url, {
@@ -16,10 +22,10 @@ async function apiJson(url: string, options: RequestInit) {
   return body;
 }
 
-export function OnboardingFlow() {
+export function OnboardingFlow({ initialOrganizationId, initialStage }: OnboardingFlowProps) {
   const hydrated = useHydrated();
-  const [stage, setStage] = useState<Stage>("organization");
-  const [organizationId, setOrganizationId] = useState("");
+  const [stage, setStage] = useState<Stage>(initialStage ?? "organization");
+  const [organizationId, setOrganizationId] = useState(initialOrganizationId ?? "");
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 

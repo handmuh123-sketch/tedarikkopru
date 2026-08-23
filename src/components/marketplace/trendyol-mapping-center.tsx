@@ -36,6 +36,7 @@ type AttributeMapping = {
   sourceAttributeKey: string;
   externalAttributeId: string;
   externalAttributeName: string;
+  externalValueId: string | null;
   isActive: boolean;
   metadataSource: string;
 };
@@ -154,6 +155,24 @@ export function TrendyolMappingCenter(props: Props) {
     }
   }
 
+  async function disableBrand(mapping: BrandMapping) {
+    const brand = props.brands.find((item) => item.id === mapping.brandId);
+    if (!brand) return;
+    try {
+      await save("/api/v1/admin/marketplace-mappings/brands", {
+        channel: "TRENDYOL",
+        sourceId: brand.id,
+        externalId: mapping.externalBrandId,
+        externalName: mapping.externalBrandName,
+        isActive: false,
+      });
+      setStatus(`${brand.name} eşleşmesi devre dışı bırakıldı.`);
+      router.refresh();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Eşleşme güncellenemedi.");
+    }
+  }
+
   async function submitAttribute(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
@@ -180,6 +199,23 @@ export function TrendyolMappingCenter(props: Props) {
       router.refresh();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Özellik eşleşmesi kaydedilemedi.");
+    }
+  }
+
+  async function disableAttribute(mapping: AttributeMapping) {
+    try {
+      await save("/api/v1/admin/marketplace-mappings/attributes", {
+        categoryMappingId: mapping.categoryMappingId,
+        sourceAttributeKey: mapping.sourceAttributeKey,
+        externalAttributeId: mapping.externalAttributeId,
+        externalAttributeName: mapping.externalAttributeName,
+        externalValueId: mapping.externalValueId ?? undefined,
+        isActive: false,
+      });
+      setStatus(`${mapping.sourceAttributeKey} eşleşmesi devre dışı bırakıldı.`);
+      router.refresh();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Eşleşme güncellenemedi.");
     }
   }
 
@@ -278,6 +314,15 @@ export function TrendyolMappingCenter(props: Props) {
               <button className="button button-secondary" type="submit">
                 Kaydet
               </button>
+              {mapping?.isActive ? (
+                <button
+                  className="button button-secondary"
+                  type="button"
+                  onClick={() => void disableBrand(mapping)}
+                >
+                  Devre dışı bırak
+                </button>
+              ) : null}
             </form>
           );
         })}
@@ -342,6 +387,15 @@ export function TrendyolMappingCenter(props: Props) {
               <li key={`${mapping.categoryMappingId}-${mapping.sourceAttributeKey}`}>
                 {mapping.sourceAttributeKey} → {mapping.externalAttributeName} ·{" "}
                 {mapping.metadataSource}
+                {mapping.isActive ? (
+                  <button
+                    className="button button-secondary"
+                    type="button"
+                    onClick={() => void disableAttribute(mapping)}
+                  >
+                    Devre dışı bırak
+                  </button>
+                ) : null}
               </li>
             ))}
           </ul>
