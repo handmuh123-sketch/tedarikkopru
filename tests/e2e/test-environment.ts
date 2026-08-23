@@ -1,6 +1,6 @@
 import { config as loadEnvironment } from "dotenv";
 
-loadEnvironment({ path: ".env", override: true, quiet: true });
+loadEnvironment({ path: process.env.PLAYWRIGHT_ENV_FILE ?? ".env", override: true, quiet: true });
 
 function requiredEnvironment(name: "DATABASE_URL" | "DEMO_ADMIN_PASSWORD" | "DEMO_USER_PASSWORD") {
   const value = process.env[name];

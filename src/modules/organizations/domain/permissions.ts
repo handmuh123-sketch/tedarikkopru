@@ -11,7 +11,8 @@ export type OrganizationPermission =
   | "purchase:manage"
   | "order:fulfill"
   | "document:manage"
-  | "verification:submit";
+  | "verification:submit"
+  | "marketplace:manage";
 
 const rolePermissions: Record<OrganizationMembershipRole, ReadonlySet<OrganizationPermission>> = {
   OWNER: new Set([
@@ -26,6 +27,7 @@ const rolePermissions: Record<OrganizationMembershipRole, ReadonlySet<Organizati
     "order:fulfill",
     "document:manage",
     "verification:submit",
+    "marketplace:manage",
   ]),
   ORG_ADMIN: new Set([
     "organization:read",
@@ -39,6 +41,7 @@ const rolePermissions: Record<OrganizationMembershipRole, ReadonlySet<Organizati
     "order:fulfill",
     "document:manage",
     "verification:submit",
+    "marketplace:manage",
   ]),
   CATALOG_MANAGER: new Set(["organization:read", "catalog:manage"]),
   ORDER_MANAGER: new Set(["organization:read", "purchase:manage"]),

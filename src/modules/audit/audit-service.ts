@@ -5,7 +5,8 @@ import { database } from "@/lib/db/client";
 import { keyedHash } from "@/lib/security/crypto";
 
 const blockedKeys =
-  /email|phone|address|tax|vkn|mersis|kep|token|password|secret|iban|storageKey|originalName/i;
+  /email|phone|address|tax|vkn|mersis|kep|token|password|secret|iban|storageKey|originalName|apiKey|accessKey|privateKey/i;
+const credentialKey = /^credential(?:ciphertext|secret|token|key|value)?$/i;
 
 export function redactAuditValue(value: unknown): Prisma.InputJsonValue | undefined {
   if (value === undefined) return undefined;
@@ -18,7 +19,9 @@ export function redactAuditValue(value: unknown): Prisma.InputJsonValue | undefi
     return Object.fromEntries(
       Object.entries(value).map(([key, nested]) => [
         key,
-        blockedKeys.test(key) ? "[REDACTED]" : (redactAuditValue(nested) ?? null),
+        blockedKeys.test(key) || credentialKey.test(key)
+          ? "[REDACTED]"
+          : (redactAuditValue(nested) ?? null),
       ]),
     );
   }

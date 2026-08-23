@@ -55,6 +55,14 @@ export default async function PanelPage() {
       </Link>
       {memberships.some(
         ({ organization, role }) =>
+          ["RESELLER", "BOTH"].includes(organization.type) && ["OWNER", "ORG_ADMIN"].includes(role),
+      ) && (
+        <Link className="button button-secondary" href="/panel/entegrasyonlar">
+          Pazaryeri entegrasyonları
+        </Link>
+      )}
+      {memberships.some(
+        ({ organization, role }) =>
           ["RESELLER", "BOTH"].includes(organization.type) &&
           ["OWNER", "ORG_ADMIN", "ORDER_MANAGER"].includes(role),
       ) && (
@@ -122,7 +130,12 @@ export default async function PanelPage() {
           Import işleri
         </Link>
       )}
-      {["PLATFORM_SUPER_ADMIN", "PLATFORM_ADMIN", "PLATFORM_OPERATIONS", "PLATFORM_SUPPORT"].includes(user.platformRole) && (
+      {[
+        "PLATFORM_SUPER_ADMIN",
+        "PLATFORM_ADMIN",
+        "PLATFORM_OPERATIONS",
+        "PLATFORM_SUPPORT",
+      ].includes(user.platformRole) && (
         <Link className="button button-secondary" href="/admin/odemeler">
           Banka transferleri
         </Link>
@@ -135,6 +148,16 @@ export default async function PanelPage() {
       ].includes(user.platformRole) && (
         <Link className="button button-secondary" href="/admin/operasyonlar">
           Sipariş operasyonları
+        </Link>
+      )}
+      {[
+        "PLATFORM_SUPER_ADMIN",
+        "PLATFORM_ADMIN",
+        "PLATFORM_OPERATIONS",
+        "PLATFORM_SUPPORT",
+      ].includes(user.platformRole) && (
+        <Link className="button button-secondary" href="/admin/entegrasyonlar">
+          Pazaryeri yönetimi
         </Link>
       )}
     </main>
