@@ -7,7 +7,7 @@ export default function RegisterPage() {
     <AuthShell
       eyebrow="Yeni hesap"
       title="İşletmenizi güvenle başlatın."
-      description="Önce kişisel hesabınızı, e-posta doğrulamasından sonra işletme profilinizi oluşturun."
+      description="Kişisel hesabınızı oluşturun; pilot kullanımda e-posta doğrulaması gerekmez."
     >
       <RegisterForm />
       <p className="auth-alt">
