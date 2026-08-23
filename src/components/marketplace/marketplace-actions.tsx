@@ -18,20 +18,25 @@ export function MarketplaceConnectionTestButton({
   const [message, setMessage] = useState("");
   async function testConnection() {
     setBusy(true);
-    const response = await fetch(
-      `/api/v1/organizations/${organizationId}/marketplace-connections/${connectionId}/test`,
-      { method: "POST" },
-    );
-    const result = await response.json();
-    setBusy(false);
-    setMessage(
-      response.ok
-        ? result.data.mode === "PREVIEW"
-          ? "Test modu doğrulandı; gerçek Trendyol çağrısı yapılmadı."
-          : "Canlı bağlantı doğrulandı."
-        : (result?.error?.message ?? "Bağlantı testi tamamlanamadı."),
-    );
-    if (response.ok) router.refresh();
+    try {
+      const response = await fetch(
+        `/api/v1/organizations/${organizationId}/marketplace-connections/${connectionId}/test`,
+        { method: "POST", signal: AbortSignal.timeout(30_000) },
+      );
+      const result = await response.json().catch(() => null);
+      setMessage(
+        response.ok
+          ? result?.data?.mode === "PREVIEW"
+            ? "Test modu doğrulandı; gerçek Trendyol çağrısı yapılmadı."
+            : "Canlı bağlantı doğrulandı."
+          : (result?.error?.message ?? "Bağlantı testi tamamlanamadı."),
+      );
+      if (response.ok) router.refresh();
+    } catch {
+      setMessage("Bağlantı testi zamanında tamamlanamadı. Lütfen tekrar deneyin.");
+    } finally {
+      setBusy(false);
+    }
   }
   return (
     <div>
@@ -63,18 +68,23 @@ export function MarketplacePublishButton({
   const [message, setMessage] = useState("");
   async function publish() {
     setBusy(true);
-    const response = await fetch(
-      `/api/v1/organizations/${organizationId}/marketplace-connections/${connectionId}/publish-favorites`,
-      { method: "POST", headers: { "idempotency-key": crypto.randomUUID() } },
-    );
-    const result = await response.json();
-    setBusy(false);
-    setMessage(
-      response.ok
-        ? `Yayın işi durumu: ${result.data.job.status}`
-        : (result?.error?.message ?? "Yayın isteği tamamlanamadı."),
-    );
-    if (response.ok) router.refresh();
+    try {
+      const response = await fetch(
+        `/api/v1/organizations/${organizationId}/marketplace-connections/${connectionId}/publish-favorites`,
+        { method: "POST", headers: { "idempotency-key": crypto.randomUUID() } },
+      );
+      const result = await response.json().catch(() => null);
+      setMessage(
+        response.ok
+          ? `Yayın işi durumu: ${result?.data?.job?.status ?? "BİLİNMİYOR"}`
+          : (result?.error?.message ?? "Yayın isteği tamamlanamadı."),
+      );
+      if (response.ok) router.refresh();
+    } catch {
+      setMessage("Yayın isteği tamamlanamadı. Lütfen tekrar deneyin.");
+    } finally {
+      setBusy(false);
+    }
   }
   return (
     <div>

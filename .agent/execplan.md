@@ -1,5 +1,39 @@
 # Pilot MVP — Faz 7A Pazaryeri Entegrasyon Altyapısı
 
+## Faz 7B — Trendyol veri hazırlığı (tamamlandı)
+
+### Amaç
+
+Faz 7A adapter/connection altyapısını koruyarak gerçek provider meta verisi ile internal preview
+verisini birbirinden ayırmak, admin mapping merkezi ve canlı readiness kapısı eklemek.
+
+### Uygulama kaydı
+
+1. [x] Faz 7A checkpoint’i, mevcut seed/favorites/connection akışı ve Product V2 resmi endpoint
+       yüzeyi incelendi.
+2. [x] `20260824000000_phase_07b_trendyol_data_readiness` forward migration ile external metadata
+       cache ve mapping kaynak etiketleri eklendi.
+3. [x] Credential/flag olmadan ağ çağrısı yapmayan `TrendyolMetadataClient`, idempotent cache
+       servisi, admin metadata API’si ve safe audit akışı eklendi.
+4. [x] Mapping merkezi, kullanıcı kartlı preview ekranı, onboarding/readiness durumları ve canlı
+       publish öncesi server-side readiness kapısı eklendi.
+5. [x] Dört pilot demo ürün attribute/barkod/favorite/public-image bilgileri idempotent seed’e
+   taşındı; test, build ve isolated database doğrulaması tamamlandı.
+
+### Doğrulama kanıtı
+
+- `pnpm lint`, `pnpm typecheck` ve `pnpm build` başarılı.
+- `pnpm test`: 16 dosya, 56 test başarılı.
+- İzole Neon PostgreSQL: migration deploy + status ile 15 migration güncel; Faz 7 marketplace
+  integration 4/4 başarılı.
+- Chrome kanalında `marketplace-integrations.spec.ts`: desktop 2/2 ve 360 px mobile 2/2 başarılı.
+
+### Kabul notu
+
+- Resmi canlı metadata/credential sağlanmadığı sürece sonuç **internal preview hazır, gerçek live
+  mapping gerekli** olarak görünür. `MANUAL` ve `MOCK` ID’leri live publish için güvenilir kabul
+  edilmez.
+
 Bu yürütme kaydı, önceki pilot checkpoint'leri sonrasında uygulanan Faz 7A
 pazaryeri entegrasyon altyapısını kapsar. Önceki RFQ, ödeme, sipariş, kargo ve
 iade bölümleri tarihsel kayıt olarak korunur.

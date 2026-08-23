@@ -13,9 +13,17 @@ import { loadFavoriteMarketplaceProducts } from "./favorite-product-loader";
 type MappingRows = {
   categories: Map<
     string,
-    { externalCategoryId: string; attributes: MarketplaceProductMapping["attributes"] }
+    {
+      externalCategoryId: string;
+      metadataSource: "MANUAL" | "MOCK" | "LIVE";
+      attributes: Array<
+        MarketplaceProductMapping["attributes"][number] & {
+          metadataSource: "MANUAL" | "MOCK" | "LIVE";
+        }
+      >;
+    }
   >;
-  brands: Map<string, string>;
+  brands: Map<string, { externalBrandId: string; metadataSource: "MANUAL" | "MOCK" | "LIVE" }>;
 };
 
 async function loadMappings(products: CanonicalMarketplaceProduct[]): Promise<MappingRows> {
@@ -36,15 +44,22 @@ async function loadMappings(products: CanonicalMarketplaceProduct[]): Promise<Ma
         category.categoryId,
         {
           externalCategoryId: category.externalCategoryId,
+          metadataSource: category.metadataSource,
           attributes: category.attributeMappings.map((attribute) => ({
             sourceAttributeKey: attribute.sourceAttributeKey,
             externalAttributeId: attribute.externalAttributeId,
             externalValueId: attribute.externalValueId,
+            metadataSource: attribute.metadataSource,
           })),
         },
       ]),
     ),
-    brands: new Map(brands.map((brand) => [brand.brandId, brand.externalBrandId])),
+    brands: new Map(
+      brands.map((brand) => [
+        brand.brandId,
+        { externalBrandId: brand.externalBrandId, metadataSource: brand.metadataSource },
+      ]),
+    ),
   };
 }
 
@@ -57,6 +72,19 @@ export type TrendyolPreview = {
     variantId: string;
     payload: Record<string, unknown> | null;
     validation: MarketplaceMappedProduct["validation"];
+    display: {
+      title: string;
+      sku: string;
+      barcode: string | null;
+      availableStock: number;
+      priceMinor: number;
+      image: string | null;
+    };
+    mappingSources: {
+      category: "MANUAL" | "MOCK" | "LIVE" | null;
+      brand: "MANUAL" | "MOCK" | "LIVE" | null;
+      attributes: Array<"MANUAL" | "MOCK" | "LIVE">;
+    };
   }>;
   validation: {
     validCount: number;
@@ -70,13 +98,37 @@ export async function buildTrendyolPreview(userId: string): Promise<TrendyolPrev
   const products = await loadFavoriteMarketplaceProducts(userId);
   const mappings = await loadMappings(products);
   const adapter = marketplaceAdapter("TRENDYOL");
-  const mapped = products.flatMap((product) =>
-    adapter.mapProduct(product, {
-      externalCategoryId: mappings.categories.get(product.category.id)?.externalCategoryId ?? null,
-      externalBrandId: mappings.brands.get(product.brand.id) ?? null,
-      attributes: mappings.categories.get(product.category.id)?.attributes ?? [],
-    }),
-  );
+  const mapped = products.flatMap((product) => {
+    const category = mappings.categories.get(product.category.id);
+    const brand = mappings.brands.get(product.brand.id);
+    return adapter
+      .mapProduct(product, {
+        externalCategoryId: category?.externalCategoryId ?? null,
+        externalBrandId: brand?.externalBrandId ?? null,
+        attributes: category?.attributes ?? [],
+      })
+      .map((item) => {
+        const variant = product.variants.find(
+          (candidate) => candidate.variantId === item.variantId,
+        );
+        return {
+          ...item,
+          display: {
+            title: product.title,
+            sku: variant?.sku ?? "-",
+            barcode: variant?.barcode ?? null,
+            availableStock: variant?.availableStock ?? 0,
+            priceMinor: variant?.priceMinor ?? 0,
+            image: product.images[0] ?? null,
+          },
+          mappingSources: {
+            category: category?.metadataSource ?? null,
+            brand: brand?.metadataSource ?? null,
+            attributes: (category?.attributes ?? []).map((attribute) => attribute.metadataSource),
+          },
+        };
+      });
+  });
   return {
     channel: "TRENDYOL",
     mode: "preview",

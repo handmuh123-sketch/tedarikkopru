@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { demoUserPassword } from "./test-environment";
+import { demoAdminPassword, demoUserPassword } from "./test-environment";
 
 test("alıcı Trendyol bağlantısını test modunda güvenli biçimde yapılandırır", async ({ page }) => {
   await page.goto("/giris");
@@ -23,7 +23,14 @@ test("alıcı Trendyol bağlantısını test modunda güvenli biçimde yapıland
   await expect(page.getByText("Credential: Yapılandırıldı")).toBeVisible();
   await expect(page.getByText("e2e-api-secret")).toHaveCount(0);
 
+  const testResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      response.url().includes("/marketplace-connections/") &&
+      response.url().endsWith("/test"),
+  );
   await page.getByRole("button", { name: "Bağlantıyı test et" }).click();
+  expect((await testResponse).status()).toBe(200);
   await expect(
     page.getByText("Test modu doğrulandı; gerçek Trendyol çağrısı yapılmadı."),
   ).toBeVisible({ timeout: 60_000 });
@@ -36,4 +43,35 @@ test("alıcı Trendyol bağlantısını test modunda güvenli biçimde yapıland
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
   );
   expect(hasHorizontalOverflow).toBe(false);
+});
+
+test("alıcı kartlı Trendyol önizlemesini görür; admin eşleştirme merkezine erişir", async ({
+  page,
+}) => {
+  await page.goto("/giris");
+  await page.getByLabel("E-posta").fill("alici@demo.tedarikkopru.local");
+  await page.getByLabel("Parola").fill(demoUserPassword);
+  await page.getByRole("button", { name: "Giriş yap" }).click();
+  await expect(page).toHaveURL(/panel/, { timeout: 60_000 });
+
+  await page.goto("/panel/favoriler");
+  await expect(page.getByRole("heading", { name: "Favori ürünlerim" })).toBeVisible();
+  await expect(page.getByText("60W Örgülü USB-C Kablo")).toBeVisible();
+  await page.getByRole("link", { name: "Pazaryerine aktar" }).click();
+  await page.getByRole("link", { name: "Kartlı önizlemeyi aç" }).click();
+  await expect(page.getByRole("heading", { name: "Favori ürün aktarım önizlemesi" })).toBeVisible();
+  await expect(page.getByText("Bluetooth TWS Kablosuz Kulaklık")).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    ),
+  ).toBe(false);
+
+  await page.goto("/giris");
+  await page.getByLabel("E-posta").fill("admin@demo.tedarikkopru.local");
+  await page.getByLabel("Parola").fill(demoAdminPassword);
+  await page.getByRole("button", { name: "Giriş yap" }).click();
+  await expect(page).toHaveURL(/panel/, { timeout: 60_000 });
+  await page.goto("/admin/entegrasyonlar/trendyol");
+  await expect(page.getByRole("heading", { name: "Trendyol eşleştirme merkezi" })).toBeVisible();
 });

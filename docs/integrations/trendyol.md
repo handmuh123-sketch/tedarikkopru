@@ -1,5 +1,28 @@
 # Trendyol V2 entegrasyonu
 
+## Faz 7B veri hazırlığı
+
+Trendyol bağlantısı üç ayrı modda çalışır: `PREVIEW`, `MOCK` ve `LIVE`. Preview ve mock
+akışları provider ağına çıkmaz; `LIVE` yalnız feature flag, onaylı alıcı işletmesi, şifreli
+satıcı credential’ı, HTTPS ürün görseli ve `LIVE` kaynaklı güncel meta veri eşleşmeleri birlikte
+sağlandığında açılabilir.
+
+Ürün aktarımında Product V2 yolları kullanılır. Kategori ağacı, kategori özellikleri ve marka
+listesi yalnız resmi Trendyol API’sinden alınır; cache kayıtları `LIVE`, `MANUAL` veya `MOCK`
+kaynağını saklar. `MANUAL`/`MOCK` eşleşme ile JSON preview yapılabilir ama canlı aktarım
+sunucu tarafında bloke edilir. Bu ayrım uydurma provider ID’lerinin canlıya taşınmasını engeller.
+
+Admin mapping merkezi `/admin/entegrasyonlar/trendyol` altındadır. Kaynak kategori/marka,
+cache edilmiş provider kaydına bağlanır; ürün attribute anahtarları kategoriye özgü provider
+attribute’larına bağlanır. Yönetim API’leri yalnız katalog admin rolüne açıktır ve safe audit
+kaydı üretir. Metadata kaydı idempotent upsert’tür; credential, token veya ham provider cevabı
+audit’e yazılmaz.
+
+Alıcı tarafı `/panel/entegrasyonlar/trendyol/onizleme` üzerinden ürün kartlarını, SKU, barkod,
+stok, integer minor-unit fiyatın gösterimini ve doğrulama nedenlerini görür. JSON indirme
+`private, no-store` yanıt verir. Demo seed dört özgün statik `/demo-products` görseli ile
+ürün niteliklerini tekrar çalıştırılabilir biçimde hazırlamaktadır.
+
 ## Kapsam
 
 Bu adapter, Trendyol Product V2 ürün create akışı ile V1/V2 fiyat-stok batch endpointi için

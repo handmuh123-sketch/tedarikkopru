@@ -44,3 +44,55 @@ export const marketplaceAttributeMappingSchema = z.object({
   externalValueId: optionalText,
   isActive: z.boolean().optional(),
 });
+
+const metadataSourceSchema = z.enum(["MANUAL", "MOCK"]);
+
+export const trendyolMetadataSyncSchema = z.object({
+  source: metadataSourceSchema.default("MANUAL"),
+  categories: z
+    .array(
+      z.object({
+        externalId: z.string().trim().min(1).max(80),
+        name: z.string().trim().min(1).max(200),
+        parentExternalId: optionalText,
+        isLeaf: z.boolean().default(false),
+        isActive: z.boolean().default(true),
+      }),
+    )
+    .max(500)
+    .optional(),
+  brands: z
+    .array(
+      z.object({
+        externalId: z.string().trim().min(1).max(80),
+        name: z.string().trim().min(1).max(200),
+        isActive: z.boolean().default(true),
+      }),
+    )
+    .max(500)
+    .optional(),
+  attributes: z
+    .array(
+      z.object({
+        externalCategoryId: z.string().trim().min(1).max(80),
+        externalId: z.string().trim().min(1).max(80),
+        name: z.string().trim().min(1).max(200),
+        isRequired: z.boolean().default(false),
+        allowCustom: z.boolean().default(false),
+        isVariant: z.boolean().default(false),
+        allowsMultiple: z.boolean().default(false),
+        values: z
+          .array(
+            z.object({
+              externalId: z.string().trim().min(1).max(80),
+              name: z.string().trim().min(1).max(200),
+              isActive: z.boolean().default(true),
+            }),
+          )
+          .max(1000)
+          .optional(),
+      }),
+    )
+    .max(1000)
+    .optional(),
+});

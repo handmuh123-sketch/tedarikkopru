@@ -233,6 +233,12 @@ enum MarketplaceChannel {
   AMAZON_TR
 }
 
+enum MarketplaceMetadataSource {
+  MANUAL
+  MOCK
+  LIVE
+}
+
 enum MarketplaceConnectionStatus {
   DISCONNECTED
   DRAFT
@@ -947,6 +953,7 @@ model MarketplaceCategoryMapping {
   categoryId           String                        @map("category_id") @db.VarChar(36)
   externalCategoryId   String                        @map("external_category_id") @db.VarChar(80)
   externalCategoryName String                        @map("external_category_name") @db.VarChar(200)
+  metadataSource       MarketplaceMetadataSource     @default(MANUAL) @map("metadata_source")
   isActive             Boolean                       @default(true) @map("is_active")
   createdAt            DateTime                      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt            DateTime                      @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -964,6 +971,7 @@ model MarketplaceBrandMapping {
   brandId           String             @map("brand_id") @db.VarChar(36)
   externalBrandId   String             @map("external_brand_id") @db.VarChar(80)
   externalBrandName String             @map("external_brand_name") @db.VarChar(200)
+  metadataSource    MarketplaceMetadataSource @default(MANUAL) @map("metadata_source")
   isActive          Boolean            @default(true) @map("is_active")
   createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -981,6 +989,7 @@ model MarketplaceAttributeMapping {
   externalAttributeId   String                     @map("external_attribute_id") @db.VarChar(80)
   externalAttributeName String                     @map("external_attribute_name") @db.VarChar(200)
   externalValueId       String?                    @map("external_value_id") @db.VarChar(80)
+  metadataSource        MarketplaceMetadataSource @default(MANUAL) @map("metadata_source")
   isActive              Boolean                    @default(true) @map("is_active")
   createdAt             DateTime                   @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt             DateTime                   @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -989,6 +998,84 @@ model MarketplaceAttributeMapping {
   @@unique([categoryMappingId, sourceAttributeKey])
   @@index([categoryMappingId, isActive])
   @@map("marketplace_attribute_mappings")
+}
+
+model MarketplaceExternalCategory {
+  id               String                    @id @default(cuid()) @db.VarChar(36)
+  channel          MarketplaceChannel
+  externalId       String                    @map("external_id") @db.VarChar(80)
+  name             String                    @db.VarChar(200)
+  parentExternalId String?                   @map("parent_external_id") @db.VarChar(80)
+  isLeaf           Boolean                   @default(false) @map("is_leaf")
+  isActive         Boolean                   @default(true) @map("is_active")
+  source           MarketplaceMetadataSource @default(MANUAL)
+  safeMetadata     Json?                     @map("safe_metadata")
+  fetchedAt        DateTime                  @default(now()) @map("fetched_at") @db.Timestamptz(3)
+  createdAt        DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  attributes       MarketplaceExternalAttribute[]
+
+  @@unique([channel, externalId])
+  @@index([channel, isActive, name])
+  @@map("marketplace_external_categories")
+}
+
+model MarketplaceExternalBrand {
+  id           String                    @id @default(cuid()) @db.VarChar(36)
+  channel      MarketplaceChannel
+  externalId   String                    @map("external_id") @db.VarChar(80)
+  name         String                    @db.VarChar(200)
+  isActive     Boolean                   @default(true) @map("is_active")
+  source       MarketplaceMetadataSource @default(MANUAL)
+  safeMetadata Json?                     @map("safe_metadata")
+  fetchedAt    DateTime                  @default(now()) @map("fetched_at") @db.Timestamptz(3)
+  createdAt    DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@unique([channel, externalId])
+  @@index([channel, isActive, name])
+  @@map("marketplace_external_brands")
+}
+
+model MarketplaceExternalAttribute {
+  id                 String                    @id @default(cuid()) @db.VarChar(36)
+  channel            MarketplaceChannel
+  externalCategoryId String                    @map("external_category_id") @db.VarChar(80)
+  externalAttributeId String                   @map("external_attribute_id") @db.VarChar(80)
+  name               String                    @db.VarChar(200)
+  isRequired         Boolean                   @default(false) @map("is_required")
+  allowCustom        Boolean                   @default(false) @map("allow_custom")
+  isVariant          Boolean                   @default(false) @map("is_variant")
+  allowsMultiple     Boolean                   @default(false) @map("allows_multiple")
+  source             MarketplaceMetadataSource @default(MANUAL)
+  safeMetadata       Json?                     @map("safe_metadata")
+  fetchedAt          DateTime                  @default(now()) @map("fetched_at") @db.Timestamptz(3)
+  createdAt          DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  category           MarketplaceExternalCategory @relation(fields: [channel, externalCategoryId], references: [channel, externalId], onDelete: Restrict)
+  values             MarketplaceExternalAttributeValue[]
+
+  @@unique([channel, externalCategoryId, externalAttributeId])
+  @@index([channel, externalCategoryId, isRequired])
+  @@map("marketplace_external_attributes")
+}
+
+model MarketplaceExternalAttributeValue {
+  id          String                    @id @default(cuid()) @db.VarChar(36)
+  attributeId String                    @map("attribute_id") @db.VarChar(36)
+  externalId  String                    @map("external_id") @db.VarChar(80)
+  name        String                    @db.VarChar(200)
+  isActive    Boolean                   @default(true) @map("is_active")
+  source      MarketplaceMetadataSource @default(MANUAL)
+  safeMetadata Json?                    @map("safe_metadata")
+  fetchedAt   DateTime                  @default(now()) @map("fetched_at") @db.Timestamptz(3)
+  createdAt   DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  attribute   MarketplaceExternalAttribute @relation(fields: [attributeId], references: [id], onDelete: Restrict)
+
+  @@unique([attributeId, externalId])
+  @@index([attributeId, isActive])
+  @@map("marketplace_external_attribute_values")
 }
 
 model Cart {

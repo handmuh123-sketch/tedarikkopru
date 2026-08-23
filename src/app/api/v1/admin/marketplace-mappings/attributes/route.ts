@@ -21,6 +21,26 @@ export async function POST(request: Request) {
         "Kategori eşleşmesi bulunamadı.",
         "MARKETPLACE_CATEGORY_MAPPING_NOT_FOUND",
       );
+    const externalMetadata = await database.marketplaceExternalAttribute.findUnique({
+      where: {
+        channel_externalCategoryId_externalAttributeId: {
+          channel: categoryMapping.channel,
+          externalCategoryId: categoryMapping.externalCategoryId,
+          externalAttributeId: parsed.data.externalAttributeId,
+        },
+      },
+      include: { values: { where: { isActive: true }, select: { externalId: true } } },
+    });
+    if (
+      parsed.data.externalValueId &&
+      !externalMetadata?.values.some((value) => value.externalId === parsed.data.externalValueId)
+    ) {
+      throw new HttpError(
+        422,
+        "Seçilen Trendyol özellik değeri ilgili provider özelliğine ait değil.",
+        "MARKETPLACE_ATTRIBUTE_VALUE_INVALID",
+      );
+    }
     const mapping = await database.$transaction(async (transaction) => {
       const updated = await transaction.marketplaceAttributeMapping.upsert({
         where: {
@@ -33,6 +53,7 @@ export async function POST(request: Request) {
           externalAttributeId: parsed.data.externalAttributeId,
           externalAttributeName: parsed.data.externalAttributeName,
           externalValueId: parsed.data.externalValueId ?? null,
+          metadataSource: externalMetadata?.source ?? "MANUAL",
           isActive: parsed.data.isActive ?? true,
         },
         create: {
@@ -41,6 +62,7 @@ export async function POST(request: Request) {
           externalAttributeId: parsed.data.externalAttributeId,
           externalAttributeName: parsed.data.externalAttributeName,
           externalValueId: parsed.data.externalValueId ?? null,
+          metadataSource: externalMetadata?.source ?? "MANUAL",
           isActive: parsed.data.isActive ?? true,
         },
       });
@@ -54,6 +76,7 @@ export async function POST(request: Request) {
             channel: categoryMapping.channel,
             categoryMappingId: categoryMapping.id,
             active: updated.isActive,
+            metadataSource: updated.metadataSource,
           },
           requestId: resolveRequestId(request.headers.get("x-request-id")),
           network: requestNetworkKey(request),
