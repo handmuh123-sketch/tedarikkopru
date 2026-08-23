@@ -39,9 +39,16 @@ export default async function FavoritesPage() {
           <p className="eyebrow">Alıcı listesi</p>
           <h1>Favori ürünlerim</h1>
         </div>
-        <Link className="button button-secondary" href="/urunler">
-          Kataloğa dön
-        </Link>
+        <div className="dashboard-actions">
+          {visible.length > 0 && (
+            <a className="button button-primary" href="/api/v1/exports/favorites/xml">
+              XML indir
+            </a>
+          )}
+          <Link className="button button-secondary" href="/urunler">
+            Kataloğa dön
+          </Link>
+        </div>
       </header>
       {visible.length === 0 && <p>Henüz kullanılabilir bir favori ürününüz yok.</p>}
       <section className="product-grid" aria-label="Favori ürünler">
