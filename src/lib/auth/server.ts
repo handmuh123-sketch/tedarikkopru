@@ -17,10 +17,10 @@ export const auth = betterAuth({
   trustedOrigins: [serverEnvironment.APP_URL],
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: true,
+    requireEmailVerification: false,
     minPasswordLength: 12,
     maxPasswordLength: 128,
-    autoSignIn: false,
+    autoSignIn: true,
     resetPasswordTokenExpiresIn: 30 * 60,
     revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ user, token }) => {
@@ -36,8 +36,8 @@ export const auth = betterAuth({
     },
   },
   emailVerification: {
-    sendOnSignUp: true,
-    sendOnSignIn: true,
+    sendOnSignUp: false,
+    sendOnSignIn: false,
     autoSignInAfterVerification: false,
     expiresIn: 60 * 60,
     sendVerificationEmail: async ({ user, url }) => {
