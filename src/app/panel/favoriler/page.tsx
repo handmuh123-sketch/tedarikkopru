@@ -39,14 +39,15 @@ export default async function FavoritesPage() {
           <p className="eyebrow">Alıcı listesi</p>
           <h1>Favori ürünlerim</h1>
         </div>
+        <Link className="button button-secondary" href="/urunler">
+          Kataloğa dön
+        </Link>
         <div className="dashboard-actions">
-          {visible.length > 0 && (
-            <a className="button button-primary" href="/api/v1/exports/favorites/xml">
-              XML indir
-            </a>
-          )}
-          <Link className="button button-secondary" href="/urunler">
-            Kataloğa dön
+          <Link className="button button-secondary" href="/api/v1/exports/favorites/xml">
+            XML indir
+          </Link>
+          <Link className="button button-secondary" href="/panel/entegrasyonlar">
+            Pazaryerine aktar
           </Link>
         </div>
       </header>

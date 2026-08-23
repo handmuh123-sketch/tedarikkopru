@@ -24,6 +24,9 @@ export function AdminNavigation({ platformRole }: { platformRole: PlatformRole }
           <Link className="button button-secondary" href="/admin/importlar">
             Importlar
           </Link>
+          <Link className="button button-secondary" href="/admin/entegrasyonlar">
+            Entegrasyonlar
+          </Link>
         </>
       )}
       <Link className="button button-secondary" href="/panel">

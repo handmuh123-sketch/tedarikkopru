@@ -1,12 +1,34 @@
 # PROJECT STATUS
 
-**Durum:** Pilot MVP sağlamlaştırma ve yayın hazırlığı tamamlandı
+**Durum:** Faz 7A pazaryeri entegrasyon altyapısı tamamlandı
 
-**Aktif faz:** Sonraki faz başlatılmadı
+**Aktif faz:** Faz 7A tamamlandı; sonraki faz başlatılmadı
 
-**Son güncelleme:** 21 Ağustos 2026, +03:00
+**Son güncelleme:** 23 Ağustos 2026, +03:00
 
 ## Tamamlananlar
+
+- Faz 7A tamamlandı: kullanıcı favorilerinden canonical marketplace product loader, mevcut
+  genel XML export ile ortak serializer ve Trendyol V2 preview/JSON export akışı eklendi.
+  Public olmayan görseller uydurulmaz; yalnız public HTTPS URL veya `S3_PUBLIC_BASE_URL` ile
+  çözülebilen görseller aktarım için geçerlidir. Para integer minor-unit olarak kalır; mapper
+  provider payload'ına TRY iki ondalıklı değeri yalnız son adımda dönüştürür.
+- Organization-scoped `MarketplaceConnection`, `MarketplaceSyncJob`/item, webhook inbox ve
+  category/brand/attribute mapping modelleri forward migration ile eklendi. Credential paketi
+  AES-256-GCM ile `DATA_ENCRYPTION_KEY` altında şifrelenir; API, panel, admin, audit ve log
+  plaintext secret döndürmez. `marketplace:manage` izni yalnız owner/org admin'e açıktır;
+  yabancı org bağlantısı deny-by-default 404 döner.
+- `/panel/entegrasyonlar`, `/admin/entegrasyonlar`, admin mapping endpointleri, connection
+  test/disconnect/publish API'leri ve idempotent sync/webhook replay altyapısı tamamlandı.
+  Trendyol live flag varsayılan kapalıdır; mock sonuç `PREVIEW` ve `MOCK-` ile işaretlenir,
+  gerçek HTTP çağrısı yapılmaz. Hepsiburada ve Amazon TR aynı adapter sözleşmesinde güvenli
+  `NOT_IMPLEMENTED` skeleton olarak kalır.
+- Faz 7A kalite kanıtı: unit 54/54, izole Neon PostgreSQL integration 3/3, Chrome
+  `chromium-desktop` 1/1 ve 360 px `chromium-mobile` 1/1 başarılıdır. İzole Neon dalında
+  `20260823000000_phase_07a_marketplace_integrations` dahil 14 migration applied ve schema
+  günceldir. Global strict typecheck ve ESLint uyarısız geçti; yeni/ilgili dosyalar formatlıdır.
+  `docs/integrations/` altında mimari, Trendyol V2 kaynakları, activation/rollback ve kanal
+  skeleton sınırları belgelendi.
 
 - Staging/deploy hazırlığı tamamlandı; gerçek deploy yapılmadı. Runtime artık
   `DEPLOYMENT_ENV` ile staging/production ayrımını fail-fast doğrular. Production Node

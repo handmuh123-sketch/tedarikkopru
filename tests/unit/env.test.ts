@@ -48,7 +48,9 @@ describe("server environment", () => {
   });
 
   it("S3 path style verilmediğinde R2 uyumlu false varsayılanını kullanır", () => {
-    const { S3_FORCE_PATH_STYLE: _pathStyle, ...environmentWithoutPathStyle } = validEnvironment;
+    const environmentWithoutPathStyle = Object.fromEntries(
+      Object.entries(validEnvironment).filter(([key]) => key !== "S3_FORCE_PATH_STYLE"),
+    );
     const result = parseServerEnvironment(environmentWithoutPathStyle);
 
     expect(result.success).toBe(true);

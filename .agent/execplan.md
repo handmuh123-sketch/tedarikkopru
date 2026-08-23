@@ -1,9 +1,30 @@
-# Pilot MVP — Final QA ve Yayın Hazırlığı
+# Pilot MVP — Faz 7A Pazaryeri Entegrasyon Altyapısı
 
-Bu yürütme kaydı, `1c22ee3` yayın hazırlığı checkpoint'i sonrasında yürütülen
-son kullanıcı QA turunu kapsar. Yeni iş özelliği eklenmedi; yalnız gerçek UX,
-responsive ve erişilebilirlik sorunları düzeltildi. Önceki RFQ, ödeme, sipariş,
-kargo ve iade bölümleri tarihsel kayıt olarak korunur.
+Bu yürütme kaydı, önceki pilot checkpoint'leri sonrasında uygulanan Faz 7A
+pazaryeri entegrasyon altyapısını kapsar. Önceki RFQ, ödeme, sipariş, kargo ve
+iade bölümleri tarihsel kayıt olarak korunur.
+
+## Faz 7A — Pazaryeri entegrasyon altyapısı (tamamlandı)
+
+- Favorites seçimini aktif/onaylı/stoklu katalog için canonical DTO'ya taşıyan ortak loader;
+  genel XML export, Trendyol preview ve JSON export tarafından paylaşılır. Kullanıcı seçimi
+  org/favorite scope dışına taşmaz; XML escaping ve `availableStock` filtresi korunur.
+- `MarketplaceChannelAdapter` sözleşmesi Trendyol V2 mapper'ını ve Hepsiburada/Amazon TR
+  için deterministik `NOT_IMPLEMENTED` skeletonlarını birleştirir. Trendyol live flag kapalı
+  olduğunda ağ çağrısı yapmaz; test sonucu `PREVIEW` ve `MOCK-` batch id ile açıkça işaretlenir.
+- Organization-scoped encrypted connection, sync job/item, webhook inbox/dedup/replay ve
+  category/brand/attribute mapping forward migration ile eklendi. Owner/org admin dışındaki
+  rol ve cross-org erişim 404 deny-by-default davranır; credential/audit/log redaction test
+  kapsamındadır.
+- Kullanıcı `/panel/entegrasyonlar` altında bağlantı/preview/test modunu, platform admin ise
+  `/admin/entegrasyonlar` altında safe connection/mapping/job durumunu görür. Boş credential
+  update'i eski değeri korur; disconnect cipher'ı açıkça siler.
+- İzole Neon validation dalında `prisma migrate deploy` ile 14 migration güncel doğrulandı.
+  Unit 54/54, PostgreSQL integration 3/3, Chrome desktop 1/1 ve 360 px mobile 1/1 geçti;
+  global ESLint ve strict typecheck temizdir. Docker image build veya gerçek marketplace çağrısı
+  çalıştırılmadı.
+
+## Önceki final QA ve yayın hazırlığı
 
 ## Staging deployment hazırlığı
 

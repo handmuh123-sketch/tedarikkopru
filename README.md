@@ -1,6 +1,6 @@
 # TedarikKöprü
 
-Türkiye odaklı B2B tedarikçi pazaryerinin hızlı pilot uygulamasıdır. Onaylı katalog, stok ve immutable hareket defteri, tek tedarikçili sepet/checkout rezervasyonu, mock ödeme, tedarikçi kararları, RFQ/tekliften checkout'a fiyat bağlantısı, manuel kargo/teslimat, uygulama içi iade/refund ve admin onaylı manuel banka transferi içerir. Gerçek ödeme, banka, kargo, refund ve fatura sağlayıcısı entegrasyonları bilinçli olarak yoktur.
+Türkiye odaklı B2B tedarikçi pazaryerinin hızlı pilot uygulamasıdır. Onaylı katalog, stok ve immutable hareket defteri, tek tedarikçili sepet/checkout rezervasyonu, mock ödeme, tedarikçi kararları, RFQ/tekliften checkout'a fiyat bağlantısı, manuel kargo/teslimat, uygulama içi iade/refund, admin onaylı manuel banka transferi ve Trendyol-first pazaryeri preview altyapısı içerir. Gerçek ödeme, banka, kargo, refund, fatura ve pazaryeri sağlayıcısı çağrıları varsayılan olarak kapalıdır.
 
 ## Gereksinimler
 
@@ -158,6 +158,19 @@ docker compose build app
 ```
 
 Entegrasyon testi gerçek PostgreSQL ve MinIO ister; önce servisleri, migration'ı ve seed'i çalıştırın. E2E ayrıca Mailpit SMTP/API akışını kullanır. Playwright varsayılan olarak kendi temiz development sunucusunu başlatır ve eski bir `localhost:3000` sürecini başarı saymaz. Yalnız bilinçli yerel hata ayıklamada mevcut sunucuyu kullanmak için `PLAYWRIGHT_REUSE_EXISTING_SERVER=true` verilebilir. Playwright varsayılan olarak kurduğu Chromium'u kullanır. Kurulu Microsoft Edge'i özellikle kullanmak isterseniz PowerShell'de testten önce `$env:PLAYWRIGHT_CHANNEL="msedge"` ayarlayabilirsiniz.
+
+## Pazaryeri preview pilotu
+
+`/panel/entegrasyonlar`, kullanıcı favorilerinden Trendyol V2 uyumlu preview ve JSON export
+oluşturur. `FEATURE_MARKETPLACE_TRENDYOL=false` varsayılandır: bağlantı testi/publish isteği
+`PREVIEW` sonucu üretir, `MOCK-` batch kimliği taşır ve hiçbir gerçek Trendyol HTTP isteği
+göndermez. Canlı erişim, encrypted seller credential, admin category/brand/attribute mapping,
+public HTTPS görseller ve açık rollout onayı gerektirir.
+
+Mevcut genel XML export `GET /api/v1/exports/favorites/xml` yolunda korunur. Kanal mimarisi,
+Trendyol activation/rollback adımları ve Hepsiburada/Amazon TR sınırları için
+[`docs/integrations/`](docs/integrations/) belgelerini izleyin. İzole E2E ortamı gerektiğinde
+`PLAYWRIGHT_ENV_FILE` ile geçici, Git'e alınmayan env dosyası seçilebilir.
 
 ## Demo hesapları
 

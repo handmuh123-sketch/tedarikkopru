@@ -47,6 +47,7 @@ function createServerEnvSchema(validationContext: "runtime" | "build") {
       S3_REGION: z.string().trim().min(1),
       S3_BUCKET_PRIVATE: z.string().trim().min(3),
       S3_BUCKET_PUBLIC: z.string().trim().min(3),
+      S3_PUBLIC_BASE_URL: optionalString,
       S3_ACCESS_KEY: z.string().trim().min(3),
       S3_SECRET_KEY: z.string().trim().min(8),
       S3_FORCE_PATH_STYLE: booleanFromEnvironment.default(false),
@@ -125,7 +126,8 @@ function createServerEnvSchema(validationContext: "runtime" | "build") {
         context.addIssue({
           code: "custom",
           path: ["DEPLOYMENT_ENV"],
-          message: "production Node çalışma zamanında staging veya production olarak tanımlanmalıdır",
+          message:
+            "production Node çalışma zamanında staging veya production olarak tanımlanmalıdır",
         });
       }
 
