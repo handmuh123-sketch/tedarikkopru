@@ -1,5 +1,18 @@
 # Pazaryeri entegrasyon mimarisi
 
+## Faz 7B mapping ve readiness katmanı
+
+Marketplace canonical product DTO’su tek kaynak olarak kalır. Trendyol mapper’ı ancak
+kategori/marka/attribute mapping’leri ve public HTTPS image kurallarıyla provider payload üretir.
+Provider meta verisi `MarketplaceExternalCategory`, `MarketplaceExternalBrand`,
+`MarketplaceExternalAttribute` ve değer cache modellerinde idempotent olarak tutulur. Cache
+kaynak etiketi (`LIVE`, `MANUAL`, `MOCK`) mapping satırına da aktarılır.
+
+`evaluateTrendyolLiveReadiness` UI kolaylığı değil, canlı yayın servisi tarafından da çağrılan
+bir güvenlik kapısıdır. Feature flag, approved reseller org, şifreli credential, stoklu favori
+ürün, mapper doğrulaması ve gerçek provider metadata kaynağı sağlanmadan canlı publish isteği
+başlatılmaz. Preview/export akışları bu kapıdan bağımsız ama açıkça non-live kalır.
+
 ## Amaç ve sınır
 
 Faz 7A, seçilmiş kullanıcı favorilerinden pazaryeri ürün önizlemesi ve kontrollü aktarım

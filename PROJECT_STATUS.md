@@ -1,12 +1,31 @@
 # PROJECT STATUS
 
-**Durum:** Faz 7A pazaryeri entegrasyon altyapısı tamamlandı
+**Durum:** Faz 7B Trendyol veri hazırlığı tamamlandı
 
-**Aktif faz:** Faz 7A tamamlandı; sonraki faz başlatılmadı
+**Aktif faz:** Faz 7B tamamlandı; sonraki faz başlatılmadı
 
-**Son güncelleme:** 23 Ağustos 2026, +03:00
+**Son güncelleme:** 24 Ağustos 2026, +03:00
 
 ## Tamamlananlar
+
+- Faz 7B tamamlandı: Trendyol category/brand/attribute/value external metadata cache’i ve
+  mapping kaynak etiketi (`LIVE`/`MANUAL`/`MOCK`) forward migration ile eklendi. Cache upsert’i
+  tekrarda duplicate üretmez; manual/mock mapping preview’a izin verse de server-side live
+  publish kapısı gerçek provider metadata olmadan aktarımı reddeder.
+- `/admin/entegrasyonlar/trendyol` cache tabanlı kategori/marka/attribute mapping merkezi,
+  `/panel/entegrasyonlar/trendyol/onizleme` kartlı kullanıcı önizlemesi ve safety-first
+  readiness nedenleri eklendi. Kategori, marka ve attribute mappingleri oluşturulabilir,
+  güncellenebilir veya devre dışı bırakılabilir; her değişiklik audit kaydı üretir. Yeni kullanıcı
+  alıcı işletme CTA’sı görür; aktif owner/org admin, yalnız kendi `DRAFT`/`NEEDS_CHANGES`
+  başvurusunu org-scoped onboarding akışında sürdürebilir. Kullanıcı kendi başvurusunu onaylayamaz.
+- İdempotent seed dört pilot ürünün attribute, barkod, stok, favorite ve özgün public demo
+  görselini güncelledi. Faz 7A connection güvenliği, immutable order snapshot ve stock ledger
+  değiştirilmedi.
+- Faz 7B kalite kanıtı: global ESLint ve strict typecheck, unit 56/56, izole Neon PostgreSQL
+  marketplace integration 4/4, Chrome `chromium-desktop` 2/2 ve 360 px `chromium-mobile` 2/2
+  ile `pnpm build` başarılıdır. İzole Neon dalında 15 forward migration applied, seed iki ardışık
+  çalışmada idempotent ve schema günceldir; gerçek Trendyol ağına çağrı veya Docker image build
+  yapılmadı.
 
 - Faz 7A tamamlandı: kullanıcı favorilerinden canonical marketplace product loader, mevcut
   genel XML export ile ortak serializer ve Trendyol V2 preview/JSON export akışı eklendi.

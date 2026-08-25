@@ -398,12 +398,14 @@ async function main() {
       step: 5,
       stock: 140,
       safetyStock: 15,
+      barcode: "8680000000101",
       image: "/demo-products/usb-c-kablo.svg",
+      attributes: { renk: "Siyah", uzunluk: "1 m" },
       description:
         "Yoğun mağaza kullanımı için güçlendirilmiş örgü kaplamalı, 60W hızlı şarj destekli bir metre USB-C kablo.",
     },
     {
-      title: "20W USB-C Hızlı Şarj Adaptörü",
+      title: "30W USB-C Hızlı Şarj Adaptörü",
       slug: "20w-usb-c-hizli-sarj-adaptoru",
       categoryId: cableCategory.id,
       brandId: brands[1]!.id,
@@ -413,9 +415,11 @@ async function main() {
       step: 2,
       stock: 72,
       safetyStock: 8,
+      barcode: "8680000000102",
       image: "/demo-products/sarj-adaptoru.svg",
+      attributes: { guc: "30 W", renk: "Beyaz" },
       description:
-        "PD uyumlu kompakt gövde ve Avrupa tipi fişle mağaza rafına hazır 20W hızlı şarj adaptörü.",
+        "PD uyumlu kompakt gövde ve Avrupa tipi fişle mağaza rafına hazır 30W hızlı şarj adaptörü.",
     },
     {
       title: "Darbeye Dayanıklı Şeffaf Kılıf",
@@ -428,12 +432,14 @@ async function main() {
       step: 10,
       stock: 230,
       safetyStock: 30,
+      barcode: "8680000000103",
       image: "/demo-products/seffaf-kilif.svg",
+      attributes: { renk: "Şeffaf", malzeme: "TPU" },
       description:
         "Köşe korumalı, sararmaya dirençli şeffaf TPU telefon kılıfı; pilot ürün standart ölçü varyantıdır.",
     },
     {
-      title: "TWS Kablosuz Kulaklık",
+      title: "Bluetooth TWS Kablosuz Kulaklık",
       slug: "tws-kablosuz-kulaklik",
       categoryId: audioCategory.id,
       brandId: brands[2]!.id,
@@ -443,7 +449,9 @@ async function main() {
       step: 2,
       stock: 48,
       safetyStock: 6,
+      barcode: "8680000000104",
       image: "/demo-products/tws-kulaklik.svg",
+      attributes: { renk: "Siyah", baglanti: "Bluetooth" },
       description:
         "Dokunmatik kontrollü, şarj kutulu ve günlük kullanım odaklı beyaz TWS kablosuz kulaklık.",
     },
@@ -457,6 +465,7 @@ async function main() {
         brandId: item.brandId,
         shortDescription: item.description,
         description: item.description,
+        attributes: item.attributes,
         status: "ACTIVE",
         publishedAt: new Date(),
       },
@@ -473,7 +482,7 @@ async function main() {
         vatRateBasisPoints: 2000,
         warrantyMonths: 24,
         handlingDays: 2,
-        attributes: {},
+        attributes: item.attributes,
         publishedAt: new Date(),
       },
     });
@@ -483,6 +492,7 @@ async function main() {
         productId: product.id,
         title: "Standart",
         priceAmountMinor: item.price,
+        barcode: item.barcode,
         moq: item.moq,
         quantityStep: item.step,
         status: "ACTIVE",
@@ -497,6 +507,7 @@ async function main() {
         moq: item.moq,
         quantityStep: item.step,
         priceAmountMinor: item.price,
+        barcode: item.barcode,
         currency: "TRY",
         status: "ACTIVE",
       },
@@ -529,12 +540,17 @@ async function main() {
         sortOrder: 0,
       },
     });
+    await database.productFavorite.upsert({
+      where: { userId_productId: { userId: buyerUser.id, productId: product.id } },
+      update: {},
+      create: { userId: buyerUser.id, productId: product.id },
+    });
   }
 }
 
 try {
   await main();
-  console.info("Faz 4C için katalog ve güvenli alıcı/tedarikçi demo seed'i tamamlandı.");
+  console.info("Faz 7B için katalog ve güvenli alıcı/tedarikçi demo seed'i tamamlandı.");
 } finally {
   await database.$disconnect();
 }

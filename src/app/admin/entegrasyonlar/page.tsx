@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 
 import { AdminNavigation } from "@/components/admin/admin-navigation";
 import { requirePageUser } from "@/lib/auth/page-session";
@@ -81,6 +82,9 @@ export default async function AdminMarketplaceIntegrationsPage() {
           Kategori eşleşmesi: {categoryMappings.length}/{categories.length} · Marka eşleşmesi:{" "}
           {brandMappings.length}/{brands.length}
         </p>
+        <Link className="button button-secondary" href="/admin/entegrasyonlar/trendyol">
+          Trendyol eşleştirme merkezini aç
+        </Link>
         <h3>Eşleşmemiş kategoriler</h3>
         <p>
           {categories

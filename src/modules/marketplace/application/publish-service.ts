@@ -11,6 +11,7 @@ import { stableMarketplaceRequestHash } from "../domain/marketplace-rules";
 import type { MarketplacePublishResult } from "../domain/types";
 import { readMarketplaceCredentials } from "./connection-service";
 import { buildTrendyolPreview } from "./trendyol-preview";
+import { evaluateTrendyolLiveReadiness } from "./trendyol-readiness";
 
 type PublishAuditContext = {
   actorId: string;
@@ -102,6 +103,16 @@ export async function publishFavoriteProducts(
       "Önce Trendyol bağlantısını yapılandırın.",
       "MARKETPLACE_CONNECTION_DISCONNECTED",
     );
+  if (serverEnvironment.FEATURE_MARKETPLACE_TRENDYOL) {
+    const readiness = await evaluateTrendyolLiveReadiness(audit.actorId, audit.organizationId);
+    if (readiness.state !== "READY") {
+      throw new HttpError(
+        409,
+        readiness.reasons[0]?.message ?? "Trendyol canlı aktarımı henüz hazır değil.",
+        "MARKETPLACE_LIVE_NOT_READY",
+      );
+    }
+  }
 
   const preview = await buildTrendyolPreview(audit.actorId);
   const requestHash = stableMarketplaceRequestHash({

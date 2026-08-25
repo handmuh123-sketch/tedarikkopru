@@ -27,12 +27,19 @@ export async function POST(request: Request) {
       throw new HttpError(422, "Marka eşleşmesi geçersiz.", "MARKETPLACE_MAPPING_INVALID");
     const brand = await database.brand.findUnique({ where: { id: parsed.data.sourceId } });
     if (!brand) throw new HttpError(404, "Marka bulunamadı.", "BRAND_NOT_FOUND");
+    const externalMetadata = await database.marketplaceExternalBrand.findUnique({
+      where: {
+        channel_externalId: { channel: parsed.data.channel, externalId: parsed.data.externalId },
+      },
+      select: { source: true },
+    });
     const mapping = await database.$transaction(async (transaction) => {
       const updated = await transaction.marketplaceBrandMapping.upsert({
         where: { channel_brandId: { channel: parsed.data.channel, brandId: brand.id } },
         update: {
           externalBrandId: parsed.data.externalId,
           externalBrandName: parsed.data.externalName,
+          metadataSource: externalMetadata?.source ?? "MANUAL",
           isActive: parsed.data.isActive ?? true,
         },
         create: {
@@ -40,6 +47,7 @@ export async function POST(request: Request) {
           brandId: brand.id,
           externalBrandId: parsed.data.externalId,
           externalBrandName: parsed.data.externalName,
+          metadataSource: externalMetadata?.source ?? "MANUAL",
           isActive: parsed.data.isActive ?? true,
         },
       });
@@ -49,7 +57,12 @@ export async function POST(request: Request) {
           action: "marketplace.brand_mapping_updated",
           targetType: "MarketplaceBrandMapping",
           targetId: updated.id,
-          after: { channel: updated.channel, brandId: updated.brandId, active: updated.isActive },
+          after: {
+            channel: updated.channel,
+            brandId: updated.brandId,
+            active: updated.isActive,
+            metadataSource: updated.metadataSource,
+          },
           requestId: resolveRequestId(request.headers.get("x-request-id")),
           network: requestNetworkKey(request),
         }),

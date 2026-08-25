@@ -27,6 +27,12 @@ export async function POST(request: Request) {
       throw new HttpError(422, "Kategori eşleşmesi geçersiz.", "MARKETPLACE_MAPPING_INVALID");
     const category = await database.category.findUnique({ where: { id: parsed.data.sourceId } });
     if (!category) throw new HttpError(404, "Kategori bulunamadı.", "CATEGORY_NOT_FOUND");
+    const externalMetadata = await database.marketplaceExternalCategory.findUnique({
+      where: {
+        channel_externalId: { channel: parsed.data.channel, externalId: parsed.data.externalId },
+      },
+      select: { source: true },
+    });
     const mapping = await database.$transaction(async (transaction) => {
       const updated = await transaction.marketplaceCategoryMapping.upsert({
         where: {
@@ -35,6 +41,7 @@ export async function POST(request: Request) {
         update: {
           externalCategoryId: parsed.data.externalId,
           externalCategoryName: parsed.data.externalName,
+          metadataSource: externalMetadata?.source ?? "MANUAL",
           isActive: parsed.data.isActive ?? true,
         },
         create: {
@@ -42,6 +49,7 @@ export async function POST(request: Request) {
           categoryId: category.id,
           externalCategoryId: parsed.data.externalId,
           externalCategoryName: parsed.data.externalName,
+          metadataSource: externalMetadata?.source ?? "MANUAL",
           isActive: parsed.data.isActive ?? true,
         },
       });
@@ -55,6 +63,7 @@ export async function POST(request: Request) {
             channel: updated.channel,
             categoryId: updated.categoryId,
             active: updated.isActive,
+            metadataSource: updated.metadataSource,
           },
           requestId: resolveRequestId(request.headers.get("x-request-id")),
           network: requestNetworkKey(request),

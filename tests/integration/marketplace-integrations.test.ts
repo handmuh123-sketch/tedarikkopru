@@ -6,6 +6,11 @@ import { POST as createConnection } from "@/app/api/v1/organizations/[organizati
 import { PATCH as updateConnection } from "@/app/api/v1/organizations/[organizationId]/marketplace-connections/[connectionId]/route";
 import { POST as publishFavorites } from "@/app/api/v1/organizations/[organizationId]/marketplace-connections/[connectionId]/publish-favorites/route";
 import { POST as testConnection } from "@/app/api/v1/organizations/[organizationId]/marketplace-connections/[connectionId]/test/route";
+import { POST as updateAttributeMapping } from "@/app/api/v1/admin/marketplace-mappings/attributes/route";
+import { POST as updateBrandMapping } from "@/app/api/v1/admin/marketplace-mappings/brands/route";
+import { POST as updateCategoryMapping } from "@/app/api/v1/admin/marketplace-mappings/categories/route";
+import { POST as syncMetadata } from "@/app/api/v1/admin/marketplace-metadata/trendyol/route";
+import { GET as previewTrendyolDetails } from "@/app/api/v1/marketplace/trendyol/preview/details/route";
 import { GET as previewTrendyol } from "@/app/api/v1/marketplace/trendyol/preview/route";
 import { POST as receiveWebhook } from "@/app/api/v1/marketplace/webhooks/[channel]/[connectionId]/route";
 import { auth } from "@/lib/auth/server";
@@ -36,7 +41,7 @@ function request(
   });
 }
 
-async function register(label: string) {
+async function register(label: string, platformRole: "USER" | "PLATFORM_ADMIN" = "USER") {
   const email = `marketplace-${label}-${randomUUID()}@example.test`;
   await auth.handler(
     request("/api/auth/sign-up/email", "POST", {
@@ -47,7 +52,10 @@ async function register(label: string) {
     }),
   );
   const user = await database.user.findUniqueOrThrow({ where: { email } });
-  await database.user.update({ where: { id: user.id }, data: { emailVerified: true } });
+  await database.user.update({
+    where: { id: user.id },
+    data: { emailVerified: true, platformRole },
+  });
   const login = await auth.handler(
     request("/api/auth/sign-in/email", "POST", { email, password, callbackURL: "/panel" }),
   );
@@ -84,16 +92,18 @@ describe("Faz 7A gerçek PostgreSQL marketplace integration", () => {
   let owner: Awaited<ReturnType<typeof register>>;
   let catalogManager: Awaited<ReturnType<typeof register>>;
   let foreignOwner: Awaited<ReturnType<typeof register>>;
+  let admin: Awaited<ReturnType<typeof register>>;
   let organizationId: string;
   let foreignOrganizationId: string;
   let connectionId: string;
 
   beforeAll(async () => {
     await database.$connect();
-    [owner, catalogManager, foreignOwner] = await Promise.all([
+    [owner, catalogManager, foreignOwner, admin] = await Promise.all([
       register("owner"),
       register("catalog-manager"),
       register("foreign-owner"),
+      register("admin", "PLATFORM_ADMIN"),
     ]);
     const [organization, foreign] = await Promise.all([
       resellerOrganization(owner.user.id, "MarketplaceBuyer", "OWNER"),
@@ -344,6 +354,126 @@ describe("Faz 7A gerçek PostgreSQL marketplace integration", () => {
         where: { organizationId, connectionId, idempotencyKey: key },
       }),
     ).toBe(1);
+  }, 40_000);
+
+  it("provider metadata cache’ini idempotent saklar, admin mapping’i kaynak etiketiyle günceller ve preview detayını scope’lar", async () => {
+    const denied = await syncMetadata(
+      request(
+        "/api/v1/admin/marketplace-metadata/trendyol",
+        "POST",
+        { source: "MOCK", categories: [] },
+        owner.cookie,
+      ),
+    );
+    expect(denied.status).toBe(403);
+
+    const body = {
+      source: "MOCK",
+      categories: [{ externalId: "123", name: "Kablo", isLeaf: true, isActive: true }],
+      brands: [{ externalId: "789", name: "Marka", isActive: true }],
+      attributes: [
+        {
+          externalCategoryId: "123",
+          externalId: "456",
+          name: "Renk",
+          isRequired: true,
+          allowCustom: true,
+          isVariant: false,
+          allowsMultiple: false,
+          values: [{ externalId: "457", name: "Siyah", isActive: true }],
+        },
+      ],
+    };
+    const first = await syncMetadata(
+      request("/api/v1/admin/marketplace-metadata/trendyol", "POST", body, admin.cookie),
+    );
+    expect(first.status).toBe(200);
+    const second = await syncMetadata(
+      request("/api/v1/admin/marketplace-metadata/trendyol", "POST", body, admin.cookie),
+    );
+    expect(second.status).toBe(200);
+    expect(
+      await database.marketplaceExternalCategory.count({
+        where: { channel: "TRENDYOL", externalId: "123" },
+      }),
+    ).toBe(1);
+
+    const favorite = await database.productFavorite.findFirstOrThrow({
+      where: { userId: owner.user.id },
+      include: { product: { select: { categoryId: true, brandId: true } } },
+    });
+    const categoryMapping = await updateCategoryMapping(
+      request(
+        "/api/v1/admin/marketplace-mappings/categories",
+        "POST",
+        {
+          channel: "TRENDYOL",
+          sourceId: favorite.product.categoryId,
+          externalId: "123",
+          externalName: "Kablo",
+        },
+        admin.cookie,
+      ),
+    );
+    expect(categoryMapping.status).toBe(200);
+    const categoryMappingData = (await categoryMapping.json()).data as {
+      id: string;
+      metadataSource: string;
+    };
+    expect(categoryMappingData.metadataSource).toBe("MOCK");
+    const brandMapping = await updateBrandMapping(
+      request(
+        "/api/v1/admin/marketplace-mappings/brands",
+        "POST",
+        {
+          channel: "TRENDYOL",
+          sourceId: favorite.product.brandId,
+          externalId: "789",
+          externalName: "Marka",
+        },
+        admin.cookie,
+      ),
+    );
+    expect(brandMapping.status).toBe(200);
+    const attributeMapping = await updateAttributeMapping(
+      request(
+        "/api/v1/admin/marketplace-mappings/attributes",
+        "POST",
+        {
+          categoryMappingId: categoryMappingData.id,
+          sourceAttributeKey: "renk",
+          externalAttributeId: "456",
+          externalAttributeName: "Renk",
+          externalValueId: "457",
+        },
+        admin.cookie,
+      ),
+    );
+    expect(attributeMapping.status).toBe(200);
+    expect((await attributeMapping.json()).data.metadataSource).toBe("MOCK");
+    expect(
+      await database.marketplaceExternalAttributeValue.count({
+        where: { externalId: "457", attribute: { channel: "TRENDYOL" } },
+      }),
+    ).toBe(1);
+
+    const details = await previewTrendyolDetails(
+      request("/api/v1/marketplace/trendyol/preview/details", "GET", undefined, owner.cookie),
+    );
+    expect(details.status).toBe(200);
+    expect((await details.json()).data.products[0]?.mappingSources).toMatchObject({
+      category: "MOCK",
+      brand: "MOCK",
+    });
+    const foreignDetails = await previewTrendyolDetails(
+      request(
+        "/api/v1/marketplace/trendyol/preview/details",
+        "GET",
+        undefined,
+        foreignOwner.cookie,
+      ),
+    );
+    expect((await foreignDetails.json()).data.products).toHaveLength(0);
   }, 40_000);
 
   it("geçersiz imzayı reddeder, webhook duplicate isteğini idempotent işler", async () => {
