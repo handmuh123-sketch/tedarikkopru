@@ -34,7 +34,12 @@ export function QuoteToCartForm({
 
   return (
     <div className="form-actions">
-      <button className="button button-primary" disabled={pending} onClick={() => void addToCart()} type="button">
+      <button
+        className="button button-primary"
+        disabled={pending}
+        onClick={() => void addToCart()}
+        type="button"
+      >
         {pending ? "Sepete ekleniyor…" : "Teklifi sepete ekle"}
       </button>
       {message && (

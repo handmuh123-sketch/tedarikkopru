@@ -24,7 +24,8 @@ test("alıcı ürünü tek tedarikçili sepete ekler ve rezervasyonlu checkout t
   await expect(page.getByText("Demo Mobil Tedarik", { exact: true }).first()).toBeVisible();
   await page.getByLabel("Miktar", { exact: true }).fill("15");
   const updateResponse = page.waitForResponse(
-    (response) => response.url().includes("/cart/items/") && response.request().method() === "PATCH",
+    (response) =>
+      response.url().includes("/cart/items/") && response.request().method() === "PATCH",
   );
   await page.getByRole("button", { name: "Güncelle" }).click();
   expect((await updateResponse).status()).toBe(200);

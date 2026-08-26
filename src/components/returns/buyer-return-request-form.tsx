@@ -52,11 +52,14 @@ export function BuyerReturnRequestForm({
     setMessage("");
     const key = idempotencyKey ?? crypto.randomUUID();
     setIdempotencyKey(key);
-    const response = await fetch(`/api/v1/organizations/${organizationId}/orders/${orderId}/returns`, {
-      method: "POST",
-      headers: { "content-type": "application/json", "idempotency-key": key },
-      body: JSON.stringify({ reason, buyerNote: buyerNote || undefined, items: returnItems }),
-    });
+    const response = await fetch(
+      `/api/v1/organizations/${organizationId}/orders/${orderId}/returns`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json", "idempotency-key": key },
+        body: JSON.stringify({ reason, buyerNote: buyerNote || undefined, items: returnItems }),
+      },
+    );
     const payload = (await response.json()) as {
       data?: { id: string };
       error?: { message?: string };
@@ -77,7 +80,10 @@ export function BuyerReturnRequestForm({
       <form className="catalog-form" onSubmit={(event) => void submit(event)}>
         <label>
           İade nedeni
-          <select value={reason} onChange={(event) => setReason(event.currentTarget.value as typeof reason)}>
+          <select
+            value={reason}
+            onChange={(event) => setReason(event.currentTarget.value as typeof reason)}
+          >
             {returnReasons.map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -120,13 +126,13 @@ export function BuyerReturnRequestForm({
                         max={item.quantity}
                         step={1}
                         value={quantities[item.id] ?? 0}
-                    onChange={(event) => {
-                      const quantity = event.currentTarget.valueAsNumber || 0;
-                      setQuantities((current) => ({
-                        ...current,
-                        [item.id]: quantity,
-                      }));
-                    }}
+                        onChange={(event) => {
+                          const quantity = event.currentTarget.valueAsNumber || 0;
+                          setQuantities((current) => ({
+                            ...current,
+                            [item.id]: quantity,
+                          }));
+                        }}
                       />
                     </label>
                   </td>

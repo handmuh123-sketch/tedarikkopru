@@ -90,7 +90,11 @@ export function SupplierQuoteForm({ organizationId, rfqId }: Props) {
         <button className="button button-primary" disabled={pending} type="submit">
           {pending ? "Kaydediliyor…" : "Teklif ver"}
         </button>
-        {message && <p className="form-status" role="status">{message}</p>}
+        {message && (
+          <p className="form-status" role="status">
+            {message}
+          </p>
+        )}
       </form>
     </section>
   );

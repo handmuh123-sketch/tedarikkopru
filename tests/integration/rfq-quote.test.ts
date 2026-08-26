@@ -283,7 +283,9 @@ describe("Faz 3C gerçek PostgreSQL RFQ ve teklif", () => {
       409,
     );
     expect(
-      await database.quoteStatusHistory.count({ where: { quoteId: quote.id, toStatus: "OFFERED" } }),
+      await database.quoteStatusHistory.count({
+        where: { quoteId: quote.id, toStatus: "OFFERED" },
+      }),
     ).toBe(1);
     expect(
       await database.rfqStatusHistory.count({
@@ -399,7 +401,12 @@ describe("Faz 3C gerçek PostgreSQL RFQ ve teklif", () => {
 
   it("kabul edilen teklif fiyatını BOLA korumalı biçimde sepete ve checkout'a taşır", async () => {
     const rfq = await createRequest();
-    const offered = await offer(supplierOrganizationId, rfq.id, supplier.cookie, "quote-" + randomUUID());
+    const offered = await offer(
+      supplierOrganizationId,
+      rfq.id,
+      supplier.cookie,
+      "quote-" + randomUUID(),
+    );
     const quote = (await offered.json()).data as { id: string };
     expect(
       (
@@ -439,7 +446,13 @@ describe("Faz 3C gerçek PostgreSQL RFQ ve teklif", () => {
 
     const ownCartRequest = () =>
       request(
-        "/api/v1/organizations/" + buyerOrganizationId + "/rfqs/" + rfq.id + "/quotes/" + quote.id + "/cart",
+        "/api/v1/organizations/" +
+          buyerOrganizationId +
+          "/rfqs/" +
+          rfq.id +
+          "/quotes/" +
+          quote.id +
+          "/cart",
         "POST",
         undefined,
         buyer.cookie,
@@ -447,14 +460,22 @@ describe("Faz 3C gerçek PostgreSQL RFQ ve teklif", () => {
     expect(
       (
         await addQuoteToCart(ownCartRequest(), {
-          params: Promise.resolve({ organizationId: buyerOrganizationId, rfqId: rfq.id, quoteId: quote.id }),
+          params: Promise.resolve({
+            organizationId: buyerOrganizationId,
+            rfqId: rfq.id,
+            quoteId: quote.id,
+          }),
         })
       ).status,
     ).toBe(201);
     expect(
       (
         await addQuoteToCart(ownCartRequest(), {
-          params: Promise.resolve({ organizationId: buyerOrganizationId, rfqId: rfq.id, quoteId: quote.id }),
+          params: Promise.resolve({
+            organizationId: buyerOrganizationId,
+            rfqId: rfq.id,
+            quoteId: quote.id,
+          }),
         })
       ).status,
     ).toBe(201);
@@ -464,7 +485,10 @@ describe("Faz 3C gerçek PostgreSQL RFQ ve teklif", () => {
     expect(cartItem.quantity).toBe(10);
     expect(cartItem.quotedUnitPriceMinor).toBe(11_000);
 
-    await database.productVariant.update({ where: { id: variantId }, data: { priceAmountMinor: 30_000 } });
+    await database.productVariant.update({
+      where: { id: variantId },
+      data: { priceAmountMinor: 30_000 },
+    });
     const checkout = await createCheckout(
       request(
         "/api/v1/organizations/" + buyerOrganizationId + "/checkout",
@@ -477,10 +501,14 @@ describe("Faz 3C gerçek PostgreSQL RFQ ve teklif", () => {
     );
     expect(checkout.status).toBe(201);
     const payload = (await checkout.json()).data as { order: { id: string } };
-    const orderItem = await database.orderItem.findFirstOrThrow({ where: { orderId: payload.order.id } });
+    const orderItem = await database.orderItem.findFirstOrThrow({
+      where: { orderId: payload.order.id },
+    });
     expect(orderItem.unitPriceAmountMinor).toBe(11_000);
     expect(
-      await database.auditLog.count({ where: { targetId: quote.id, action: "rfq.quote_added_to_cart" } }),
+      await database.auditLog.count({
+        where: { targetId: quote.id, action: "rfq.quote_added_to_cart" },
+      }),
     ).toBe(1);
   });
 });

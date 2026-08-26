@@ -11,7 +11,11 @@ type Context = { params: Promise<{ organizationId: string; orderId: string }> };
 export async function POST(request: Request, context: Context) {
   try {
     const { organizationId, orderId } = await context.params;
-    const { user } = await requireOrganizationPermission(request, organizationId, "purchase:manage");
+    const { user } = await requireOrganizationPermission(
+      request,
+      organizationId,
+      "purchase:manage",
+    );
     const limit = await consumeRateLimit(`bank-transfer-start:${user.id}:${organizationId}`, {
       window: 60,
       max: 10,
@@ -19,7 +23,11 @@ export async function POST(request: Request, context: Context) {
     if (!limit.allowed) throw new HttpError(429, "Çok fazla ödeme işlemi.", "RATE_LIMITED");
     const idempotencyKey = request.headers.get("idempotency-key")?.trim() ?? "";
     if (!IDEMPOTENCY_KEY_PATTERN.test(idempotencyKey)) {
-      throw new HttpError(400, "Geçerli bir Idempotency-Key başlığı gerekli.", "INVALID_IDEMPOTENCY_KEY");
+      throw new HttpError(
+        400,
+        "Geçerli bir Idempotency-Key başlığı gerekli.",
+        "INVALID_IDEMPOTENCY_KEY",
+      );
     }
     const body = bankTransferStartSchema.parse(await parseJsonBody(request));
     const payment = await initiateBankTransfer({
@@ -47,7 +55,9 @@ export async function POST(request: Request, context: Context) {
     );
   } catch (error) {
     if (error instanceof Error && error.name === "ZodError") {
-      return errorResponse(new HttpError(422, "Banka transferi bildirimi geçersiz.", "VALIDATION_ERROR"));
+      return errorResponse(
+        new HttpError(422, "Banka transferi bildirimi geçersiz.", "VALIDATION_ERROR"),
+      );
     }
     return errorResponse(error);
   }

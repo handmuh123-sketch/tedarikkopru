@@ -91,9 +91,12 @@ export default async function BuyerRfqDetailPage({ params }: Props) {
               rfqId={rfq.id}
               quoteId={quote.id}
             />
-          ) : rfq.status === "ACCEPTED" && quote.status === "ACCEPTED" && quote.validUntil > new Date() ? (
+          ) : rfq.status === "ACCEPTED" &&
+            quote.status === "ACCEPTED" &&
+            quote.validUntil > new Date() ? (
             <section className="form-status success">
-              Teklif kabul edildi. Teklif fiyatı ve talep miktarı checkout&apos;ta yeniden doğrulanır.
+              Teklif kabul edildi. Teklif fiyatı ve talep miktarı checkout&apos;ta yeniden
+              doğrulanır.
               <QuoteToCartForm
                 organizationId={membership.organizationId}
                 rfqId={rfq.id}
@@ -101,7 +104,9 @@ export default async function BuyerRfqDetailPage({ params }: Props) {
               />
             </section>
           ) : rfq.status === "ACCEPTED" ? (
-            <p className="form-status error">Teklif kabul edilmiş olsa da geçerlilik süresi dolmuş.</p>
+            <p className="form-status error">
+              Teklif kabul edilmiş olsa da geçerlilik süresi dolmuş.
+            </p>
           ) : (
             <p className="form-status">Bu teklif için karar kaydedildi: {quote.status}.</p>
           )}

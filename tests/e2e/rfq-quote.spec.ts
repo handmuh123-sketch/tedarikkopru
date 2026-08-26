@@ -53,7 +53,8 @@ for (const decision of ["ACCEPTED", "REJECTED"] as const) {
       await login(page, "alici@demo.tedarikkopru.local");
       await page.goto("/panel/teklif-talepleri/" + rfq.data.id);
       const decisionResponse = page.waitForResponse(
-        (response) => response.url().endsWith("/decision") && response.request().method() === "POST",
+        (response) =>
+          response.url().endsWith("/decision") && response.request().method() === "POST",
       );
       await page
         .getByRole("button", {
@@ -72,7 +73,8 @@ for (const decision of ["ACCEPTED", "REJECTED"] as const) {
         await expect(page.getByText("Kabul edilen teklif fiyatı")).toBeVisible();
         await page.getByRole("link", { name: "Checkout'a geç" }).click();
         const checkoutResponse = page.waitForResponse(
-          (response) => response.url().endsWith("/checkout") && response.request().method() === "POST",
+          (response) =>
+            response.url().endsWith("/checkout") && response.request().method() === "POST",
         );
         await page.getByRole("button", { name: "Checkout taslağı oluştur" }).click();
         expect((await checkoutResponse).status()).toBe(201);

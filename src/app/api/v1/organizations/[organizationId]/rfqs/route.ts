@@ -10,7 +10,11 @@ type Context = { params: Promise<{ organizationId: string }> };
 export async function POST(request: Request, context: Context) {
   try {
     const { organizationId } = await context.params;
-    const { user } = await requireOrganizationPermission(request, organizationId, "purchase:manage");
+    const { user } = await requireOrganizationPermission(
+      request,
+      organizationId,
+      "purchase:manage",
+    );
     const limit = await consumeRateLimit(`rfq-create:${user.id}:${organizationId}`, {
       window: 60,
       max: 30,

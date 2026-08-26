@@ -119,7 +119,13 @@ export function SupplierShipmentForm({
       <form className="catalog-form" onSubmit={(event) => void createShipment(event)}>
         <label>
           Kargo firması
-          <input name="carrier" autoComplete="organization" required minLength={2} maxLength={120} />
+          <input
+            name="carrier"
+            autoComplete="organization"
+            required
+            minLength={2}
+            maxLength={120}
+          />
         </label>
         <label>
           Takip numarası

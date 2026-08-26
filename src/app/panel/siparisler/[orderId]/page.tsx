@@ -229,14 +229,14 @@ export default async function BuyerOrderDetailPage({ params }: Props) {
           <p>Kargo firması: {order.shipment.carrier}</p>
           <p>Takip numarası: {order.shipment.trackingNumber}</p>
           <p>
-            Kargoya verilme: {" "}
+            Kargoya verilme:{" "}
             {order.shipment.shippedAt.toLocaleDateString("tr-TR", {
               timeZone: "Europe/Istanbul",
             })}
           </p>
           {order.shipment.estimatedDeliveryAt && (
             <p>
-              Tahmini teslim: {" "}
+              Tahmini teslim:{" "}
               {order.shipment.estimatedDeliveryAt.toLocaleDateString("tr-TR", {
                 timeZone: "Europe/Istanbul",
               })}
@@ -244,7 +244,7 @@ export default async function BuyerOrderDetailPage({ params }: Props) {
           )}
           {order.shipment.deliveredAt && (
             <p>
-              Teslim edildi: {" "}
+              Teslim edildi:{" "}
               {order.shipment.deliveredAt.toLocaleString("tr-TR", {
                 timeZone: "Europe/Istanbul",
               })}
@@ -256,7 +256,7 @@ export default async function BuyerOrderDetailPage({ params }: Props) {
               <li key={entry.id}>
                 <strong>{entry.toStatus}</strong>
                 <span>
-                  {entry.reasonCode} · {" "}
+                  {entry.reasonCode} ·{" "}
                   {entry.createdAt.toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" })}
                 </span>
               </li>
@@ -285,14 +285,16 @@ export default async function BuyerOrderDetailPage({ params }: Props) {
                   <p>{returnRequest.buyerNote ?? "Açıklama eklenmedi."}</p>
                   {returnRequest.items.map((item) => (
                     <p key={item.id}>
-                      {item.orderItem.productTitleSnapshot} · {item.orderItem.variantTitleSnapshot} · {item.quantity} adet
+                      {item.orderItem.productTitleSnapshot} · {item.orderItem.variantTitleSnapshot}{" "}
+                      · {item.quantity} adet
                     </p>
                   ))}
                 </div>
                 <div>
                   {returnRequest.refund ? (
                     <p>
-                      Refund kaydı: {formatTryMinor(returnRequest.refund.amountMinor)} · {returnRequest.refund.status}
+                      Refund kaydı: {formatTryMinor(returnRequest.refund.amountMinor)} ·{" "}
+                      {returnRequest.refund.status}
                     </p>
                   ) : (
                     <p>Henüz refund kaydı yok.</p>
@@ -303,7 +305,7 @@ export default async function BuyerOrderDetailPage({ params }: Props) {
                       <li key={entry.id}>
                         <strong>{entry.toStatus}</strong>
                         <span>
-                          {entry.reasonCode} · {" "}
+                          {entry.reasonCode} ·{" "}
                           {entry.createdAt.toLocaleString("tr-TR", {
                             timeZone: "Europe/Istanbul",
                           })}

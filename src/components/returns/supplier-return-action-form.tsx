@@ -101,7 +101,11 @@ export function SupplierReturnActionForm({
             İadeyi reddet
           </button>
         </div>
-        {message && <p className="form-status" role="status">{message}</p>}
+        {message && (
+          <p className="form-status" role="status">
+            {message}
+          </p>
+        )}
       </section>
     );
   }
@@ -119,7 +123,11 @@ export function SupplierReturnActionForm({
         >
           {busy ? "Kaydediliyor…" : "Ürün geri geldi olarak işaretle"}
         </button>
-        {message && <p className="form-status" role="status">{message}</p>}
+        {message && (
+          <p className="form-status" role="status">
+            {message}
+          </p>
+        )}
       </section>
     );
   }

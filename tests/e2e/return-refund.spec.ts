@@ -45,7 +45,8 @@ async function createDeliveredOrder(page: Page, trackingNumber: string) {
   };
   await page.getByRole("link", { name: "Sipariş ve ödeme detayına git" }).click();
   const startResponse = page.waitForResponse(
-    (response) => response.url().endsWith("/payments/mock") && response.request().method() === "POST",
+    (response) =>
+      response.url().endsWith("/payments/mock") && response.request().method() === "POST",
   );
   await page.getByRole("button", { name: "Mock ödemeyi başlat" }).click();
   expect((await startResponse).status()).toBe(201);
@@ -74,7 +75,8 @@ async function createDeliveredOrder(page: Page, trackingNumber: string) {
   await page.getByRole("button", { name: "Kargoya ver" }).click();
   expect((await shipmentResponse).status()).toBe(201);
   const deliveryResponse = page.waitForResponse(
-    (response) => response.url().endsWith("/shipment/deliver") && response.request().method() === "POST",
+    (response) =>
+      response.url().endsWith("/shipment/deliver") && response.request().method() === "POST",
   );
   await page.getByRole("button", { name: "Teslim edildi olarak işaretle" }).click();
   expect((await deliveryResponse).status()).toBe(200);
@@ -105,7 +107,9 @@ async function openReturn(page: Page, orderId: string, quantity: string) {
   return payload.data.id;
 }
 
-test("alıcı iade açar, tedarikçi kabul/refund ve fiziksel teslim alma sonrası tek stok geri koyma yapar", async ({ page }) => {
+test("alıcı iade açar, tedarikçi kabul/refund ve fiziksel teslim alma sonrası tek stok geri koyma yapar", async ({
+  page,
+}) => {
   await login(page, "alici@demo.tedarikkopru.local");
   const order = await createDeliveredOrder(page, "RET-E2E-ACCEPTED-001");
   const returnId = await openReturn(page, order.id, "2");
@@ -196,7 +200,9 @@ test("alıcı iade açar, tedarikçi kabul/refund ve fiziksel teslim alma sonras
   ).toBe(false);
 });
 
-test("tedarikçi iade talebini reddettiğinde refund veya stok geri koyma oluşmaz", async ({ page }) => {
+test("tedarikçi iade talebini reddettiğinde refund veya stok geri koyma oluşmaz", async ({
+  page,
+}) => {
   await login(page, "alici@demo.tedarikkopru.local");
   const order = await createDeliveredOrder(page, "RET-E2E-REJECTED-001");
   const returnId = await openReturn(page, order.id, "1");

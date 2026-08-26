@@ -41,8 +41,8 @@ export default function HomePage() {
             <p className="eyebrow">Pilot MVP · B2B tedarik</p>
             <h1 id="hero-title">İşletmeler arası tedarik için güvenilir bir köprü.</h1>
             <p className="hero-lead">
-              TedarikKöprü; doğrulanmış tedarikçileri ve alıcı işletmeleri katalog, teklif,
-              sipariş, ödeme ve teslimat süreçlerinde güvenle buluşturur.
+              TedarikKöprü; doğrulanmış tedarikçileri ve alıcı işletmeleri katalog, teklif, sipariş,
+              ödeme ve teslimat süreçlerinde güvenle buluşturur.
             </p>
             <div className="hero-actions">
               <Link className="button button-primary" href="/urunler">
@@ -96,8 +96,8 @@ export default function HomePage() {
               <p className="eyebrow">Çalışan pilot akışları</p>
               <h2 id="foundation-title">Tedarik sürecinin kritik adımları tek yerde.</h2>
               <p>
-                Onaylı katalog, tek tedarikçili checkout, pilot ödeme, manuel kargo, iade ve
-                teklif akışları güvenli durum geçişleriyle çalışır.
+                Onaylı katalog, tek tedarikçili checkout, pilot ödeme, manuel kargo, iade ve teklif
+                akışları güvenli durum geçişleriyle çalışır.
               </p>
             </div>
             <div className="capability-grid">

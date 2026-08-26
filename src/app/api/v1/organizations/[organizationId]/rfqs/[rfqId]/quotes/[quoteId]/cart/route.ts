@@ -2,10 +2,7 @@ import { requireOrganizationPermission } from "@/lib/auth/access";
 import { errorResponse, HttpError } from "@/lib/http/errors";
 import { resolveRequestId } from "@/lib/logging/request-id";
 import { consumeRateLimit, requestNetworkKey } from "@/lib/security/rate-limit";
-import {
-  addAcceptedQuoteToCart,
-  cartView,
-} from "@/modules/orders/application/order-service";
+import { addAcceptedQuoteToCart, cartView } from "@/modules/orders/application/order-service";
 
 type Context = {
   params: Promise<{ organizationId: string; rfqId: string; quoteId: string }>;

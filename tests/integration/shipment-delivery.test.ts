@@ -250,7 +250,12 @@ describe("Faz 4A gerçek PostgreSQL kargo ve teslimat", () => {
     orderId: string,
     cookie: string,
     key: string,
-    values?: Partial<{ carrier: string; trackingNumber: string; shippedAt: string; estimatedDeliveryAt: string }>,
+    values?: Partial<{
+      carrier: string;
+      trackingNumber: string;
+      shippedAt: string;
+      estimatedDeliveryAt: string;
+    }>,
   ) {
     const shippedAt = new Date(Date.now() - 86_400_000).toISOString();
     return createShipment(
@@ -306,7 +311,8 @@ describe("Faz 4A gerçek PostgreSQL kargo ve teslimat", () => {
       ).status,
     ).toBe(404);
     expect(
-      (await ship(buyerOrganizationId, draft.order.id, buyer.cookie, `buyer-${randomUUID()}`)).status,
+      (await ship(buyerOrganizationId, draft.order.id, buyer.cookie, `buyer-${randomUUID()}`))
+        .status,
     ).toBe(404);
 
     const shipped = await ship(
@@ -339,7 +345,16 @@ describe("Faz 4A gerçek PostgreSQL kargo ve teslimat", () => {
       ).status,
     ).toBe(409);
 
-    expect((await deliver(foreignSupplierOrganizationId, draft.order.id, foreignSupplier.cookie, `foreign-delivery-${randomUUID()}`)).status).toBe(404);
+    expect(
+      (
+        await deliver(
+          foreignSupplierOrganizationId,
+          draft.order.id,
+          foreignSupplier.cookie,
+          `foreign-delivery-${randomUUID()}`,
+        )
+      ).status,
+    ).toBe(404);
     const delivered = await deliver(
       supplierOrganizationId,
       draft.order.id,
@@ -353,20 +368,33 @@ describe("Faz 4A gerçek PostgreSQL kargo ve teslimat", () => {
         .status,
     ).toBe(200);
     expect(
-      (await ship(supplierOrganizationId, draft.order.id, supplierWarehouse.cookie, `after-delivery-${randomUUID()}`)).status,
+      (
+        await ship(
+          supplierOrganizationId,
+          draft.order.id,
+          supplierWarehouse.cookie,
+          `after-delivery-${randomUUID()}`,
+        )
+      ).status,
     ).toBe(409);
 
-    const [order, persistedShipment, reservation, inventory, shipmentHistoryCount, orderHistoryCount] =
-      await Promise.all([
-        database.order.findUniqueOrThrow({ where: { id: draft.order.id } }),
-        database.shipment.findUniqueOrThrow({ where: { id: shipment.id } }),
-        database.stockReservation.findFirstOrThrow({ where: { checkoutId: draft.checkout.id } }),
-        database.inventory.findUniqueOrThrow({ where: { id: draft.inventory.id } }),
-        database.shipmentStatusHistory.count({ where: { shipmentId: shipment.id } }),
-        database.orderStatusHistory.count({
-          where: { orderId: draft.order.id, toStatus: { in: ["SHIPPED", "DELIVERED"] } },
-        }),
-      ]);
+    const [
+      order,
+      persistedShipment,
+      reservation,
+      inventory,
+      shipmentHistoryCount,
+      orderHistoryCount,
+    ] = await Promise.all([
+      database.order.findUniqueOrThrow({ where: { id: draft.order.id } }),
+      database.shipment.findUniqueOrThrow({ where: { id: shipment.id } }),
+      database.stockReservation.findFirstOrThrow({ where: { checkoutId: draft.checkout.id } }),
+      database.inventory.findUniqueOrThrow({ where: { id: draft.inventory.id } }),
+      database.shipmentStatusHistory.count({ where: { shipmentId: shipment.id } }),
+      database.orderStatusHistory.count({
+        where: { orderId: draft.order.id, toStatus: { in: ["SHIPPED", "DELIVERED"] } },
+      }),
+    ]);
     expect(order.status).toBe("DELIVERED");
     expect(persistedShipment).toMatchObject({ status: "DELIVERED" });
     expect(shipmentHistoryCount).toBe(2);
@@ -382,7 +410,9 @@ describe("Faz 4A gerçek PostgreSQL kargo ve teslimat", () => {
       await database.auditLog.count({ where: { targetId: shipment.id, action: "order.shipped" } }),
     ).toBe(1);
     expect(
-      await database.auditLog.count({ where: { targetId: shipment.id, action: "order.delivered" } }),
+      await database.auditLog.count({
+        where: { targetId: shipment.id, action: "order.delivered" },
+      }),
     ).toBe(1);
   });
 
@@ -401,10 +431,15 @@ describe("Faz 4A gerçek PostgreSQL kargo ve teslimat", () => {
     expect(invalid.status).toBe(422);
     expect(await database.shipment.count({ where: { orderId: draft.order.id } })).toBe(0);
     expect(
-      await database.order.findUniqueOrThrow({ where: { id: draft.order.id }, select: { status: true } }),
+      await database.order.findUniqueOrThrow({
+        where: { id: draft.order.id },
+        select: { status: true },
+      }),
     ).toMatchObject({ status: "ACCEPTED" });
     expect(
-      await database.orderStatusHistory.count({ where: { orderId: draft.order.id, toStatus: "SHIPPED" } }),
+      await database.orderStatusHistory.count({
+        where: { orderId: draft.order.id, toStatus: "SHIPPED" },
+      }),
     ).toBe(0);
   });
 });

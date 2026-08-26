@@ -325,7 +325,9 @@ describe("Phase 1 PostgreSQL security integration", () => {
     expect(
       (
         await adminQueue(
-          new Request(`${baseUrl}/api/v1/admin/verifications`, { headers: { cookie: support.cookie } }),
+          new Request(`${baseUrl}/api/v1/admin/verifications`, {
+            headers: { cookie: support.cookie },
+          }),
         )
       ).status,
     ).toBe(200);

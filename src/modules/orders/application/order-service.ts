@@ -217,12 +217,14 @@ export async function addCartItem(input: {
   });
 }
 
-export async function addAcceptedQuoteToCart(input: RequestEvidence & {
-  buyerOrganizationId: string;
-  rfqId: string;
-  quoteId: string;
-  now?: Date;
-}) {
+export async function addAcceptedQuoteToCart(
+  input: RequestEvidence & {
+    buyerOrganizationId: string;
+    rfqId: string;
+    quoteId: string;
+    now?: Date;
+  },
+) {
   const now = input.now ?? new Date();
   return database.$transaction(async (transaction) => {
     await requireBuyerOrganization(transaction, input.buyerOrganizationId);
@@ -238,7 +240,11 @@ export async function addAcceptedQuoteToCart(input: RequestEvidence & {
     });
     if (!quote) throw new HttpError(404, "Teklif bulunamadı.", "QUOTE_NOT_FOUND");
     if (quote.status !== "ACCEPTED" || quote.rfq.status !== "ACCEPTED") {
-      throw new HttpError(409, "Yalnız kabul edilen teklifler sepete eklenebilir.", "QUOTE_NOT_ACCEPTED");
+      throw new HttpError(
+        409,
+        "Yalnız kabul edilen teklifler sepete eklenebilir.",
+        "QUOTE_NOT_ACCEPTED",
+      );
     }
     if (quote.validUntil <= now) {
       throw new HttpError(409, "Teklifin geçerlilik süresi doldu.", "QUOTE_EXPIRED");
@@ -259,7 +265,8 @@ export async function addAcceptedQuoteToCart(input: RequestEvidence & {
       },
       include: { inventory: true },
     });
-    if (!variant) throw new HttpError(409, "Teklif edilen ürün artık satışta değil.", "VARIANT_UNAVAILABLE");
+    if (!variant)
+      throw new HttpError(409, "Teklif edilen ürün artık satışta değil.", "VARIANT_UNAVAILABLE");
     assertQuantity(quote.rfq.targetQuantity, variant.moq, variant.quantityStep);
     assertAvailable(quote.rfq.targetQuantity, variant.inventory);
 
@@ -374,7 +381,10 @@ export async function updateCartItem(input: {
           "QUOTE_CART_ITEM_INVALID",
         );
       }
-      await transaction.cartItem.update({ where: { id: item.id }, data: { quantity: input.quantity } });
+      await transaction.cartItem.update({
+        where: { id: item.id },
+        data: { quantity: input.quantity },
+      });
     } else {
       await transaction.cartItem.update({
         where: { id: item.id },

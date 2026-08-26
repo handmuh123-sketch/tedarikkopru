@@ -154,7 +154,8 @@ export async function initiateMockPayment(
             mockReference: `${provider === "MOCK" ? "MOCK" : "BANK"}-${randomUUID()}`,
             bankTransferReference:
               provider === "BANK_TRANSFER"
-                ? (input.bankTransferReference ?? `BT-${randomUUID().replaceAll("-", "").slice(0, 20).toUpperCase()}`)
+                ? (input.bankTransferReference ??
+                  `BT-${randomUUID().replaceAll("-", "").slice(0, 20).toUpperCase()}`)
                 : null,
             bankTransferNote: input.bankTransferNote ?? null,
             amountMinor: order.totalAmountMinor,

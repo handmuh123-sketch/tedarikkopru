@@ -76,11 +76,7 @@ function shipmentDeliveryConflict(status: string): HttpError {
   );
 }
 
-function assertShipmentDates(
-  shippedAt: Date,
-  estimatedDeliveryAt: Date | undefined,
-  now: Date,
-) {
+function assertShipmentDates(shippedAt: Date, estimatedDeliveryAt: Date | undefined, now: Date) {
   if (shippedAt > now) {
     throw new HttpError(422, "Kargoya verilme tarihi gelecekte olamaz.", "INVALID_SHIPPED_AT");
   }
@@ -209,7 +205,11 @@ export async function createShipment(input: CreateShipmentInput): Promise<Shipme
           select: { id: true },
         });
         if (existingShipment) {
-          throw new HttpError(409, "Bu sipariş için kargo zaten oluşturuldu.", "SHIPMENT_ALREADY_EXISTS");
+          throw new HttpError(
+            409,
+            "Bu sipariş için kargo zaten oluşturuldu.",
+            "SHIPMENT_ALREADY_EXISTS",
+          );
         }
         if (shipmentCreateResult(order.status) !== "APPLY") {
           throw shipmentCreateConflict(order.status);
@@ -368,7 +368,8 @@ export async function markShipmentDelivered(input: DeliverShipmentInput): Promis
             where: { id: order.id, supplierOrganizationId: input.supplierOrganizationId },
             select: { status: true, shipment: { select: { status: true } } },
           });
-          if (!current?.shipment) throw new HttpError(404, "Kargo bulunamadı.", "SHIPMENT_NOT_FOUND");
+          if (!current?.shipment)
+            throw new HttpError(404, "Kargo bulunamadı.", "SHIPMENT_NOT_FOUND");
           if (shipmentDeliveryResult(current.status, current.shipment.status) === "REPLAY") {
             return transaction.shipment.findUniqueOrThrow({
               where: { id: order.shipment.id },

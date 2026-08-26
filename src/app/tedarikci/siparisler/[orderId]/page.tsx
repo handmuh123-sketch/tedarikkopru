@@ -160,14 +160,14 @@ export default async function SupplierOrderDetailPage({ params }: Props) {
           <p>Kargo firması: {order.shipment.carrier}</p>
           <p>Takip numarası: {order.shipment.trackingNumber}</p>
           <p>
-            Kargoya verilme: {" "}
+            Kargoya verilme:{" "}
             {order.shipment.shippedAt.toLocaleDateString("tr-TR", {
               timeZone: "Europe/Istanbul",
             })}
           </p>
           {order.shipment.estimatedDeliveryAt && (
             <p>
-              Tahmini teslim: {" "}
+              Tahmini teslim:{" "}
               {order.shipment.estimatedDeliveryAt.toLocaleDateString("tr-TR", {
                 timeZone: "Europe/Istanbul",
               })}
@@ -175,7 +175,7 @@ export default async function SupplierOrderDetailPage({ params }: Props) {
           )}
           {order.shipment.deliveredAt && (
             <p>
-              Teslim edildi: {" "}
+              Teslim edildi:{" "}
               {order.shipment.deliveredAt.toLocaleString("tr-TR", {
                 timeZone: "Europe/Istanbul",
               })}
@@ -187,7 +187,7 @@ export default async function SupplierOrderDetailPage({ params }: Props) {
               <li key={entry.id}>
                 <strong>{entry.toStatus}</strong>
                 <span>
-                  {entry.reasonCode} · {" "}
+                  {entry.reasonCode} ·{" "}
                   {entry.createdAt.toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" })}
                 </span>
               </li>
