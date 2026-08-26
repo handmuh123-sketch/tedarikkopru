@@ -31,7 +31,9 @@ test("alıcı paneli görev odaklı gezinme ve sade katalog akışını sunar", 
   await login(page, "alici@demo.tedarikkopru.local", demoUserPassword);
 
   await expect(page.getByRole("heading", { name: /Merhaba,/ })).toBeVisible();
-  await expect(page.locator('[aria-label="Sık kullanılan işlemler"] > a')).toHaveCount(4);
+  const commonActions = page.getByRole("region", { name: "Sık kullanılan işlemler" });
+  await expect(commonActions).toBeVisible();
+  await expect(commonActions.getByRole("link")).toHaveCount(4);
   await expectWorkspaceNavigation(page, "İşletme menüsü");
   await expect(page.locator('a[href^="/admin"]').first()).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
