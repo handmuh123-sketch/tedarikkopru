@@ -20,7 +20,7 @@ async function expectNoHorizontalOverflow(page: Page) {
 
 async function openPlatformNavigation(page: Page) {
   if (test.info().project.name === "chromium-mobile") {
-    await page.getByText("Menü", { exact: true }).click();
+    await page.locator("details.workspace-mobile-menu > summary").click();
     return page.getByRole("navigation", { name: "Platform yönetimi mobil" });
   }
   return page.getByRole("navigation", { name: "Platform yönetimi" });
