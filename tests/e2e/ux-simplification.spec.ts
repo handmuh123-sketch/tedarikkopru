@@ -20,7 +20,7 @@ async function expectNoHorizontalOverflow(page: Page) {
 
 async function expectWorkspaceNavigation(page: Page, label: string) {
   if (test.info().project.name === "chromium-mobile") {
-    await page.getByText("Menü", { exact: true }).click();
+    await page.locator("details.workspace-mobile-menu > summary").click();
     await expect(page.getByRole("navigation", { name: `${label} mobil` })).toBeVisible();
     return;
   }
