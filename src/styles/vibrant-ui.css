@@ -55,7 +55,9 @@ body::before {
 .brand-mark {
   background: linear-gradient(135deg, var(--tk-blue), var(--tk-teal) 56%, var(--tk-mint));
   box-shadow: 0 9px 25px rgba(15, 159, 145, 0.26);
-  transition: transform 220ms ease, box-shadow 220ms ease;
+  transition:
+    transform 220ms ease,
+    box-shadow 220ms ease;
 }
 
 .brand:hover .brand-mark {
@@ -64,7 +66,10 @@ body::before {
 }
 
 .site-header nav a {
-  transition: color 180ms ease, transform 180ms ease, background 180ms ease;
+  transition:
+    color 180ms ease,
+    transform 180ms ease,
+    background 180ms ease;
 }
 
 .site-header nav a:hover {
@@ -180,7 +185,10 @@ body::before {
   overflow: hidden;
   min-height: 3.15rem;
   border-radius: 0.85rem;
-  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
 }
 
 .button::after {
@@ -240,7 +248,14 @@ body::before {
 .hero-orbit::before {
   position: absolute;
   inset: -30%;
-  background: conic-gradient(from 180deg, transparent, rgba(57, 215, 183, 0.17), transparent 24%, rgba(76, 125, 255, 0.16), transparent 52%);
+  background: conic-gradient(
+    from 180deg,
+    transparent,
+    rgba(57, 215, 183, 0.17),
+    transparent 24%,
+    rgba(76, 125, 255, 0.16),
+    transparent 52%
+  );
   content: "";
   animation: tk-spin 18s linear infinite;
 }
@@ -285,7 +300,9 @@ body::before {
 
 .hero-flow-node-center {
   background: linear-gradient(145deg, rgba(76, 125, 255, 0.32), rgba(15, 159, 145, 0.34));
-  box-shadow: 0 16px 45px rgba(57, 215, 183, 0.14), inset 0 1px rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 16px 45px rgba(57, 215, 183, 0.14),
+    inset 0 1px rgba(255, 255, 255, 0.18);
   animation: tk-panel-glow 4s ease-in-out infinite;
 }
 
@@ -344,7 +361,9 @@ body::before {
   background: rgba(255, 255, 255, 0.72);
   box-shadow: 0 14px 45px rgba(8, 25, 46, 0.08);
   backdrop-filter: blur(14px);
-  transition: transform 180ms ease, box-shadow 180ms ease;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .home-quick-card:hover {
@@ -373,7 +392,10 @@ body::before {
   border-color: rgba(15, 118, 110, 0.13);
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(242, 251, 249, 0.9));
   box-shadow: 0 12px 36px rgba(8, 25, 46, 0.07);
-  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease,
+    border-color 200ms ease;
 }
 
 .capability-card::before {
@@ -427,7 +449,11 @@ body::before {
 
 .workspace-nav-list a {
   border: 1px solid transparent;
-  transition: transform 170ms ease, background 170ms ease, color 170ms ease, border-color 170ms ease;
+  transition:
+    transform 170ms ease,
+    background 170ms ease,
+    color 170ms ease,
+    border-color 170ms ease;
 }
 
 .workspace-sidebar-desktop .workspace-nav-list a:hover {
@@ -491,7 +517,13 @@ body::before {
   width: 23rem;
   height: 23rem;
   border-radius: 50%;
-  background: conic-gradient(from 45deg, rgba(57, 215, 183, 0.28), rgba(76, 125, 255, 0.08), rgba(121, 87, 232, 0.18), rgba(57, 215, 183, 0.28));
+  background: conic-gradient(
+    from 45deg,
+    rgba(57, 215, 183, 0.28),
+    rgba(76, 125, 255, 0.08),
+    rgba(121, 87, 232, 0.18),
+    rgba(57, 215, 183, 0.28)
+  );
   content: "";
   filter: blur(2px);
   animation: tk-spin 19s linear infinite;
@@ -541,7 +573,9 @@ body::before {
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 2rem;
   background: linear-gradient(145deg, rgba(76, 125, 255, 0.2), rgba(57, 215, 183, 0.22));
-  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.18), inset 0 1px rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 22px 60px rgba(0, 0, 0, 0.18),
+    inset 0 1px rgba(255, 255, 255, 0.2);
   font-size: 2rem;
   animation: tk-float 3.8s ease-in-out infinite alternate;
 }
@@ -610,9 +644,15 @@ body::before {
 
 .next-step-card {
   border: 1px solid rgba(15, 159, 145, 0.16) !important;
-  background: linear-gradient(110deg, rgba(255, 255, 255, 0.94), rgba(233, 251, 247, 0.92)) !important;
+  background: linear-gradient(
+    110deg,
+    rgba(255, 255, 255, 0.94),
+    rgba(233, 251, 247, 0.92)
+  ) !important;
   box-shadow: 0 15px 46px rgba(8, 25, 46, 0.09);
-  transition: transform 190ms ease, box-shadow 190ms ease;
+  transition:
+    transform 190ms ease,
+    box-shadow 190ms ease;
 }
 
 .next-step-card:hover {
@@ -635,7 +675,10 @@ body::before {
     radial-gradient(circle at 90% 5%, rgba(75, 200, 233, 0.12), transparent 9rem),
     linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(245, 252, 250, 0.94)) !important;
   box-shadow: 0 14px 42px rgba(8, 25, 46, 0.08) !important;
-  transition: transform 190ms ease, box-shadow 190ms ease, border-color 190ms ease;
+  transition:
+    transform 190ms ease,
+    box-shadow 190ms ease,
+    border-color 190ms ease;
   animation: tk-rise 520ms ease both;
 }
 
@@ -705,7 +748,9 @@ body::before {
   border-radius: 50%;
   background: var(--tk-navy);
   color: white;
-  transition: transform 180ms ease, background 180ms ease;
+  transition:
+    transform 180ms ease,
+    background 180ms ease;
 }
 
 .task-card:hover .task-card-arrow {
@@ -734,7 +779,8 @@ body::before {
 }
 
 @keyframes tk-dot {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 0 5px rgba(57, 215, 183, 0.11);
   }
   50% {
@@ -758,7 +804,8 @@ body::before {
 }
 
 @keyframes tk-arrow {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateX(-2px);
     opacity: 0.65;
   }
@@ -769,16 +816,22 @@ body::before {
 }
 
 @keyframes tk-panel-glow {
-  0%, 100% {
-    box-shadow: 0 16px 45px rgba(57, 215, 183, 0.12), inset 0 1px rgba(255, 255, 255, 0.18);
+  0%,
+  100% {
+    box-shadow:
+      0 16px 45px rgba(57, 215, 183, 0.12),
+      inset 0 1px rgba(255, 255, 255, 0.18);
   }
   50% {
-    box-shadow: 0 20px 58px rgba(75, 200, 233, 0.23), inset 0 1px rgba(255, 255, 255, 0.2);
+    box-shadow:
+      0 20px 58px rgba(75, 200, 233, 0.23),
+      inset 0 1px rgba(255, 255, 255, 0.2);
   }
 }
 
 @keyframes tk-pulse-soft {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.75;
     transform: scale(0.96);
   }

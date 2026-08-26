@@ -18,7 +18,8 @@ const quickPoints = [
   },
   {
     title: "Pazaryerine taşı",
-    detail: "Trendyol hazırlığını kontrol edin; ileride doğrudan mağaza bağlantılarıyla yayınlayın.",
+    detail:
+      "Trendyol hazırlığını kontrol edin; ileride doğrudan mağaza bağlantılarıyla yayınlayın.",
   },
 ] as const;
 
