@@ -143,7 +143,7 @@ export default async function PanelPage() {
             }
           : null;
 
-  const primaryAction = actions[0];
+  const primaryAction = actions[0]!;
   const secondaryAction = buyerMembership
     ? { href: "/panel/entegrasyonlar", title: "Pazaryeri merkezi" }
     : supplierMembership
