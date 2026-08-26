@@ -107,28 +107,29 @@ export function WorkspaceNavigation({ area, userName, platformRole, memberships 
           <NavigationLinks items={navigation.secondary} pathname={pathname} />
         </details>
         {area !== "admin" ? (
-          <details className="workspace-context" open>
-            <summary>
-              <span>İşletme erişimi</span>
-              <strong>{firstMembership ? firstMembership.tradeName : "İşletme oluşturun"}</strong>
-            </summary>
-            <ul>
-              {memberships.length > 0 ? (
-                memberships.map((membership) => (
+          memberships.length > 0 ? (
+            <details className="workspace-context" open>
+              <summary>
+                <span>İşletme erişimi</span>
+                <strong>{firstMembership?.tradeName}</strong>
+              </summary>
+              <ul>
+                {memberships.map((membership) => (
                   <li key={membership.id}>
                     <strong>{membership.tradeName}</strong>
                     <span>
                       {membership.type} · {membership.role} · {membership.verificationStatus}
                     </span>
                   </li>
-                ))
-              ) : (
-                <li>
-                  <span>İşletme bağlamı eklemek için onboarding akışını başlatın.</span>
-                </li>
-              )}
-            </ul>
-          </details>
+                ))}
+              </ul>
+            </details>
+          ) : (
+            <Link className="workspace-empty-business" href="/onboarding">
+              <strong>+ İşletme ekle</strong>
+              <span>Ticari işlemler ve pazaryeri aktarımı için işletme profilinizi oluşturun.</span>
+            </Link>
+          )
         ) : null}
         <div className="workspace-user">
           <span>{userName}</span>
