@@ -1,0 +1,125 @@
+name: Verify UX final
+
+on:
+  push:
+    branches: [ci/verify-ux-final]
+
+permissions:
+  contents: read
+
+env:
+  APP_URL: http://127.0.0.1:3000
+  APP_TIMEZONE: Europe/Istanbul
+  DATABASE_URL: postgresql://tedarikkopru:ci-only@127.0.0.1:5432/tedarikkopru_test?schema=public
+  DIRECT_URL: postgresql://tedarikkopru:ci-only@127.0.0.1:5432/tedarikkopru_test?schema=public
+  AUTH_SECRET: ci-only-auth-secret-with-at-least-thirty-two-characters
+  DATA_ENCRYPTION_KEY: ci-only-data-key-with-at-least-thirty-two-characters
+  CRON_SECRET: ci-only-cron-secret-with-at-least-thirty-two-characters
+  S3_ENDPOINT: http://127.0.0.1:9000
+  S3_REGION: auto
+  S3_BUCKET_PRIVATE: tedarikkopru-private
+  S3_BUCKET_PUBLIC: tedarikkopru-public
+  S3_ACCESS_KEY: local-minio-access
+  S3_SECRET_KEY: local-minio-secret-change-me
+  S3_FORCE_PATH_STYLE: "true"
+  EMAIL_PROVIDER: log
+  EMAIL_FROM: noreply@localhost
+  EMAIL_SMTP_HOST: 127.0.0.1
+  EMAIL_SMTP_PORT: "1025"
+  DOCUMENT_MAX_BYTES: "5242880"
+  DEMO_SEED_ENABLED: "true"
+  DEMO_ADMIN_PASSWORD: Faz1-Admin-CI-2026!
+  DEMO_USER_PASSWORD: Faz1-Isletme-CI-2026!
+  PAYMENT_PROVIDER: mock
+  FEATURE_LIVE_PAYMENTS: "false"
+  FEATURE_DROPSHIPPING: "false"
+  FEATURE_MARKETPLACE_TRENDYOL: "false"
+  FEATURE_MARKETPLACE_HEPSIBURADA: "false"
+  FEATURE_MARKETPLACE_AMAZON_TR: "false"
+  FEATURE_CARRIER_INTEGRATIONS: "false"
+  FEATURE_RFQ: "false"
+  FEATURE_REVIEWS: "false"
+  FEATURE_MULTI_SUPPLIER_CHECKOUT: "false"
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18.4-alpine
+        env:
+          POSTGRES_DB: tedarikkopru_test
+          POSTGRES_USER: tedarikkopru
+          POSTGRES_PASSWORD: ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tedarikkopru -d tedarikkopru_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/ux-1-simplified-dashboard
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: docker compose up -d minio
+      - run: pnpm db:migrate
+      - run: pnpm db:seed
+      - run: pnpm services:validate
+      - run: pnpm openapi:generate
+      - run: git diff --exit-code -- docs/openapi.json
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm test:integration
+      - run: pnpm build
+        env:
+          NODE_ENV: production
+          APP_URL: https://ci.example.invalid
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18.4-alpine
+        env:
+          POSTGRES_DB: tedarikkopru_test
+          POSTGRES_USER: tedarikkopru
+          POSTGRES_PASSWORD: ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tedarikkopru -d tedarikkopru_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/ux-1-simplified-dashboard
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: docker compose up -d minio mailpit
+      - run: pnpm db:migrate
+      - run: pnpm db:seed
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+        env:
+          EMAIL_PROVIDER: smtp
