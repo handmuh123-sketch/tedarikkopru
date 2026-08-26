@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FavoriteButton } from "@/components/catalog/favorite-button";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { getPageUser } from "@/lib/auth/page-session";
 import { database } from "@/lib/db/client";
 import {
@@ -57,12 +58,9 @@ export default async function ProductsPage({ searchParams }: Props) {
     <main id="ana-icerik" className="catalog-page" tabIndex={-1}>
       <header className="catalog-header">
         <div>
-          <Link className="brand" href="/">
-            <span className="brand-mark">TK</span>
-            <span>TedarikKöprü</span>
-          </Link>
+          <Breadcrumbs items={[{ href: "/", label: "Ana sayfa" }, { label: "Ürünler" }]} />
           <p className="eyebrow">Onaylı B2B katalog</p>
-          <h1>Telefon aksesuarları</h1>
+          <h1>Ürünleri keşfedin</h1>
           <p>Yalnız stokta ve satışa uygun, doğrulanmış tedarikçi ürünleri.</p>
         </div>
         <div className="dashboard-actions">
@@ -76,56 +74,62 @@ export default async function ProductsPage({ searchParams }: Props) {
           </Link>
         </div>
       </header>
-      <form className="catalog-filters" method="get" role="search">
-        <label className="filter-search">
-          Ürün ara
-          <input name="q" defaultValue={query} maxLength={80} placeholder="Kablo, kılıf veya SKU" />
-        </label>
-        <label>
-          Kategori
-          <select name="category" defaultValue={category ?? ""}>
-            <option value="">Tümü</option>
-            {categories.map((item) => (
-              <option key={item.slug} value={item.slug}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Marka
-          <select name="brand" defaultValue={brand ?? ""}>
-            <option value="">Tümü</option>
-            {brands.map((item) => (
-              <option key={item.slug} value={item.slug}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          En düşük fiyat (TL)
-          <input name="minPrice" inputMode="decimal" defaultValue={minPrice} placeholder="50" />
-        </label>
-        <label>
-          En yüksek fiyat (TL)
-          <input name="maxPrice" inputMode="decimal" defaultValue={maxPrice} placeholder="500" />
-        </label>
-        <label className="checkbox-label">
-          <input type="checkbox" name="inStock" defaultChecked disabled />
-          Yalnız stokta olanlar (zorunlu)
-        </label>
-        <button className="button button-primary" type="submit">
-          Filtrele
-        </button>
-        <Link className="button button-secondary" href="/urunler">
-          Temizle
-        </Link>
-      </form>
+      <details className="catalog-filter-disclosure" open>
+        <summary>Arama ve filtreler</summary>
+        <form className="catalog-filters" method="get" role="search">
+          <label className="filter-search">
+            Ürün ara
+            <input name="q" defaultValue={query} maxLength={80} placeholder="Ürün adı veya SKU" />
+          </label>
+          <label>
+            Kategori
+            <select name="category" defaultValue={category ?? ""}>
+              <option value="">Tümü</option>
+              {categories.map((item) => (
+                <option key={item.slug} value={item.slug}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Marka
+            <select name="brand" defaultValue={brand ?? ""}>
+              <option value="">Tümü</option>
+              {brands.map((item) => (
+                <option key={item.slug} value={item.slug}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            En düşük fiyat (TL)
+            <input name="minPrice" inputMode="decimal" defaultValue={minPrice} placeholder="50" />
+          </label>
+          <label>
+            En yüksek fiyat (TL)
+            <input name="maxPrice" inputMode="decimal" defaultValue={maxPrice} placeholder="500" />
+          </label>
+          <label className="checkbox-label">
+            <input type="checkbox" name="inStock" defaultChecked disabled />
+            Yalnız stokta olanlar
+          </label>
+          <button className="button button-primary" type="submit">
+            Filtrele
+          </button>
+          <Link className="button button-secondary" href="/urunler">
+            Temizle
+          </Link>
+        </form>
+      </details>
       {products.length === 0 && (
         <section className="dashboard-card">
           <h2>Sonuç bulunamadı</h2>
           <p>Arama veya filtreleri değiştirerek tekrar deneyin.</p>
+          <Link className="button button-secondary" href="/urunler">
+            Filtreleri temizle
+          </Link>
         </section>
       )}
       <p role="status">{products.length} kullanılabilir ürün bulundu.</p>
