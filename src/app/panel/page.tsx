@@ -190,9 +190,11 @@ export default async function PanelPage() {
         <article className="panel-summary-card">
           <span className="panel-summary-label">Pazaryeri hazırlığı</span>
           <strong className="panel-summary-value">
-            {readyProducts}/{previewProducts}
+            {previewProducts === 0 ? "—" : `${readyProducts}/${previewProducts}`}
           </strong>
-          <span className="panel-summary-note">Hazır ürün / seçili ürün</span>
+          <span className="panel-summary-note">
+            {previewProducts === 0 ? "Favorilerden ürün seçin" : "Hazır ürün / seçili ürün"}
+          </span>
         </article>
       </section>
 
@@ -206,6 +208,14 @@ export default async function PanelPage() {
           <span>Devam et</span>
         </Link>
       ) : null}
+
+      <div className="panel-section-heading">
+        <div>
+          <p className="eyebrow">Hızlı erişim</p>
+          <h2>Sık kullandığınız işlemler</h2>
+        </div>
+        <span>Ürün, favori, işletme ve pazaryeri işlemlerine tek tıkla ulaşın.</span>
+      </div>
 
       <section className="task-grid" aria-label="Sık kullanılan işlemler">
         {actions.map((action) => (
