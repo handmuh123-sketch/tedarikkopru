@@ -12,30 +12,11 @@ import type {
 } from "../domain/types";
 import { validationIssue, validationResult } from "../domain/marketplace-rules";
 
-function correlationId(): string {
-  return `tk-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
 async function liveHealthCheck(
   channel: MarketplaceChannel,
   credentials: MarketplaceConnectionCredentials,
 ): Promise<MarketplaceConnectionHealth> {
   try {
-    if (channel === "PTTAVM") {
-      const response = await fetch("https://integration-api.pttavm.com/api/v1/categories/main", {
-        headers: {
-          Accept: "application/json",
-          "Api-Key": credentials.apiKey,
-          "Access-Token": credentials.apiSecret,
-          "X-Correlation-Id": correlationId(),
-        },
-        cache: "no-store",
-      });
-      return response.ok
-        ? { valid: true, mode: "LIVE" }
-        : { valid: false, mode: "LIVE", code: `PTTAVM_HTTP_${response.status}` };
-    }
-
     if (channel === "HEPSIBURADA") {
       const base =
         credentials.environment === "STAGE"
@@ -73,6 +54,66 @@ async function liveHealthCheck(
         : { valid: false, mode: "LIVE", code: `N11_HTTP_${response.status}` };
     }
 
+    if (channel === "PAZARAMA") {
+      const auth = Buffer.from(`${credentials.apiKey}:${credentials.apiSecret}`).toString("base64");
+      const body = new URLSearchParams({
+        grant_type: "client_credentials",
+        scope: "merchantgatewayapi.fullaccess",
+      });
+      const response = await fetch("https://isortagimgiris.pazarama.com/connect/token", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Basic ${auth}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body,
+        cache: "no-store",
+      });
+      return response.ok
+        ? { valid: true, mode: "LIVE" }
+        : { valid: false, mode: "LIVE", code: `PAZARAMA_HTTP_${response.status}` };
+    }
+
+    if (channel === "CICEKSEPETI") {
+      const base =
+        credentials.environment === "STAGE"
+          ? "https://sandbox-apis.ciceksepeti.com/api/v1"
+          : "https://apis.ciceksepeti.com/api/v1";
+      const response = await fetch(`${base}/Categories`, {
+        headers: {
+          Accept: "application/json",
+          "x-api-key": credentials.apiKey,
+          "User-Agent": `TedarikKopru/${credentials.sellerId}`,
+        },
+        cache: "no-store",
+      });
+      return response.ok
+        ? { valid: true, mode: "LIVE" }
+        : { valid: false, mode: "LIVE", code: `CICEKSEPETI_HTTP_${response.status}` };
+    }
+
+    if (channel === "AMAZON_TR") {
+      if (!credentials.refreshToken) {
+        return { valid: false, mode: "PREVIEW", code: "AMAZON_REFRESH_TOKEN_REQUIRED" };
+      }
+      const body = new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: credentials.refreshToken,
+        client_id: credentials.apiKey,
+        client_secret: credentials.apiSecret,
+      });
+      const response = await fetch("https://api.amazon.com/auth/o2/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+        body,
+        cache: "no-store",
+      });
+      return response.ok
+        ? { valid: true, mode: "LIVE" }
+        : { valid: false, mode: "LIVE", code: `AMAZON_LWA_HTTP_${response.status}` };
+    }
+
     return { valid: true, mode: "PREVIEW", code: "PROVIDER_APPROVAL_REQUIRED" };
   } catch {
     return { valid: false, mode: "LIVE", code: `${channel}_CONNECTION_FAILED` };
@@ -80,7 +121,7 @@ async function liveHealthCheck(
 }
 
 export class MultiChannelMarketplaceAdapter implements MarketplaceChannelAdapter {
-  constructor(readonly channel: Exclude<MarketplaceChannel, "TRENDYOL">) {}
+  constructor(readonly channel: Exclude<MarketplaceChannel, "TRENDYOL" | "PTTAVM" | "IDEFIX">) {}
 
   async validateConnection(
     credentials: MarketplaceConnectionCredentials | null,
