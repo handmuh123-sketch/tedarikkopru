@@ -81,7 +81,10 @@ export default async function TrendyolIntegrationPage() {
         <div>
           <p className="eyebrow">Trendyol entegrasyonu</p>
           <h1>Trendyol mağazanızı yönetin</h1>
-          <p>Kategori, marka ve özellik eşlemelerini kontrol edin; bağlantıyı test edip canlı yayına hazırlanın.</p>
+          <p>
+            Kategori, marka ve özellik eşlemelerini kontrol edin; bağlantıyı test edip canlı yayına
+            hazırlanın.
+          </p>
         </div>
         <StatusBadge
           label={readiness?.state === "READY" ? "Canlıya hazır" : "Hazırlık"}
@@ -122,6 +125,7 @@ export default async function TrendyolIntegrationPage() {
                 <MarketplaceConnectionTestButton
                   connectionId={connection.id}
                   organizationId={organization.id}
+                  providerName="Trendyol"
                 />
                 <MarketplacePublishButton
                   connectionId={connection.id}
@@ -129,12 +133,15 @@ export default async function TrendyolIntegrationPage() {
                     serverEnvironment.FEATURE_MARKETPLACE_TRENDYOL && readiness?.state === "READY"
                   }
                   organizationId={organization.id}
+                  providerName="Trendyol"
                 />
               </div>
             ) : null}
           </>
         ) : (
-          <p>Bağlantı kimlik bilgilerini yalnız işletme sahibi veya işletme yöneticisi değiştirebilir.</p>
+          <p>
+            Bağlantı kimlik bilgilerini yalnız işletme sahibi veya işletme yöneticisi değiştirebilir.
+          </p>
         )}
       </section>
 
