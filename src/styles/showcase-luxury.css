@@ -343,8 +343,7 @@ body::after {
   overflow: hidden;
   border-color: rgba(255, 255, 255, 0.75);
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(246, 251, 255, 0.73)),
-    var(--tk-glass);
+    linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(246, 251, 255, 0.73)), var(--tk-glass);
   box-shadow:
     0 20px 60px rgba(8, 25, 46, 0.08),
     inset 0 1px rgba(255, 255, 255, 0.96);
@@ -358,7 +357,12 @@ body::after {
 .product-card::after {
   position: absolute;
   inset: 0;
-  background: linear-gradient(118deg, transparent 25%, rgba(255, 255, 255, 0.44) 47%, transparent 68%);
+  background: linear-gradient(
+    118deg,
+    transparent 25%,
+    rgba(255, 255, 255, 0.44) 47%,
+    transparent 68%
+  );
   content: "";
   opacity: 0;
   pointer-events: none;
