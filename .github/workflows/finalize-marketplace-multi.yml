@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   finalize:
-    if: github.event.head_commit.message != 'chore: finalize marketplace multi-channel'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -47,22 +46,27 @@ jobs:
             CICEKSEPETI
             IDEFIX
           }'''
-          if old not in text:
+          if old in text:
+              text = text.replace(old, new, 1)
+          elif '    N11\n' not in text and '  N11\n' not in text:
               raise SystemExit('MarketplaceChannel enum block not found')
-          schema.write_text(text.replace(old, new, 1), encoding='utf-8')
+          schema.write_text(text, encoding='utf-8')
 
           service = Path('src/modules/marketplace/application/connection-service.ts')
           text = service.read_text(encoding='utf-8')
           old_field = '  webhookApiKey?: string | undefined;\n};'
           new_field = '  webhookApiKey?: string | undefined;\n  refreshToken?: string | undefined;\n};'
-          if old_field not in text:
-              raise SystemExit('credential patch field insertion point not found')
-          text = text.replace(old_field, new_field, 1)
+          if 'refreshToken?: string | undefined;' not in text:
+              if old_field not in text:
+                  raise SystemExit('credential patch field insertion point not found')
+              text = text.replace(old_field, new_field, 1)
           old_next = '    webhookApiKey: input.webhookApiKey ?? existing?.webhookApiKey,\n  };'
           new_next = '    webhookApiKey: input.webhookApiKey ?? existing?.webhookApiKey,\n    refreshToken: input.refreshToken ?? existing?.refreshToken,\n  };'
-          if old_next not in text:
-              raise SystemExit('credential normalization insertion point not found')
-          service.write_text(text.replace(old_next, new_next, 1), encoding='utf-8')
+          if 'refreshToken: input.refreshToken ?? existing?.refreshToken' not in text:
+              if old_next not in text:
+                  raise SystemExit('credential normalization insertion point not found')
+              text = text.replace(old_next, new_next, 1)
+          service.write_text(text, encoding='utf-8')
           PY
       - run: pnpm exec prisma format --schema prisma/schema.prisma
       - name: Format changed files
