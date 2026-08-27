@@ -6,6 +6,7 @@ import { getPageUser } from "@/lib/auth/page-session";
 import { database } from "@/lib/db/client";
 import {
   findPublicProducts,
+  parseCatalogSort,
   parseTryFilterMinor,
 } from "@/modules/catalog/application/public-catalog";
 import { formatTryMinor } from "@/modules/catalog/domain/product-rules";
@@ -23,6 +24,7 @@ export default async function ProductsPage({ searchParams }: Props) {
   const brand = first(params.brand)?.trim() || undefined;
   const minPrice = first(params.minPrice);
   const maxPrice = first(params.maxPrice);
+  const sort = parseCatalogSort(first(params.sort));
   const [products, categories, brands, pageUser] = await Promise.all([
     findPublicProducts({
       query,
@@ -30,6 +32,7 @@ export default async function ProductsPage({ searchParams }: Props) {
       brand,
       minPriceMinor: parseTryFilterMinor(minPrice),
       maxPriceMinor: parseTryFilterMinor(maxPrice),
+      sort,
     }),
     database.category.findMany({
       where: { isActive: true },
@@ -54,6 +57,25 @@ export default async function ProductsPage({ searchParams }: Props) {
       )
     : new Set<string>();
 
+  const categoryName = categories.find((item) => item.slug === category)?.name;
+  const brandName = brands.find((item) => item.slug === brand)?.name;
+  const activeFilters = [
+    query ? `Arama: ${query}` : null,
+    categoryName ? `Kategori: ${categoryName}` : null,
+    brandName ? `Marka: ${brandName}` : null,
+    minPrice ? `Min: ${minPrice} TL` : null,
+    maxPrice ? `Maks: ${maxPrice} TL` : null,
+  ].filter((item): item is string => Boolean(item));
+
+  const sortLabel =
+    sort === "price-asc"
+      ? "Fiyat: düşükten yükseğe"
+      : sort === "price-desc"
+        ? "Fiyat: yüksekten düşüğe"
+        : sort === "title"
+          ? "Ürün adına göre"
+          : "En yeni";
+
   return (
     <main id="ana-icerik" className="catalog-page" tabIndex={-1}>
       <header className="catalog-header">
@@ -74,6 +96,7 @@ export default async function ProductsPage({ searchParams }: Props) {
           </Link>
         </div>
       </header>
+
       <details className="catalog-filter-disclosure" open>
         <summary>Arama ve filtreler</summary>
         <form className="catalog-filters" method="get" role="search">
@@ -111,18 +134,37 @@ export default async function ProductsPage({ searchParams }: Props) {
             En yüksek fiyat (TL)
             <input name="maxPrice" inputMode="decimal" defaultValue={maxPrice} placeholder="500" />
           </label>
+          <label>
+            Sıralama
+            <select name="sort" defaultValue={sort}>
+              <option value="newest">En yeni</option>
+              <option value="price-asc">Fiyat: düşükten yükseğe</option>
+              <option value="price-desc">Fiyat: yüksekten düşüğe</option>
+              <option value="title">Ürün adına göre</option>
+            </select>
+          </label>
           <label className="checkbox-label">
             <input type="checkbox" name="inStock" defaultChecked disabled />
             Yalnız stokta olanlar
           </label>
           <button className="button button-primary" type="submit">
-            Filtrele
+            Sonuçları göster
           </button>
           <Link className="button button-secondary" href="/urunler">
             Temizle
           </Link>
         </form>
+        {activeFilters.length > 0 ? (
+          <div className="catalog-filter-note" aria-label="Aktif filtreler">
+            {activeFilters.map((filter) => (
+              <span className="catalog-filter-pill" key={filter}>
+                {filter}
+              </span>
+            ))}
+          </div>
+        ) : null}
       </details>
+
       {products.length === 0 && (
         <section className="dashboard-card">
           <h2>Sonuç bulunamadı</h2>
@@ -132,7 +174,15 @@ export default async function ProductsPage({ searchParams }: Props) {
           </Link>
         </section>
       )}
-      <p role="status">{products.length} kullanılabilir ürün bulundu.</p>
+
+      <div className="catalog-toolbar" role="status" aria-live="polite">
+        <div className="catalog-result-copy">
+          <strong>{products.length} kullanılabilir ürün</strong>
+          <span>Stok ve satış uygunluğu kontrol edilmiş sonuçlar</span>
+        </div>
+        <span className="catalog-filter-pill">{sortLabel}</span>
+      </div>
+
       <section className="product-grid" aria-label="Yayındaki ürünler">
         {products.map((product) => {
           const variant = product.variants[0]!;
@@ -166,9 +216,8 @@ export default async function ProductsPage({ searchParams }: Props) {
                   <strong className="product-price">
                     {formatTryMinor(variant.priceAmountMinor)}
                   </strong>
-                  <small>
-                    Minimum {variant.moq} adet · Kullanılabilir {stock} adet
-                  </small>
+                  <span className="product-stock-badge">Stokta · {stock} adet kullanılabilir</span>
+                  <small>Minimum sipariş {variant.moq} adet</small>
                   <span className="supplier-name">{product.supplierOrganization.tradeName}</span>
                 </div>
               </Link>

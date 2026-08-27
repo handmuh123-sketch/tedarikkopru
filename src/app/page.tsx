@@ -23,6 +23,78 @@ const quickPoints = [
   },
 ] as const;
 
+const rolePaths = [
+  {
+    eyebrow: "Pazaryeri satıcısı için",
+    title: "Ürün bulmaktan satışa hazırlığa kadar daha kısa yol.",
+    detail:
+      "Dağınık Excel dosyaları ve mesaj trafiği yerine; ürün, fiyat, stok, favori, sipariş ve pazaryeri hazırlığını aynı panelde yönetin.",
+    points: [
+      "Stokta olan ürünleri keşfedin",
+      "Favori listenizi satış havuzuna dönüştürün",
+      "Pazaryeri veri eksiklerini yayından önce görün",
+    ],
+    href: "/urunler",
+    action: "Kataloğu incele",
+    tone: "buyer",
+  },
+  {
+    eyebrow: "Toptancı için",
+    title: "Kataloğunuzu daha düzenli ve erişilebilir yönetin.",
+    detail:
+      "Ürünleri, varyantları ve stokları tek merkezden yönetin; onaylı alıcılara kontrollü biçimde açın ve sipariş operasyonunu takip edin.",
+    points: [
+      "Ürün ve varyant kataloğu",
+      "Stok hareketleri ve güvenli rezervasyon",
+      "Sipariş, teklif, kargo ve iade akışları",
+    ],
+    href: "/kayit",
+    action: "Tedarikçi hesabı oluştur",
+    tone: "supplier",
+  },
+] as const;
+
+const marketplaceSteps = [
+  {
+    number: "01",
+    title: "Seç",
+    detail: "Katalogdan satmak istediğiniz ürünleri favorilerinize alın.",
+  },
+  {
+    number: "02",
+    title: "Kontrol et",
+    detail: "Kategori, marka, özellik ve görsel hazırlığını ürün bazında görün.",
+  },
+  {
+    number: "03",
+    title: "Hazırla",
+    detail: "XML dışa aktarımını veya kontrollü pazaryeri önizlemesini kullanın.",
+  },
+] as const;
+
+const faqs = [
+  {
+    question: "TedarikKöprü kimler için?",
+    answer:
+      "Türkiye'deki toptancılar, markalar ve pazaryerlerinde satış yapan işletmeler için tasarlanan B2B tedarik platformudur.",
+  },
+  {
+    question: "Ürünleri doğrudan Trendyol'a gönderebilir miyim?",
+    answer:
+      "Platformda Trendyol veri hazırlığı, eşleştirme ve önizleme altyapısı bulunur. Gerçek mağaza bağlantısı yalnız gerekli canlı kimlik bilgileri ve kontrollü entegrasyon adımları tamamlandığında devreye alınır.",
+  },
+  {
+    question: "Tedarikçi stokları nasıl korunuyor?",
+    answer:
+      "Stok hareketleri kayıt altındadır; checkout sırasında rezervasyon ve kullanılabilir stok kontrolleri uygulanır. Amaç aynı stokun birden fazla siparişte kullanılmasını önlemektir.",
+  },
+  {
+    question: "İşletme doğrulaması neden gerekli?",
+    answer:
+      "B2B işlemlerinde tarafların yetkisini ve işletme bağlamını ayırmak için doğrulama akışı kullanılır. Roller ve erişimler sunucu tarafında ayrıca kontrol edilir.",
+  },
+] as const;
+
 export default function HomePage() {
   const capabilities = getFoundationCapabilities();
 
@@ -39,7 +111,7 @@ export default function HomePage() {
           <Link className="nav-products" href="/urunler">
             Ürünler
           </Link>
-          <a className="nav-section-link" href="#altyapi">
+          <a className="nav-section-link" href="#nasil-calisir">
             Nasıl çalışır?
           </a>
           <Link className="nav-login" href="/giris">
@@ -126,6 +198,70 @@ export default function HomePage() {
           ))}
         </section>
 
+        <section className="role-section page-shell" aria-labelledby="role-title">
+          <div className="section-heading premium-section-heading">
+            <p className="eyebrow">İki taraf, tek operasyon</p>
+            <h2 id="role-title">Hangi tarafta olursanız olun, dağınıklığı azaltın.</h2>
+            <p>
+              TedarikKöprü; alıcı ve tedarikçi ekranlarını aynı kalıba sıkıştırmak yerine, her role
+              ihtiyacı olan işlemleri öne çıkarır.
+            </p>
+          </div>
+          <div className="role-grid">
+            {rolePaths.map((role) => (
+              <article className={`role-card role-card-${role.tone}`} key={role.eyebrow}>
+                <p className="eyebrow">{role.eyebrow}</p>
+                <h3>{role.title}</h3>
+                <p>{role.detail}</p>
+                <ul>
+                  {role.points.map((point) => (
+                    <li key={point}>{point}</li>
+                  ))}
+                </ul>
+                <Link className="role-card-link" href={role.href}>
+                  {role.action} <span aria-hidden="true">→</span>
+                </Link>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section
+          className="marketplace-showcase"
+          id="nasil-calisir"
+          aria-labelledby="marketplace-title"
+        >
+          <div className="page-shell marketplace-showcase-inner">
+            <div className="marketplace-copy">
+              <p className="eyebrow">Pazaryeri hazırlığı</p>
+              <h2 id="marketplace-title">
+                Ürünü seçtikten sonra ne eksik olduğunu tahmin etmeyin.
+              </h2>
+              <p>
+                Favorileriniz satış havuzunuz olur. TedarikKöprü, ürün verisini pazaryeri hazırlığı
+                açısından kontrol eder ve eksikleri yayın aşamasına gelmeden görünür kılar.
+              </p>
+              <div className="marketplace-actions">
+                <Link className="button button-primary" href="/panel/entegrasyonlar">
+                  Pazaryeri merkezini aç
+                </Link>
+                <Link className="button button-dark-ghost" href="/panel/favoriler">
+                  Favorilerimi gör
+                </Link>
+              </div>
+            </div>
+            <div className="marketplace-step-grid" aria-label="Pazaryeri hazırlık adımları">
+              {marketplaceSteps.map((step) => (
+                <article className="marketplace-step" key={step.number}>
+                  <span>{step.number}</span>
+                  <h3>{step.title}</h3>
+                  <p>{step.detail}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section className="foundation-section" id="altyapi" aria-labelledby="foundation-title">
           <div className="page-shell">
             <div className="section-heading">
@@ -167,12 +303,58 @@ export default function HomePage() {
             <Link href="/panel">İşletme paneline geç →</Link>
           </div>
         </section>
+
+        <section className="faq-section page-shell" aria-labelledby="faq-title">
+          <div className="section-heading premium-section-heading">
+            <p className="eyebrow">Kısa cevaplar</p>
+            <h2 id="faq-title">Merak edilenler.</h2>
+          </div>
+          <div className="faq-grid">
+            {faqs.map((faq, index) => (
+              <details className="faq-item" key={faq.question} open={index === 0}>
+                <summary>{faq.question}</summary>
+                <p>{faq.answer}</p>
+              </details>
+            ))}
+          </div>
+        </section>
+
+        <section className="final-cta page-shell" aria-labelledby="final-cta-title">
+          <div>
+            <p className="eyebrow">Tedarik operasyonunu sadeleştirin</p>
+            <h2 id="final-cta-title">Bir sonraki satılabilir ürününüz katalogda olabilir.</h2>
+            <p>
+              Ürünleri inceleyin veya işletme hesabınızı oluşturup kendi çalışma alanınızı açın.
+            </p>
+          </div>
+          <div className="final-cta-actions">
+            <Link className="button button-primary" href="/urunler">
+              Kataloğa git
+            </Link>
+            <Link className="button button-secondary" href="/kayit">
+              Hesap oluştur
+            </Link>
+          </div>
+        </section>
       </main>
 
-      <footer className="site-footer">
-        <div className="page-shell footer-inner">
-          <span>TedarikKöprü</span>
-          <span>Toptancı ile pazaryeri satıcısı arasında tek köprü</span>
+      <footer className="site-footer premium-footer">
+        <div className="page-shell premium-footer-grid">
+          <div>
+            <span className="brand footer-brand">
+              <span className="brand-mark" aria-hidden="true">
+                TK
+              </span>
+              <span>TedarikKöprü</span>
+            </span>
+            <p>Toptancı ile pazaryeri satıcısı arasında daha düzenli bir ticaret köprüsü.</p>
+          </div>
+          <nav aria-label="Alt bilgi bağlantıları">
+            <Link href="/urunler">Ürünler</Link>
+            <Link href="/panel">Panel</Link>
+            <Link href="/giris">Giriş</Link>
+            <Link href="/kayit">Kayıt</Link>
+          </nav>
         </div>
       </footer>
     </>
