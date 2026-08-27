@@ -4,12 +4,15 @@ import { Prisma } from "@/generated/prisma/client";
 import { database } from "@/lib/db/client";
 import { availableStock } from "@/modules/inventory/domain/inventory-rules";
 
+export type CatalogSort = "newest" | "price-asc" | "price-desc" | "title";
+
 export type CatalogFilters = {
   query?: string | undefined;
   category?: string | undefined;
   brand?: string | undefined;
   minPriceMinor?: number | undefined;
   maxPriceMinor?: number | undefined;
+  sort?: CatalogSort | undefined;
 };
 
 export function parseTryFilterMinor(value: string | undefined): number | undefined {
@@ -19,6 +22,10 @@ export function parseTryFilterMinor(value: string | undefined): number | undefin
   const [whole = "0", fraction = ""] = normalized.split(".");
   const result = Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
   return Number.isSafeInteger(result) && result >= 0 ? result : undefined;
+}
+
+export function parseCatalogSort(value: string | undefined): CatalogSort {
+  return value === "price-asc" || value === "price-desc" || value === "title" ? value : "newest";
 }
 
 export function publicCatalogWhere(filters: CatalogFilters = {}): Prisma.ProductWhereInput {
@@ -80,7 +87,8 @@ export async function findPublicProducts(filters: CatalogFilters = {}) {
     orderBy: [{ publishedAt: "desc" }, { id: "desc" }],
     take: 100,
   });
-  return candidates
+
+  const products = candidates
     .map((product) => ({
       ...product,
       variants: product.variants.filter(
@@ -93,8 +101,20 @@ export async function findPublicProducts(filters: CatalogFilters = {}) {
           ) > 0,
       ),
     }))
-    .filter((product) => product.variants.length > 0)
-    .slice(0, 48);
+    .filter((product) => product.variants.length > 0);
+
+  const sort = filters.sort ?? "newest";
+  if (sort === "title") {
+    products.sort((a, b) => a.title.localeCompare(b.title, "tr"));
+  } else if (sort === "price-asc" || sort === "price-desc") {
+    products.sort((a, b) => {
+      const priceA = Math.min(...a.variants.map((variant) => variant.priceAmountMinor));
+      const priceB = Math.min(...b.variants.map((variant) => variant.priceAmountMinor));
+      return sort === "price-asc" ? priceA - priceB : priceB - priceA;
+    });
+  }
+
+  return products.slice(0, 48);
 }
 
 export async function findPublicProductBySlug(slug: string) {
