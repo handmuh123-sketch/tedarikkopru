@@ -11,6 +11,8 @@ import { findPublicProductBySlug } from "@/modules/catalog/application/public-ca
 import { formatTryMinor } from "@/modules/catalog/domain/product-rules";
 import { availableStock } from "@/modules/inventory/domain/inventory-rules";
 import { opportunityLevelLabel } from "@/modules/intelligence/opportunity-score";
+import { getSupplierTrustScore } from "@/modules/intelligence/supplier-trust-service";
+import { supplierTrustLabel } from "@/modules/intelligence/supplier-trust";
 
 export const dynamic = "force-dynamic";
 type Props = { params: Promise<{ slug: string }> };
@@ -31,32 +33,35 @@ export default async function ProductDetailPage({ params }: Props) {
   const [product, pageUser] = await Promise.all([findPublicProductBySlug(slug), getPageUser()]);
   if (!product || product.variants.length === 0) notFound();
   const variant = product.variants[0]!;
-  const favorite = pageUser
-    ? Boolean(
-        await database.productFavorite.findUnique({
-          where: { userId_productId: { userId: pageUser.user.id, productId: product.id } },
-          select: { id: true },
-        }),
-      )
-    : false;
-  const buyerMembership = pageUser
-    ? await database.organizationMembership.findFirst({
-        where: {
-          userId: pageUser.user.id,
-          status: "ACTIVE",
-          role: { in: ["OWNER", "ORG_ADMIN", "ORDER_MANAGER"] },
-          organization: {
-            type: { in: ["RESELLER", "BOTH"] },
+  const [favorite, buyerMembership, supplierTrust] = await Promise.all([
+    pageUser
+      ? database.productFavorite
+          .findUnique({
+            where: { userId_productId: { userId: pageUser.user.id, productId: product.id } },
+            select: { id: true },
+          })
+          .then(Boolean)
+      : Promise.resolve(false),
+    pageUser
+      ? database.organizationMembership.findFirst({
+          where: {
+            userId: pageUser.user.id,
             status: "ACTIVE",
-            verificationStatus: "APPROVED",
+            role: { in: ["OWNER", "ORG_ADMIN", "ORDER_MANAGER"] },
+            organization: {
+              type: { in: ["RESELLER", "BOTH"] },
+              status: "ACTIVE",
+              verificationStatus: "APPROVED",
+            },
           },
-        },
-        include: {
-          organization: { include: { buyerCart: { select: { supplierOrganizationId: true } } } },
-        },
-        orderBy: { createdAt: "asc" },
-      })
-    : null;
+          include: {
+            organization: { include: { buyerCart: { select: { supplierOrganizationId: true } } } },
+          },
+          orderBy: { createdAt: "asc" },
+        })
+      : Promise.resolve(null),
+    getSupplierTrustScore(product.supplierOrganizationId),
+  ]);
   const image = product.images[0];
   return (
     <main id="ana-icerik" className="catalog-page product-intelligence-page" tabIndex={-1}>
@@ -143,6 +148,31 @@ export default async function ProductDetailPage({ params }: Props) {
               ) : null}
             </section>
           ) : null}
+
+          <section className="supplier-trust-panel" aria-labelledby="supplier-trust-title">
+            <div className="product-opportunity-heading">
+              <div>
+                <p className="eyebrow">Tedarikçi güven sinyali</p>
+                <h2 id="supplier-trust-title">{supplierTrustLabel(supplierTrust)}</h2>
+              </div>
+              <div className={`supplier-trust-score trust-${supplierTrust.level}`}>
+                {supplierTrust.score === null ? "—" : `${supplierTrust.score}/100`}
+              </div>
+            </div>
+            <p>
+              {supplierTrust.available
+                ? `${supplierTrust.sampleSize} gerçek sipariş operasyonundan kabul, sevkiyat, zamanında teslimat ve iade sinyalleri değerlendirildi.`
+                : `${supplierTrust.sampleSize}/5 uygun operasyon var. Yeterli gerçek veri oluşmadan tedarikçiye puan vermiyoruz.`}
+            </p>
+            {supplierTrust.available ? (
+              <div className="supplier-trust-metrics">
+                <span>Kabul <strong>%{supplierTrust.metrics.acceptanceRate ?? 0}</strong></span>
+                <span>Sevkiyat <strong>%{supplierTrust.metrics.fulfillmentRate ?? 0}</strong></span>
+                <span>Zamanında <strong>%{supplierTrust.metrics.onTimeDeliveryRate ?? 0}</strong></span>
+                <span>İade <strong>%{supplierTrust.metrics.returnRate ?? 0}</strong></span>
+              </div>
+            ) : null}
+          </section>
 
           <ProfitCalculator wholesalePriceMinor={variant.priceAmountMinor} />
 
