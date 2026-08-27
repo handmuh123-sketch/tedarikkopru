@@ -68,13 +68,15 @@ export default async function ProductsPage({ searchParams }: Props) {
   ].filter((item): item is string => Boolean(item));
 
   const sortLabel =
-    sort === "price-asc"
-      ? "Fiyat: düşükten yükseğe"
-      : sort === "price-desc"
-        ? "Fiyat: yüksekten düşüğe"
-        : sort === "title"
-          ? "Ürün adına göre"
-          : "En yeni";
+    sort === "opportunity"
+      ? "TedarikKöprü fırsat skoru"
+      : sort === "price-asc"
+        ? "Fiyat: düşükten yükseğe"
+        : sort === "price-desc"
+          ? "Fiyat: yüksekten düşüğe"
+          : sort === "title"
+            ? "Ürün adına göre"
+            : "En yeni";
 
   return (
     <main id="ana-icerik" className="catalog-page" tabIndex={-1}>
@@ -87,9 +89,14 @@ export default async function ProductsPage({ searchParams }: Props) {
         </div>
         <div className="dashboard-actions">
           {pageUser && (
-            <Link className="button button-secondary" href="/panel/favoriler">
-              Favorilerim
-            </Link>
+            <>
+              <Link className="button button-primary" href="/panel/firsatlar">
+                Akıllı Ürün Radarı
+              </Link>
+              <Link className="button button-secondary" href="/panel/favoriler">
+                Favorilerim
+              </Link>
+            </>
           )}
           <Link className="button button-secondary" href={pageUser ? "/panel" : "/giris"}>
             {pageUser ? "Panele dön" : "İşletme girişi"}
@@ -137,6 +144,7 @@ export default async function ProductsPage({ searchParams }: Props) {
           <label>
             Sıralama
             <select name="sort" defaultValue={sort}>
+              <option value="opportunity">Fırsat skoru</option>
               <option value="newest">En yeni</option>
               <option value="price-asc">Fiyat: düşükten yükseğe</option>
               <option value="price-desc">Fiyat: yüksekten düşüğe</option>
@@ -206,6 +214,12 @@ export default async function ProductsPage({ searchParams }: Props) {
                   ) : (
                     <span aria-hidden="true">TK</span>
                   )}
+                  {product.opportunity ? (
+                    <div className="catalog-opportunity-score">
+                      <strong>{product.opportunity.score}</strong>
+                      <span>Radar</span>
+                    </div>
+                  ) : null}
                 </div>
                 <div className="product-card-body">
                   <p className="product-meta">
@@ -217,6 +231,12 @@ export default async function ProductsPage({ searchParams }: Props) {
                     {formatTryMinor(variant.priceAmountMinor)}
                   </strong>
                   <span className="product-stock-badge">Stokta · {stock} adet kullanılabilir</span>
+                  {product.opportunity ? (
+                    <div className="catalog-opportunity-meta">
+                      <span>{product.opportunity.readyChannelCount}/8 pazaryeri hazır</span>
+                      <span>{product.opportunity.reasons[0]}</span>
+                    </div>
+                  ) : null}
                   <small>Minimum sipariş {variant.moq} adet</small>
                   <span className="supplier-name">{product.supplierOrganization.tradeName}</span>
                 </div>
