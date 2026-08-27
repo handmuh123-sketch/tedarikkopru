@@ -4,10 +4,43 @@ import type { ReactNode } from "react";
 import "@/styles/globals.css";
 import "@/styles/vibrant-ui.css";
 import "@/styles/ux-polish.css";
+import "@/styles/ux-premium.css";
 
 export const metadata: Metadata = {
-  title: "TedarikKöprü | İşletmeler arası tedarik",
-  description: "Doğrulanmış işletmeleri güvenli tedarik süreçlerinde buluşturan B2B platformu.",
+  metadataBase: new URL("https://tedarikkopru.onrender.com"),
+  title: {
+    default: "TedarikKöprü | Toptancıdan pazaryerine B2B tedarik",
+    template: "%s | TedarikKöprü",
+  },
+  description:
+    "Doğrulanmış toptancılar ile pazaryeri satıcılarını ürün, stok, sipariş ve pazaryeri hazırlığında buluşturan B2B tedarik platformu.",
+  applicationName: "TedarikKöprü",
+  keywords: [
+    "B2B tedarik",
+    "toptancı",
+    "pazaryeri satıcısı",
+    "ürün kataloğu",
+    "stok yönetimi",
+    "Trendyol ürün hazırlığı",
+  ],
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: "/",
+    siteName: "TedarikKöprü",
+    title: "TedarikKöprü | Toptancıdan pazaryerine B2B tedarik",
+    description:
+      "Ürünü keşfedin, favorilerinizi hazırlayın, stok ve siparişleri yönetin; pazaryeri hazırlığına tek panelden ilerleyin.",
+  },
+  twitter: {
+    card: "summary",
+    title: "TedarikKöprü | B2B tedarik platformu",
+    description: "Toptancılar ve pazaryeri satıcıları için daha düzenli bir tedarik akışı.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
