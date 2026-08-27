@@ -24,6 +24,7 @@ type MarketplaceCredentialsPatch = {
   shipmentAddressId?: number | undefined;
   returningAddressId?: number | undefined;
   webhookApiKey?: string | undefined;
+  refreshToken?: string | undefined;
 };
 
 type ConnectionInput = {
@@ -84,6 +85,7 @@ function normalizedCredentials(
     shipmentAddressId: input.shipmentAddressId ?? existing?.shipmentAddressId,
     returningAddressId: input.returningAddressId ?? existing?.returningAddressId,
     webhookApiKey: input.webhookApiKey ?? existing?.webhookApiKey,
+    refreshToken: input.refreshToken ?? existing?.refreshToken,
   };
   if (!next.sellerId || !next.apiKey || !next.apiSecret) {
     if (existing) return existing;

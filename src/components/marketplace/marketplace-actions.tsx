@@ -8,9 +8,11 @@ import { useHydrated } from "@/lib/react/use-hydrated";
 export function MarketplaceConnectionTestButton({
   organizationId,
   connectionId,
+  providerName = "Pazaryeri",
 }: {
   organizationId: string;
   connectionId: string;
+  providerName?: string;
 }) {
   const hydrated = useHydrated();
   const router = useRouter();
@@ -27,8 +29,8 @@ export function MarketplaceConnectionTestButton({
       setMessage(
         response.ok
           ? result?.data?.mode === "PREVIEW"
-            ? "Test modu doğrulandı; gerçek Trendyol çağrısı yapılmadı."
-            : "Canlı bağlantı doğrulandı."
+            ? `${providerName} hazırlık bağlantısı doğrulandı; canlı sağlayıcı çağrısı yapılmadı.`
+            : `${providerName} canlı bağlantısı doğrulandı.`
           : (result?.error?.message ?? "Bağlantı testi tamamlanamadı."),
       );
       if (response.ok) router.refresh();
@@ -57,10 +59,12 @@ export function MarketplacePublishButton({
   organizationId,
   connectionId,
   liveEnabled,
+  providerName = "Pazaryeri",
 }: {
   organizationId: string;
   connectionId: string;
   liveEnabled: boolean;
+  providerName?: string;
 }) {
   const hydrated = useHydrated();
   const router = useRouter();
@@ -94,11 +98,9 @@ export function MarketplacePublishButton({
         onClick={() => void publish()}
         type="button"
       >
-        {busy ? "Gönderiliyor…" : "Trendyol’a aktar"}
+        {busy ? "Gönderiliyor…" : `${providerName}’a aktar`}
       </button>
-      {!liveEnabled && (
-        <p>Canlı bağlantı henüz etkin değil. Test modu — gerçek gönderim yapılmaz.</p>
-      )}
+      {!liveEnabled && <p>Canlı bağlantı henüz etkin değil. Gerçek gönderim yapılmaz.</p>}
       {message && <p role="status">{message}</p>}
     </div>
   );

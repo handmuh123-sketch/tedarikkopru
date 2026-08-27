@@ -1,4 +1,13 @@
-export const marketplaceChannels = ["TRENDYOL", "HEPSIBURADA", "AMAZON_TR"] as const;
+export const marketplaceChannels = [
+  "TRENDYOL",
+  "HEPSIBURADA",
+  "AMAZON_TR",
+  "N11",
+  "PAZARAMA",
+  "PTTAVM",
+  "CICEKSEPETI",
+  "IDEFIX",
+] as const;
 
 export type MarketplaceChannel = (typeof marketplaceChannels)[number];
 
@@ -50,6 +59,7 @@ export type MarketplaceConnectionCredentials = {
   shipmentAddressId?: number;
   returningAddressId?: number;
   webhookApiKey?: string;
+  refreshToken?: string;
 };
 
 export type MarketplaceConnectionHealth = {

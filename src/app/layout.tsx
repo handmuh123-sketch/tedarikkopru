@@ -6,6 +6,8 @@ import "@/styles/vibrant-ui.css";
 import "@/styles/ux-polish.css";
 import "@/styles/ux-premium.css";
 import "@/styles/home-entry.css";
+import "@/styles/marketplace-hub.css";
+import "@/styles/showcase-luxury.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://tedarikkopru.onrender.com"),
@@ -22,7 +24,10 @@ export const metadata: Metadata = {
     "pazaryeri satıcısı",
     "ürün kataloğu",
     "stok yönetimi",
+    "pazaryeri entegrasyonu",
     "Trendyol ürün hazırlığı",
+    "Hepsiburada entegrasyonu",
+    "PttAVM entegrasyonu",
   ],
   openGraph: {
     type: "website",
