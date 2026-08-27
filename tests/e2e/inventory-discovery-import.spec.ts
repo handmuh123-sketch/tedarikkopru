@@ -12,11 +12,7 @@ async function login(page: import("@playwright/test").Page, email: string, passw
 test("tedarikçi stoğu günceller; public arama ve filtre kullanılabilir ürünü bulur", async ({
   page,
 }) => {
-  await login(
-    page,
-    "tedarikci@demo.tedarikkopru.local",
-    demoUserPassword,
-  );
+  await login(page, "tedarikci@demo.tedarikkopru.local", demoUserPassword);
   await page.getByRole("link", { name: "Stokları yönet" }).click();
   const stockCard = page.locator("article").filter({ hasText: "60W Örgülü USB-C Kablo" });
   await expect(stockCard).toBeVisible();
@@ -46,11 +42,7 @@ test("tedarikçi stoğu günceller; public arama ve filtre kullanılabilir ürü
 });
 
 test("alıcı ürünü favoriler ve kendi favori ekranında görür", async ({ page }) => {
-  await login(
-    page,
-    "alici@demo.tedarikkopru.local",
-    demoUserPassword,
-  );
+  await login(page, "alici@demo.tedarikkopru.local", demoUserPassword);
   await page.goto("/urunler?q=60W");
   const card = page.locator("article").filter({ hasText: "60W Örgülü USB-C Kablo" });
   await expect(card).toBeVisible();
@@ -62,7 +54,9 @@ test("alıcı ürünü favoriler ve kendi favori ekranında görür", async ({ p
   await expect(page.getByRole("heading", { name: "60W Örgülü USB-C Kablo" })).toBeVisible();
 });
 
-test("public katalog boş sonucu ve filtreleri temizleme yolunu açıkça gösterir", async ({ page }) => {
+test("public katalog boş sonucu ve filtreleri temizleme yolunu açıkça gösterir", async ({
+  page,
+}) => {
   await page.goto("/urunler");
   await page.getByLabel("Ürün ara").fill("sonucu-olmayan-qa-arama");
   await page.getByRole("button", { name: "Filtrele" }).click();
@@ -84,11 +78,7 @@ test("CSV import önce önizleme ve satır hatası üretir, sonra geçerli satı
     `${sku},${title},KöprüTech,telefon-aksesuarlari/sarj-kablolari,Standart,E2E import önizlemesi için yeterince uzun ve güvenli ürün açıklaması,20,179.90,5,5,35,5,2`,
     `BAD-${suffix},Hatalı,Kayıp,bilinmeyen,Standart,kısa,20,0,0,0,-1,0,2`,
   ].join("\n");
-  await login(
-    page,
-    "tedarikci@demo.tedarikkopru.local",
-    demoUserPassword,
-  );
+  await login(page, "tedarikci@demo.tedarikkopru.local", demoUserPassword);
   await page.goto("/tedarikci/import");
   await page.getByLabel("CSV veya XLSX ürün dosyası").setInputFiles({
     name: `e2e-import-${suffix}.csv`,

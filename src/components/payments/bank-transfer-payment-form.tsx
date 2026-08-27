@@ -55,7 +55,9 @@ export function BankTransferPaymentForm({
       <p className="form-help">IBAN: {iban}</p>
       {payment ? (
         <>
-          <p className="form-help">Ödeme referansı: <strong>{payment.bankTransferReference}</strong></p>
+          <p className="form-help">
+            Ödeme referansı: <strong>{payment.bankTransferReference}</strong>
+          </p>
           <span className="status-pill">Ödeme: {payment.status}</span>
         </>
       ) : (
@@ -67,12 +69,21 @@ export function BankTransferPaymentForm({
             maxLength={500}
             onChange={(event) => setNote(event.currentTarget.value)}
           />
-          <button className="button button-primary" disabled={pending} onClick={() => void start()} type="button">
+          <button
+            className="button button-primary"
+            disabled={pending}
+            onClick={() => void start()}
+            type="button"
+          >
             {pending ? "Kaydediliyor…" : "Banka transferi bildirimi oluştur"}
           </button>
         </>
       )}
-      {message && <p className="form-status success" role="status">{message}</p>}
+      {message && (
+        <p className="form-status success" role="status">
+          {message}
+        </p>
+      )}
     </section>
   );
 }

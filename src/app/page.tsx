@@ -3,8 +3,24 @@ import { getFoundationCapabilities } from "@/modules/system";
 
 const trustPoints = [
   "Doğrulanmış işletme odağı",
-  "Türkiye operasyonlarına uygun temel",
-  "Canlı entegrasyonlar varsayılan kapalı",
+  "Toptancıdan pazaryerine tek akış",
+  "Canlı entegrasyonlar kontrollü",
+] as const;
+
+const quickPoints = [
+  {
+    title: "Ürünü keşfet",
+    detail: "Onaylı tedarikçilerden ürün, stok ve fiyatları tek katalogda karşılaştırın.",
+  },
+  {
+    title: "Favoriye ekle",
+    detail: "Satmak istediğiniz ürünleri seçin ve pazaryeri hazırlığını tek yerde yönetin.",
+  },
+  {
+    title: "Pazaryerine taşı",
+    detail:
+      "Trendyol hazırlığını kontrol edin; ileride doğrudan mağaza bağlantılarıyla yayınlayın.",
+  },
 ] as const;
 
 export default function HomePage() {
@@ -24,29 +40,36 @@ export default function HomePage() {
             Ürünler
           </Link>
           <a className="nav-section-link" href="#altyapi">
-            Pilot akışları
+            Nasıl çalışır?
           </a>
-          <a className="nav-section-link" href="#guven">
-            Güven yaklaşımı
-          </a>
-          <a className="nav-status" href="/api/health/live">
-            Sistem durumu
-          </a>
+          <Link className="nav-login" href="/giris">
+            Giriş yap
+          </Link>
+          <Link className="nav-panel" href="/panel">
+            Panele git
+          </Link>
         </nav>
       </header>
 
-      <main id="ana-icerik" tabIndex={-1}>
+      <main id="ana-icerik" className="home-main" tabIndex={-1}>
         <section className="hero page-shell" aria-labelledby="hero-title">
           <div className="hero-copy">
-            <p className="eyebrow">Pilot MVP · B2B tedarik</p>
-            <h1 id="hero-title">İşletmeler arası tedarik için güvenilir bir köprü.</h1>
+            <span className="hero-badge">Toptancıdan pazaryerine yeni nesil B2B köprü</span>
+            <p className="eyebrow">Tedarik · katalog · pazaryeri</p>
+            <h1 id="hero-title">
+              Ürünü bulun, seçin ve <span className="hero-gradient-text">satışa taşıyın.</span>
+            </h1>
             <p className="hero-lead">
-              TedarikKöprü; doğrulanmış tedarikçileri ve alıcı işletmeleri katalog, teklif,
-              sipariş, ödeme ve teslimat süreçlerinde güvenle buluşturur.
+              TedarikKöprü; toptancıları ve pazaryeri satıcılarını aynı akışta buluşturur. Ürünleri
+              keşfedin, favorilerinizi hazırlayın, stok ve siparişleri yönetin; pazaryeri aktarımına
+              tek panelden ilerleyin.
             </p>
             <div className="hero-actions">
               <Link className="button button-primary" href="/urunler">
-                Pilot ürünleri incele
+                Ürünleri keşfet
+              </Link>
+              <Link className="button button-secondary" href="/panel">
+                Paneli aç
               </Link>
               <Link className="button button-secondary" href="/kayit">
                 İşletme hesabı oluştur
@@ -59,35 +82,48 @@ export default function HomePage() {
             </ul>
           </div>
 
-          <aside className="foundation-card" aria-label="Pilot özeti">
-            <div className="card-topline">
-              <span>Pilot MVP</span>
-              <span className="status-dot">Çalışıyor</span>
+          <aside className="hero-visual" aria-label="TedarikKöprü akış özeti">
+            <div className="hero-orbit">
+              <span className="market-chip market-chip-one">Stok senkronu</span>
+              <span className="market-chip market-chip-two">Ürün verisi hazır</span>
+              <span className="market-chip market-chip-three">Pazaryeri önizleme</span>
+              <div className="hero-flow">
+                <div className="hero-flow-node">
+                  <div>
+                    <strong>Toptancı</strong>
+                    <span>Ürün · fiyat · stok</span>
+                  </div>
+                </div>
+                <span className="hero-flow-arrow" aria-hidden="true">
+                  →
+                </span>
+                <div className="hero-flow-node hero-flow-node-center">
+                  <div>
+                    <strong>TedarikKöprü</strong>
+                    <span>Seç · yönet · hazırla</span>
+                  </div>
+                </div>
+                <span className="hero-flow-arrow" aria-hidden="true">
+                  →
+                </span>
+                <div className="hero-flow-node">
+                  <div>
+                    <strong>Pazaryeri</strong>
+                    <span>Trendyol · diğerleri</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="bridge-visual" aria-hidden="true">
-              <span className="bridge-node bridge-node-left">T</span>
-              <span className="bridge-line" />
-              <span className="bridge-node bridge-node-right">A</span>
-            </div>
-            <dl className="metric-grid">
-              <div>
-                <dt>Mimari</dt>
-                <dd>Modüler monolit</dd>
-              </div>
-              <div>
-                <dt>Yerel veri</dt>
-                <dd>PostgreSQL</dd>
-              </div>
-              <div>
-                <dt>Saat dilimi</dt>
-                <dd>Europe/Istanbul</dd>
-              </div>
-              <div>
-                <dt>Canlı servis</dt>
-                <dd>Kapalı</dd>
-              </div>
-            </dl>
           </aside>
+        </section>
+
+        <section className="home-quick-strip page-shell" aria-label="TedarikKöprü temel akışı">
+          {quickPoints.map((point) => (
+            <article className="home-quick-card" key={point.title}>
+              <strong>{point.title}</strong>
+              <span>{point.detail}</span>
+            </article>
+          ))}
         </section>
 
         <section className="foundation-section" id="altyapi" aria-labelledby="foundation-title">
@@ -96,8 +132,8 @@ export default function HomePage() {
               <p className="eyebrow">Çalışan pilot akışları</p>
               <h2 id="foundation-title">Tedarik sürecinin kritik adımları tek yerde.</h2>
               <p>
-                Onaylı katalog, tek tedarikçili checkout, pilot ödeme, manuel kargo, iade ve
-                teklif akışları güvenli durum geçişleriyle çalışır.
+                Onaylı katalog, checkout, ödeme, kargo, iade ve teklif akışları güvenli durum
+                geçişleriyle çalışır. Pazaryeri hazırlığı da aynı panelden ilerler.
               </p>
             </div>
             <div className="capability-grid">
@@ -119,15 +155,16 @@ export default function HomePage() {
 
         <section className="trust-section page-shell" id="guven" aria-labelledby="trust-title">
           <div>
-            <p className="eyebrow">Deny by default</p>
-            <h2 id="trust-title">Güven, sonradan eklenen bir katman değil.</h2>
+            <p className="eyebrow">Kontrollü büyüme</p>
+            <h2 id="trust-title">Güvenli altyapı, daha akıcı bir satış deneyimi.</h2>
           </div>
           <div className="trust-copy">
             <p>
-              Secret değerleri istemciye taşınmaz; hassas alanlar loglarda maskelenir ve dış
-              servisler açıkça etkinleştirilmedikçe devreye girmez.
+              Hassas bilgiler korunur, işletme rolleri ayrıdır ve canlı pazaryeri işlemleri açıkça
+              hazır olmadan devreye girmez. Kullanıcı ise ön tarafta yalnız ihtiyacı olan adımları
+              görür.
             </p>
-            <a href="/api/health/ready">Veritabanı hazırlık kontrolünü aç →</a>
+            <Link href="/panel">İşletme paneline geç →</Link>
           </div>
         </section>
       </main>
@@ -135,7 +172,7 @@ export default function HomePage() {
       <footer className="site-footer">
         <div className="page-shell footer-inner">
           <span>TedarikKöprü</span>
-          <span>Pilot MVP · yerel geliştirme</span>
+          <span>Toptancı ile pazaryeri satıcısı arasında tek köprü</span>
         </div>
       </footer>
     </>

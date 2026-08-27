@@ -24,16 +24,16 @@ kapalı kalır.
 Staging ve production değerleri secret manager'da tutulur; `.env.example` deploy edilmez.
 Boş değerler yalnız ilgili feature kapalıysa kabul edilir.
 
-| Grup | Gerekli değerler | Kural |
-| --- | --- | --- |
-| Çalışma zamanı | `NODE_ENV=production`, `DEPLOYMENT_ENV=staging`, `APP_URL`, `APP_TIMEZONE` | `APP_URL` public HTTPS origin olmalı; path eklemeyin. Production'da `DEPLOYMENT_ENV=production` zorunludur. |
-| PostgreSQL | `DATABASE_URL`, `DIRECT_URL` | Uygulama bağlantısı ve release/migration için doğrudan TLS bağlantısı ayrı tanımlanır. Şema `public`, kullanıcı en az yetkili olmalıdır. |
-| Uygulama secret'ları | `AUTH_SECRET`, `DATA_ENCRYPTION_KEY`, `CRON_SECRET` | Birbirinden farklı, en az 32 karakterli, placeholder olmayan secret manager değerleri gerekir. |
-| Object storage | `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET_PRIVATE`, `S3_BUCKET_PUBLIC`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_FORCE_PATH_STYLE` | İki bucket deploy öncesi oluşturulur. Uygulama rolü private bucket için `HeadBucket`, `GetObject`, `PutObject` erişimi alır; public erişim verilmez. S3/R2 için çoğunlukla `false`, MinIO için `true` kullanılır. |
-| E-posta | `EMAIL_PROVIDER=smtp`, `EMAIL_FROM`, `EMAIL_SMTP_HOST`, `EMAIL_SMTP_PORT`, `EMAIL_SMTP_SECURE`, `EMAIL_SMTP_REQUIRE_TLS`, `EMAIL_SMTP_USER`, `EMAIL_SMTP_PASSWORD` | Production Node runtime SMTP ve kimlik bilgisini fail-fast zorunlu tutar. `465` için secure TLS; `587` için STARTTLS zorunluluğu sağlayıcıyla doğrulanır. `resend` değişkeni henüz adaptör değildir. |
-| Seed | `DEMO_SEED_ENABLED`, isteğe bağlı demo parolaları | Normal staging runtime `false` kullanır. Demo yalnız açıkça seçilmiş staging seed job'ında açılır; production deployment demo seed çalıştırmaz. |
-| Feature flags | Tüm `FEATURE_*`, `PAYMENT_PROVIDER=mock` | Canlı entegrasyonlar `false` kalır. Pilot banka transferi açılırsa hesap adı/IBAN ayrı secret olarak gerekir. |
-| Operasyon | `DOCUMENT_MAX_BYTES`, isteğe bağlı `SENTRY_DSN` | Sentry değişkeni şu an rezerve konfigürasyondur; aktif hata-izleme adaptörü değildir. |
+| Grup                 | Gerekli değerler                                                                                                                                                   | Kural                                                                                                                                                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Çalışma zamanı       | `NODE_ENV=production`, `DEPLOYMENT_ENV=staging`, `APP_URL`, `APP_TIMEZONE`                                                                                         | `APP_URL` public HTTPS origin olmalı; path eklemeyin. Production'da `DEPLOYMENT_ENV=production` zorunludur.                                                                                                       |
+| PostgreSQL           | `DATABASE_URL`, `DIRECT_URL`                                                                                                                                       | Uygulama bağlantısı ve release/migration için doğrudan TLS bağlantısı ayrı tanımlanır. Şema `public`, kullanıcı en az yetkili olmalıdır.                                                                          |
+| Uygulama secret'ları | `AUTH_SECRET`, `DATA_ENCRYPTION_KEY`, `CRON_SECRET`                                                                                                                | Birbirinden farklı, en az 32 karakterli, placeholder olmayan secret manager değerleri gerekir.                                                                                                                    |
+| Object storage       | `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET_PRIVATE`, `S3_BUCKET_PUBLIC`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_FORCE_PATH_STYLE`                                       | İki bucket deploy öncesi oluşturulur. Uygulama rolü private bucket için `HeadBucket`, `GetObject`, `PutObject` erişimi alır; public erişim verilmez. S3/R2 için çoğunlukla `false`, MinIO için `true` kullanılır. |
+| E-posta              | `EMAIL_PROVIDER=smtp`, `EMAIL_FROM`, `EMAIL_SMTP_HOST`, `EMAIL_SMTP_PORT`, `EMAIL_SMTP_SECURE`, `EMAIL_SMTP_REQUIRE_TLS`, `EMAIL_SMTP_USER`, `EMAIL_SMTP_PASSWORD` | Production Node runtime SMTP ve kimlik bilgisini fail-fast zorunlu tutar. `465` için secure TLS; `587` için STARTTLS zorunluluğu sağlayıcıyla doğrulanır. `resend` değişkeni henüz adaptör değildir.              |
+| Seed                 | `DEMO_SEED_ENABLED`, isteğe bağlı demo parolaları                                                                                                                  | Normal staging runtime `false` kullanır. Demo yalnız açıkça seçilmiş staging seed job'ında açılır; production deployment demo seed çalıştırmaz.                                                                   |
+| Feature flags        | Tüm `FEATURE_*`, `PAYMENT_PROVIDER=mock`                                                                                                                           | Canlı entegrasyonlar `false` kalır. Pilot banka transferi açılırsa hesap adı/IBAN ayrı secret olarak gerekir.                                                                                                     |
+| Operasyon            | `DOCUMENT_MAX_BYTES`, isteğe bağlı `SENTRY_DSN`                                                                                                                    | Sentry değişkeni şu an rezerve konfigürasyondur; aktif hata-izleme adaptörü değildir.                                                                                                                             |
 
 ## Release sırası
 
@@ -53,6 +53,7 @@ Boş değerler yalnız ilgili feature kapalıysa kabul edilir.
 
    `pnpm db:migrate`, Prisma `migrate deploy` kullanır. `migrate dev`, `db push` ve
    `migrate reset` staging/production'da kullanılmaz; migration geçmişi değiştirilmez.
+
 4. Uygulama image'ı runtime değişkenleriyle başlatılır; release job ve web process aynı anda
    migration çalıştırmaz.
 5. Reverse proxy arkasından şu smoke kontrolleri yapılır:

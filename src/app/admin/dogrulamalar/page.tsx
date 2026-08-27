@@ -20,11 +20,9 @@ export default async function AdminVerificationPage() {
         <AdminNavigation platformRole={user.platformRole} />
       </header>
       <VerificationQueue
-        canOperate={[
-          "PLATFORM_SUPER_ADMIN",
-          "PLATFORM_ADMIN",
-          "PLATFORM_OPERATIONS",
-        ].includes(user.platformRole)}
+        canOperate={["PLATFORM_SUPER_ADMIN", "PLATFORM_ADMIN", "PLATFORM_OPERATIONS"].includes(
+          user.platformRole,
+        )}
       />
     </main>
   );

@@ -30,8 +30,6 @@ export const createReturnSchema = z
     }
   });
 
-export const returnDecisionSchema = z
-  .object({ decision: z.enum(returnDecisions) })
-  .strict();
+export const returnDecisionSchema = z.object({ decision: z.enum(returnDecisions) }).strict();
 
 export const returnReceiptSchema = z.object({}).strict();

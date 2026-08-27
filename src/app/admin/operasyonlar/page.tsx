@@ -6,8 +6,20 @@ import { requirePageUser } from "@/lib/auth/page-session";
 import { database } from "@/lib/db/client";
 import { formatTryMinor } from "@/modules/catalog/domain/product-rules";
 
-const adminRoles = ["PLATFORM_SUPER_ADMIN", "PLATFORM_ADMIN", "PLATFORM_OPERATIONS", "PLATFORM_SUPPORT"];
-const orderStatuses = ["PAID", "ACCEPTED", "SHIPPED", "DELIVERED", "REJECTED", "CANCELLED"] as const;
+const adminRoles = [
+  "PLATFORM_SUPER_ADMIN",
+  "PLATFORM_ADMIN",
+  "PLATFORM_OPERATIONS",
+  "PLATFORM_SUPPORT",
+];
+const orderStatuses = [
+  "PAID",
+  "ACCEPTED",
+  "SHIPPED",
+  "DELIVERED",
+  "REJECTED",
+  "CANCELLED",
+] as const;
 type Props = { searchParams: Promise<{ status?: string }> };
 
 export const dynamic = "force-dynamic";
@@ -77,12 +89,15 @@ export default async function AdminOperationsPage({ searchParams }: Props) {
               <div>
                 <span className="status-pill">{order.status}</span>
                 <h3>{order.publicNumber}</h3>
-                <p>{order.buyerOrganization.tradeName} → {order.supplierOrganization.tradeName}</p>
+                <p>
+                  {order.buyerOrganization.tradeName} → {order.supplierOrganization.tradeName}
+                </p>
               </div>
               <div>
                 <strong>{formatTryMinor(order.totalAmountMinor)}</strong>
                 <p>
-                  Kargo: {order.shipment?.status ?? "Henüz kargolanmadı"} · İade: {order.returnRequests.length} · Refund: {order.refunds.length}
+                  Kargo: {order.shipment?.status ?? "Henüz kargolanmadı"} · İade:{" "}
+                  {order.returnRequests.length} · Refund: {order.refunds.length}
                 </p>
                 <Link href={`/admin/siparisler/${order.id}`}>Sipariş detayını aç</Link>
               </div>
@@ -100,11 +115,17 @@ export default async function AdminOperationsPage({ searchParams }: Props) {
               <div>
                 <span className="status-pill">{returnRequest.status}</span>
                 <h3>{returnRequest.order.publicNumber}</h3>
-                <p>{returnRequest.buyerOrganization.tradeName} → {returnRequest.supplierOrganization.tradeName}</p>
+                <p>
+                  {returnRequest.buyerOrganization.tradeName} →{" "}
+                  {returnRequest.supplierOrganization.tradeName}
+                </p>
               </div>
               <div>
                 <p>
-                  Refund: {returnRequest.refund ? `${returnRequest.refund.status} · ${formatTryMinor(returnRequest.refund.amountMinor)}` : "Yok"}
+                  Refund:{" "}
+                  {returnRequest.refund
+                    ? `${returnRequest.refund.status} · ${formatTryMinor(returnRequest.refund.amountMinor)}`
+                    : "Yok"}
                 </p>
                 <Link href={`/admin/iadeler/${returnRequest.id}`}>İade detayını aç</Link>
               </div>

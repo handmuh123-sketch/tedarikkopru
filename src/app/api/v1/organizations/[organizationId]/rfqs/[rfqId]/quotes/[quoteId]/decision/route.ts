@@ -2,10 +2,7 @@ import { requireOrganizationPermission } from "@/lib/auth/access";
 import { errorResponse, HttpError, parseJsonBody } from "@/lib/http/errors";
 import { resolveRequestId } from "@/lib/logging/request-id";
 import { consumeRateLimit, requestNetworkKey } from "@/lib/security/rate-limit";
-import {
-  IDEMPOTENCY_KEY_PATTERN,
-  quoteDecisionSchema,
-} from "@/modules/rfq/application/schemas";
+import { IDEMPOTENCY_KEY_PATTERN, quoteDecisionSchema } from "@/modules/rfq/application/schemas";
 import { decideQuote } from "@/modules/rfq/application/rfq-service";
 
 type Context = {
@@ -15,7 +12,11 @@ type Context = {
 export async function POST(request: Request, context: Context) {
   try {
     const { organizationId, rfqId, quoteId } = await context.params;
-    const { user } = await requireOrganizationPermission(request, organizationId, "purchase:manage");
+    const { user } = await requireOrganizationPermission(
+      request,
+      organizationId,
+      "purchase:manage",
+    );
     const limit = await consumeRateLimit(`rfq-quote-decision:${user.id}:${organizationId}`, {
       window: 60,
       max: 30,

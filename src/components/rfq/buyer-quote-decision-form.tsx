@@ -67,7 +67,11 @@ export function BuyerQuoteDecisionForm({
           Teklifi reddet
         </button>
       </div>
-      {message && <p className="form-status" role="status">{message}</p>}
+      {message && (
+        <p className="form-status" role="status">
+          {message}
+        </p>
+      )}
     </section>
   );
 }

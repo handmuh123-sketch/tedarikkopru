@@ -34,7 +34,8 @@ async function createPaidOrder(page: Page) {
   };
   await page.getByRole("link", { name: "Sipariş ve ödeme detayına git" }).click();
   const startResponse = page.waitForResponse(
-    (response) => response.url().endsWith("/payments/mock") && response.request().method() === "POST",
+    (response) =>
+      response.url().endsWith("/payments/mock") && response.request().method() === "POST",
   );
   await page.getByRole("button", { name: "Mock ödemeyi başlat" }).click();
   expect((await startResponse).status()).toBe(201);
@@ -51,7 +52,9 @@ function dateInput(daysFromToday: number): string {
   return new Date(Date.now() + daysFromToday * 86_400_000).toISOString().slice(0, 10);
 }
 
-test("tedarikçi siparişi kargoya verir, teslim eder ve alıcı güncel durumu görür", async ({ page }) => {
+test("tedarikçi siparişi kargoya verir, teslim eder ve alıcı güncel durumu görür", async ({
+  page,
+}) => {
   await login(page, "alici@demo.tedarikkopru.local");
   const order = await createPaidOrder(page);
   await logout(page);
@@ -106,7 +109,8 @@ test("tedarikçi siparişi kargoya verir, teslim eder ve alıcı güncel durumu 
   await login(page, "tedarikci@demo.tedarikkopru.local");
   await page.goto(`/tedarikci/siparisler/${order.id}`);
   const deliveryResponse = page.waitForResponse(
-    (response) => response.url().endsWith("/shipment/deliver") && response.request().method() === "POST",
+    (response) =>
+      response.url().endsWith("/shipment/deliver") && response.request().method() === "POST",
   );
   await page.getByRole("button", { name: "Teslim edildi olarak işaretle" }).click();
   const delivery = await deliveryResponse;

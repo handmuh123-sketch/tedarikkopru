@@ -12,6 +12,13 @@ type OnboardingFlowProps = {
   initialStage?: ResumeStage;
 };
 
+const stages = [
+  { id: "organization", label: "İşletme", description: "İşletmenizin temel bilgilerini ekleyin." },
+  { id: "address", label: "Adres", description: "Merkez adresinizi kaydedin." },
+  { id: "document", label: "Belge", description: "Doğrulama belgenizi yükleyin." },
+  { id: "review", label: "İnceleme", description: "Başvurunuzu incelemeye gönderin." },
+] as const;
+
 async function apiJson(url: string, options: RequestInit) {
   const response = await fetch(url, {
     ...options,
@@ -28,6 +35,10 @@ export function OnboardingFlow({ initialOrganizationId, initialStage }: Onboardi
   const [organizationId, setOrganizationId] = useState(initialOrganizationId ?? "");
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+  const stageIndex = stage === "done" ? stages.length : stages.findIndex(({ id }) => id === stage);
+  const minimumStageIndex = initialStage ? stages.findIndex(({ id }) => id === initialStage) : 0;
+  const canGoBack = stageIndex > minimumStageIndex && stage !== "done";
+  const currentStage = stages[Math.min(stageIndex, stages.length - 1)]!;
 
   async function createOrganization(form: HTMLFormElement) {
     setBusy(true);
@@ -46,6 +57,7 @@ export function OnboardingFlow({ initialOrganizationId, initialStage }: Onboardi
       setBusy(false);
     }
   }
+
   async function createAddress(form: HTMLFormElement) {
     setBusy(true);
     setStatus("");
@@ -62,6 +74,7 @@ export function OnboardingFlow({ initialOrganizationId, initialStage }: Onboardi
       setBusy(false);
     }
   }
+
   async function uploadDocument(form: HTMLFormElement) {
     setBusy(true);
     setStatus("");
@@ -80,6 +93,7 @@ export function OnboardingFlow({ initialOrganizationId, initialStage }: Onboardi
       setBusy(false);
     }
   }
+
   async function submitApplication() {
     setBusy(true);
     setStatus("");
@@ -104,187 +118,236 @@ export function OnboardingFlow({ initialOrganizationId, initialStage }: Onboardi
     void operation(event.currentTarget);
   }
 
+  function goBack() {
+    const previousStage = stages[stageIndex - 1];
+    if (previousStage) setStage(previousStage.id);
+  }
+
   return (
     <div className="onboarding-card">
       <ol className="steps" aria-label="İşletme doğrulama adımları">
-        <li>İşletme</li>
-        <li>Adres</li>
-        <li>Belge</li>
-        <li>İnceleme</li>
+        {stages.map((item, index) => (
+          <li
+            className={
+              index < stageIndex ? "is-complete" : index === stageIndex ? "is-active" : undefined
+            }
+            key={item.id}
+            aria-current={index === stageIndex ? "step" : undefined}
+          >
+            <span>{index + 1}</span>
+            {item.label}
+          </li>
+        ))}
       </ol>
-      {status && (
+      {stage !== "done" ? (
+        <header className="onboarding-step-heading">
+          <p className="eyebrow">
+            Adım {stageIndex + 1} / {stages.length}
+          </p>
+          <h2>{currentStage.label}</h2>
+          <p>{currentStage.description}</p>
+        </header>
+      ) : null}
+      {status ? (
         <p className="form-status error" role="alert">
           {status}
         </p>
-      )}
-      {stage === "organization" && (
+      ) : null}
+      {stage === "organization" ? (
         <form
-          className="auth-form two-column"
+          className="auth-form onboarding-form"
           onSubmit={(event) => handleSubmit(event, createOrganization)}
         >
-          <label>
-            İşletme türü
-            <select name="type" required defaultValue="SUPPLIER">
-              <option value="SUPPLIER">Tedarikçi</option>
-              <option value="RESELLER">Alıcı / pazaryeri satıcısı</option>
-              <option value="BOTH">Her ikisi</option>
-            </select>
-          </label>
-          <label>
-            Yasal unvan
-            <input name="legalName" required minLength={2} />
-          </label>
-          <label>
-            Ticari ad
-            <input name="tradeName" required minLength={2} />
-          </label>
-          <label>
-            Profil kısa adı
-            <input
-              name="slug"
-              required
-              pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-              placeholder="ornek-isletme"
-            />
-          </label>
-          <label>
-            VKN / TCKN
-            <input name="taxNumber" required inputMode="numeric" pattern="\d{10,11}" />
-          </label>
-          <label>
-            Vergi dairesi
-            <input name="taxOffice" required />
-          </label>
-          <label>
-            Telefon
-            <input name="phone" type="tel" required />
-          </label>
-          <label>
-            İşletme e-postası
-            <input name="email" type="email" required />
-          </label>
-          <label>
-            Yetkili kişi
-            <input name="authorizedPerson" required />
-          </label>
-          <label>
-            Sektör
-            <input name="sector" />
-          </label>
-          <button
-            className="button button-primary"
-            type="button"
-            disabled={!hydrated || busy}
-            onClick={(event) => {
-              if (event.currentTarget.form) void createOrganization(event.currentTarget.form);
-            }}
-          >
-            İşletmeyi oluştur
-          </button>
+          <fieldset>
+            <legend>İşletme bilgileri</legend>
+            <div className="two-column">
+              <label>
+                İşletme türü
+                <select name="type" required defaultValue="SUPPLIER" aria-describedby="type-help">
+                  <option value="SUPPLIER">Tedarikçi</option>
+                  <option value="RESELLER">Alıcı / pazaryeri satıcısı</option>
+                  <option value="BOTH">Her ikisi</option>
+                </select>
+              </label>
+              <p id="type-help" className="form-help">
+                Satış veya tedarik faaliyetlerinize uygun seçeneği kullanın.
+              </p>
+              <label>
+                Yasal unvan
+                <input name="legalName" required minLength={2} autoComplete="organization" />
+              </label>
+              <label>
+                Ticari ad
+                <input name="tradeName" required minLength={2} />
+              </label>
+              <label className="span-two">
+                Profil kısa adı
+                <input
+                  name="slug"
+                  required
+                  pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                  placeholder="ornek-isletme"
+                  aria-describedby="slug-help"
+                />
+                <span id="slug-help" className="form-help">
+                  Küçük harf, rakam ve tire kullanın.
+                </span>
+              </label>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Vergi ve iletişim</legend>
+            <div className="two-column">
+              <label>
+                VKN / TCKN
+                <input name="taxNumber" required inputMode="numeric" pattern="\\d{10,11}" />
+              </label>
+              <label>
+                Vergi dairesi
+                <input name="taxOffice" required />
+              </label>
+              <label>
+                Telefon
+                <input name="phone" type="tel" required autoComplete="tel" />
+              </label>
+              <label>
+                İşletme e-postası
+                <input name="email" type="email" required autoComplete="email" />
+              </label>
+              <label>
+                Yetkili kişi
+                <input name="authorizedPerson" required autoComplete="name" />
+              </label>
+              <label>
+                Sektör <span className="field-optional">(isteğe bağlı)</span>
+                <input name="sector" />
+              </label>
+            </div>
+          </fieldset>
+          <div className="onboarding-actions">
+            <button className="button button-primary" type="submit" disabled={!hydrated || busy}>
+              İşletmeyi oluştur
+            </button>
+          </div>
         </form>
-      )}
-      {stage === "address" && (
+      ) : null}
+      {stage === "address" ? (
         <form
-          className="auth-form two-column"
+          className="auth-form onboarding-form"
           onSubmit={(event) => handleSubmit(event, createAddress)}
         >
-          <label>
-            Adres başlığı
-            <input name="title" defaultValue="Merkez" required />
-          </label>
-          <label>
-            İlgili kişi
-            <input name="contactName" required />
-          </label>
-          <label>
-            Telefon
-            <input name="phone" type="tel" required />
-          </label>
-          <label>
-            İl
-            <input name="city" required />
-          </label>
-          <label>
-            İlçe
-            <input name="district" required />
-          </label>
-          <label>
-            Mahalle
-            <input name="neighborhood" />
-          </label>
-          <label>
-            Posta kodu
-            <input name="postalCode" />
-          </label>
-          <label className="span-two">
-            Açık adres
-            <textarea name="line1" required minLength={5} />
-          </label>
-          <button
-            className="button button-primary"
-            type="button"
-            disabled={!hydrated || busy}
-            onClick={(event) => {
-              if (event.currentTarget.form) void createAddress(event.currentTarget.form);
-            }}
-          >
-            Adresi kaydet
-          </button>
+          <fieldset>
+            <legend>Merkez adresi</legend>
+            <div className="two-column">
+              <label>
+                Adres başlığı
+                <input name="title" defaultValue="Merkez" required />
+              </label>
+              <label>
+                İlgili kişi
+                <input name="contactName" required autoComplete="name" />
+              </label>
+              <label>
+                Telefon
+                <input name="phone" type="tel" required autoComplete="tel" />
+              </label>
+              <label>
+                İl
+                <input name="city" required autoComplete="address-level1" />
+              </label>
+              <label>
+                İlçe
+                <input name="district" required autoComplete="address-level2" />
+              </label>
+              <label>
+                Mahalle <span className="field-optional">(isteğe bağlı)</span>
+                <input name="neighborhood" />
+              </label>
+              <label>
+                Posta kodu <span className="field-optional">(isteğe bağlı)</span>
+                <input name="postalCode" autoComplete="postal-code" />
+              </label>
+              <label className="span-two">
+                Açık adres
+                <textarea name="line1" required minLength={5} autoComplete="street-address" />
+              </label>
+            </div>
+          </fieldset>
+          <div className="onboarding-actions">
+            {canGoBack ? (
+              <button className="button button-secondary" type="button" onClick={goBack}>
+                Geri
+              </button>
+            ) : null}
+            <button className="button button-primary" type="submit" disabled={!hydrated || busy}>
+              Adresi kaydet
+            </button>
+          </div>
         </form>
-      )}
-      {stage === "document" && (
-        <form className="auth-form" onSubmit={(event) => handleSubmit(event, uploadDocument)}>
-          <label>
-            Belge türü
-            <select name="type">
-              <option value="TAX_CERTIFICATE">Vergi levhası</option>
-              <option value="TRADE_REGISTRY">Ticaret sicil gazetesi</option>
-              <option value="AUTHORIZED_SIGNATURE">İmza sirküleri</option>
-            </select>
-          </label>
-          <label>
-            Özel şirket belgesi
-            <input
-              name="file"
-              type="file"
-              accept="application/pdf,image/jpeg,image/png"
-              required
-              aria-describedby="file-help"
-            />
-          </label>
-          <p id="file-help" className="form-help">
-            PDF, JPEG veya PNG; en fazla 5 MB. Belge yalnız yetkili kullanıcılarca açılabilir.
-          </p>
-          <button
-            className="button button-primary"
-            type="button"
-            disabled={!hydrated || busy}
-            onClick={(event) => {
-              if (event.currentTarget.form) void uploadDocument(event.currentTarget.form);
-            }}
-          >
-            Belgeyi güvenli yükle
-          </button>
+      ) : null}
+      {stage === "document" ? (
+        <form
+          className="auth-form onboarding-form"
+          onSubmit={(event) => handleSubmit(event, uploadDocument)}
+        >
+          <fieldset>
+            <legend>Doğrulama belgesi</legend>
+            <label>
+              Belge türü
+              <select name="type">
+                <option value="TAX_CERTIFICATE">Vergi levhası</option>
+                <option value="TRADE_REGISTRY">Ticaret sicil gazetesi</option>
+                <option value="AUTHORIZED_SIGNATURE">İmza sirküleri</option>
+              </select>
+            </label>
+            <label>
+              Şirket belgesi
+              <input
+                name="file"
+                type="file"
+                accept="application/pdf,image/jpeg,image/png"
+                required
+                aria-describedby="file-help"
+              />
+            </label>
+            <p id="file-help" className="form-help">
+              PDF, JPEG veya PNG; en fazla 5 MB. Belge yalnız yetkili kullanıcılarca açılabilir.
+            </p>
+          </fieldset>
+          <div className="onboarding-actions">
+            {canGoBack ? (
+              <button className="button button-secondary" type="button" onClick={goBack}>
+                Geri
+              </button>
+            ) : null}
+            <button className="button button-primary" type="submit" disabled={!hydrated || busy}>
+              Belgeyi güvenli yükle
+            </button>
+          </div>
         </form>
-      )}
-      {stage === "review" && (
-        <div>
-          <h2>Başvuruyu gönderin</h2>
-          <p>
-            İşletme, merkez adresi ve belge kaydedildi. Gönderdikten sonra bilgiler admin inceleme
-            kuyruğuna alınır.
-          </p>
-          <button
-            className="button button-primary"
-            disabled={!hydrated || busy}
-            onClick={submitApplication}
-          >
-            Doğrulamaya gönder
-          </button>
+      ) : null}
+      {stage === "review" ? (
+        <div className="onboarding-review">
+          <p>İşletme, merkez adresi ve belge kaydedildi.</p>
+          <p>Gönderdikten sonra bilgiler admin inceleme kuyruğuna alınır.</p>
+          <div className="onboarding-actions">
+            {canGoBack ? (
+              <button className="button button-secondary" type="button" onClick={goBack}>
+                Geri
+              </button>
+            ) : null}
+            <button
+              className="button button-primary"
+              disabled={!hydrated || busy}
+              onClick={submitApplication}
+            >
+              Doğrulamaya gönder
+            </button>
+          </div>
         </div>
-      )}
-      {stage === "done" && (
-        <div>
+      ) : null}
+      {stage === "done" ? (
+        <div className="onboarding-review">
           <p className="form-status success" role="status">
             Başvurunuz inceleme kuyruğuna alındı.
           </p>
@@ -292,7 +355,7 @@ export function OnboardingFlow({ initialOrganizationId, initialStage }: Onboardi
             Panele dön
           </a>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

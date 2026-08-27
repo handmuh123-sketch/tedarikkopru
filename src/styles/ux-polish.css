@@ -1,0 +1,255 @@
+/* Final UX polish for the workspace dashboard. Keep this layer small and override-only. */
+
+.panel-home {
+  min-height: auto;
+  padding-top: clamp(1.5rem, 3vw, 2.5rem);
+  padding-bottom: 3rem;
+}
+
+.panel-hero {
+  min-height: 300px;
+}
+
+.panel-hero-content {
+  position: relative;
+  z-index: 2;
+}
+
+.panel-hero h1 {
+  max-width: 760px;
+  font-size: clamp(2.35rem, 4.2vw, 3.8rem);
+  line-height: 0.99;
+  text-wrap: balance;
+}
+
+.panel-hero-content > p:not(.eyebrow) {
+  max-width: 660px;
+}
+
+.panel-summary-card {
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.panel-summary-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(15, 159, 145, 0.22);
+  box-shadow: 0 16px 42px rgba(8, 25, 46, 0.1);
+}
+
+.panel-summary-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.next-step-card {
+  min-height: 0;
+}
+
+.panel-section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin: 2rem 0 0.85rem;
+}
+
+.panel-section-heading .eyebrow {
+  margin-bottom: 0.35rem;
+}
+
+.panel-section-heading h2 {
+  font-size: clamp(1.35rem, 2vw, 1.65rem);
+}
+
+.panel-section-heading > span {
+  max-width: 360px;
+  color: #61758a;
+  font-size: 0.88rem;
+  text-align: right;
+}
+
+.task-grid {
+  margin-top: 0;
+}
+
+.task-card {
+  min-height: 178px;
+}
+
+.task-card-icon,
+.task-card-arrow {
+  transition:
+    transform 180ms ease,
+    background 180ms ease,
+    color 180ms ease;
+}
+
+.task-card:hover .task-card-icon {
+  transform: translateY(-2px) rotate(-3deg);
+}
+
+.task-card:hover .task-card-arrow {
+  transform: translateX(3px);
+}
+
+/* Sidebar: avoid the disabled-looking gray state and remove bright white blocks. */
+.workspace-sidebar-desktop nav {
+  color: rgba(242, 250, 255, 0.86) !important;
+}
+
+.workspace-sidebar-desktop .workspace-nav-list a {
+  color: rgba(242, 250, 255, 0.82) !important;
+  opacity: 1 !important;
+}
+
+.workspace-sidebar-desktop .workspace-nav-list a:hover,
+.workspace-sidebar-desktop .workspace-nav-list a.is-active {
+  color: #ffffff !important;
+}
+
+.workspace-sidebar-desktop .workspace-nav-list a.is-active {
+  background: linear-gradient(90deg, rgba(76, 125, 255, 0.24), rgba(15, 159, 145, 0.24));
+}
+
+.workspace-sidebar-desktop .workspace-nav-icon {
+  color: #73e2cf !important;
+  opacity: 1;
+}
+
+.workspace-more,
+.workspace-context {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 0.95rem !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+  box-shadow: none !important;
+}
+
+.workspace-more {
+  padding: 0.45rem;
+}
+
+.workspace-more summary,
+.workspace-context summary {
+  color: rgba(224, 242, 247, 0.72) !important;
+  cursor: pointer;
+}
+
+.workspace-more summary {
+  padding: 0.45rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.workspace-more[open] summary {
+  margin-bottom: 0.25rem;
+}
+
+.workspace-more .workspace-nav-list a {
+  padding-block: 0.58rem;
+}
+
+.workspace-context {
+  padding: 0.8rem;
+}
+
+.workspace-context summary {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.workspace-context summary strong {
+  color: white;
+}
+
+.workspace-context ul {
+  margin-top: 0.65rem;
+}
+
+.workspace-empty-business {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(57, 215, 183, 0.18);
+  border-radius: 0.95rem;
+  background: linear-gradient(135deg, rgba(76, 125, 255, 0.12), rgba(15, 159, 145, 0.12));
+  color: white;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.workspace-empty-business:hover {
+  transform: translateY(-2px);
+  border-color: rgba(57, 215, 183, 0.34);
+  background: linear-gradient(135deg, rgba(76, 125, 255, 0.18), rgba(15, 159, 145, 0.18));
+}
+
+.workspace-empty-business strong {
+  font-size: 0.88rem;
+}
+
+.workspace-empty-business span {
+  color: rgba(222, 240, 246, 0.68);
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+
+.workspace-user {
+  color: rgba(240, 248, 252, 0.82) !important;
+}
+
+.workspace-user button {
+  color: rgba(240, 248, 252, 0.74) !important;
+}
+
+.workspace-user button:hover {
+  color: white !important;
+}
+
+@media (max-width: 900px) {
+  .panel-section-heading {
+    align-items: start;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .panel-section-heading > span {
+    text-align: left;
+  }
+}
+
+@media (max-width: 640px) {
+  .panel-home {
+    padding-top: 1rem;
+  }
+
+  .panel-hero {
+    min-height: 0;
+  }
+
+  .panel-hero h1 {
+    font-size: clamp(2rem, 10vw, 2.75rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-summary-card,
+  .task-card-icon,
+  .task-card-arrow,
+  .workspace-empty-business {
+    transition: none !important;
+  }
+
+  .panel-summary-card:hover,
+  .task-card:hover .task-card-icon,
+  .task-card:hover .task-card-arrow,
+  .workspace-empty-business:hover {
+    transform: none !important;
+  }
+}

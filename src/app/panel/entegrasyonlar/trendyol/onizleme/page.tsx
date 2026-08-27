@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { requirePageUser } from "@/lib/auth/page-session";
 import { buildTrendyolPreview } from "@/modules/marketplace/application/trendyol-preview";
 
@@ -11,30 +13,43 @@ const money = new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY
 export default async function TrendyolPreviewPage() {
   const { user } = await requirePageUser();
   const preview = await buildTrendyolPreview(user.id);
+
   return (
     <main id="ana-icerik" className="dashboard-page" tabIndex={-1}>
+      <Breadcrumbs
+        items={[
+          { label: "Panel", href: "/panel" },
+          { label: "Pazaryeri", href: "/panel/entegrasyonlar" },
+          { label: "Ürün önizlemesi" },
+        ]}
+      />
       <header className="dashboard-header">
         <div>
-          <p className="eyebrow">Trendyol · PREVIEW</p>
-          <h1>Favori ürün aktarım önizlemesi</h1>
+          <p className="eyebrow">Trendyol · önizleme</p>
+          <h1>Ürünleriniz satışa hazır mı?</h1>
+          <p>Bu ekran yalnız veri doğrulaması yapar; canlı Trendyol isteği göndermez.</p>
         </div>
-        <Link className="button button-secondary" href="/panel/entegrasyonlar">
-          Entegrasyonlara dön
-        </Link>
       </header>
-      <section className="dashboard-card">
-        <h2>Özet</h2>
-        <p>
-          Toplam {preview.products.length} varyant · Hazır {preview.validation.validCount} · Hatalı{" "}
-          {preview.validation.invalidCount}
-        </p>
-        <p>Bu ekran yalnız veri doğrulaması yapar; canlı Trendyol isteği göndermez.</p>
+      <section className="dashboard-card preview-summary">
+        <div className="card-heading-row">
+          <div>
+            <h2>Özet</h2>
+            <p>
+              Toplam {preview.products.length} varyant · Hazır {preview.validation.validCount} ·
+              Eksik {preview.validation.invalidCount}
+            </p>
+          </div>
+          <StatusBadge
+            label={preview.validation.invalidCount === 0 ? "Hazır" : "Kontrol gerekli"}
+            tone={preview.validation.invalidCount === 0 ? "ready" : "missing"}
+          />
+        </div>
         <div className="dashboard-actions">
+          <Link className="button button-primary" href="/panel/entegrasyonlar">
+            Bağlantı ayarlarına git
+          </Link>
           <Link className="button button-secondary" href="/api/v1/marketplace/trendyol/export">
             JSON indir
-          </Link>
-          <Link className="button button-secondary" href="/panel/favoriler">
-            Favorilere git
           </Link>
           {user.platformRole === "PLATFORM_SUPER_ADMIN" ||
           user.platformRole === "PLATFORM_ADMIN" ? (
@@ -45,28 +60,70 @@ export default async function TrendyolPreviewPage() {
         </div>
       </section>
       {preview.products.length === 0 ? (
-        <section className="dashboard-card">
-          <p>Stoklu favori ürün bulunmuyor.</p>
+        <section className="empty-state">
+          <h2>Önizlenecek stoklu favori ürün yok</h2>
+          <p>Favorilere stoklu ürün eklediğinizde ürün kartlarını burada kontrol edebilirsiniz.</p>
+          <Link className="button button-primary" href="/urunler">
+            Ürünleri keşfet
+          </Link>
         </section>
       ) : (
-        <section className="dashboard-grid" aria-label="Trendyol ürün önizlemeleri">
+        <section
+          className="dashboard-grid preview-product-grid"
+          aria-label="Trendyol ürün önizlemeleri"
+        >
           {preview.products.map((item) => (
-            <article className="dashboard-card" key={item.variantId}>
-              {item.display.image ? (
-                <Image src={item.display.image} alt="" width={96} height={96} unoptimized />
-              ) : null}
-              <span className="status-pill">{item.validation.valid ? "Hazır" : "Eksik"}</span>
+            <article className="dashboard-card preview-product-card" key={item.variantId}>
+              <div className="card-heading-row">
+                {item.display.image ? (
+                  <Image src={item.display.image} alt="" width={72} height={72} unoptimized />
+                ) : (
+                  <div className="product-image-placeholder" aria-hidden="true" />
+                )}
+                <StatusBadge
+                  label={item.validation.valid ? "Hazır" : "Eksik bilgi"}
+                  tone={item.validation.valid ? "ready" : "missing"}
+                />
+              </div>
               <h2>{item.display.title}</h2>
-              <p>SKU: {item.display.sku}</p>
-              <p>Barkod: {item.display.barcode ?? "Eksik"}</p>
-              <p>Stok: {item.display.availableStock}</p>
-              <p>Fiyat: {money.format(item.display.priceMinor / 100)}</p>
-              {item.validation.errors.map((issue) => (
-                <p key={`${issue.field}-${issue.code}`}>{issue.message}</p>
-              ))}
-              {!item.validation.errors.length ? (
+              <dl className="preview-data-list">
+                <div>
+                  <dt>SKU</dt>
+                  <dd>{item.display.sku}</dd>
+                </div>
+                <div>
+                  <dt>Barkod</dt>
+                  <dd>{item.display.barcode ?? "Eksik"}</dd>
+                </div>
+                <div>
+                  <dt>Stok</dt>
+                  <dd>{item.display.availableStock}</dd>
+                </div>
+                <div>
+                  <dt>Fiyat</dt>
+                  <dd>{money.format(item.display.priceMinor / 100)}</dd>
+                </div>
+              </dl>
+              {item.validation.errors.length ? (
+                <div className="preview-issues">
+                  <p>Satışa hazırlamak için aşağıdakileri tamamlayın:</p>
+                  <ul>
+                    {item.validation.errors.map((issue) => (
+                      <li key={`${issue.field}-${issue.code}`}>{issue.message}</li>
+                    ))}
+                  </ul>
+                  <details className="preview-technical-details">
+                    <summary>Teknik ayrıntılar</summary>
+                    <ul>
+                      {item.validation.errors.map((issue) => (
+                        <li key={`technical-${issue.field}-${issue.code}`}>{issue.code}</li>
+                      ))}
+                    </ul>
+                  </details>
+                </div>
+              ) : (
                 <p>Özellik eşleşmeleri: {item.mappingSources.attributes.join(", ") || "Eksik"}</p>
-              ) : null}
+              )}
             </article>
           ))}
         </section>

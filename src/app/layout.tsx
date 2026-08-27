@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import "@/styles/globals.css";
+import "@/styles/vibrant-ui.css";
+import "@/styles/ux-polish.css";
 
 export const metadata: Metadata = {
   title: "TedarikKöprü | İşletmeler arası tedarik",

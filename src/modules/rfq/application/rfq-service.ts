@@ -193,7 +193,11 @@ export async function createRfq(input: CreateRfqInput) {
 export async function offerQuote(input: OfferQuoteInput): Promise<QuoteResult> {
   const now = input.now ?? new Date();
   if (input.validUntil <= now) {
-    throw new HttpError(422, "Teklif geçerlilik tarihi gelecekte olmalıdır.", "INVALID_QUOTE_VALIDITY");
+    throw new HttpError(
+      422,
+      "Teklif geçerlilik tarihi gelecekte olmalıdır.",
+      "INVALID_QUOTE_VALIDITY",
+    );
   }
   const hash = requestHash({
     rfqId: input.rfqId,
@@ -407,8 +411,11 @@ export async function decideQuote(input: DecideQuoteInput): Promise<QuoteResult>
           where: { id: rfq.id, buyerOrganizationId: input.buyerOrganizationId },
           select: { status: true },
         });
-        if (!current || !currentRfq) throw new HttpError(404, "Teklif bulunamadı.", "QUOTE_NOT_FOUND");
-        if (rfqQuoteDecisionResult(currentRfq.status, current.status, input.decision) === "REPLAY") {
+        if (!current || !currentRfq)
+          throw new HttpError(404, "Teklif bulunamadı.", "QUOTE_NOT_FOUND");
+        if (
+          rfqQuoteDecisionResult(currentRfq.status, current.status, input.decision) === "REPLAY"
+        ) {
           return current;
         }
         throw quoteDecisionConflict(current.status);
@@ -416,8 +423,7 @@ export async function decideQuote(input: DecideQuoteInput): Promise<QuoteResult>
 
       const reasonCode =
         input.decision === "ACCEPTED" ? "buyer_quote_accepted" : "buyer_quote_rejected";
-      const action =
-        input.decision === "ACCEPTED" ? "rfq.quote_accepted" : "rfq.quote_rejected";
+      const action = input.decision === "ACCEPTED" ? "rfq.quote_accepted" : "rfq.quote_rejected";
       await transaction.quoteStatusHistory.create({
         data: {
           quoteId: quote.id,

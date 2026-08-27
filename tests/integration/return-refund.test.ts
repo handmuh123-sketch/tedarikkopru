@@ -378,7 +378,10 @@ describe("Faz 4B gerçek PostgreSQL iade ve refund", () => {
       "ACCEPTED",
     );
     expect(accepted.status).toBe(200);
-    expect((await accepted.json()).data).toMatchObject({ id: returnRequest.id, status: "ACCEPTED" });
+    expect((await accepted.json()).data).toMatchObject({
+      id: returnRequest.id,
+      status: "ACCEPTED",
+    });
     expect(
       (
         await decide(
@@ -457,7 +460,11 @@ describe("Faz 4B gerçek PostgreSQL iade ve refund", () => {
     const [inventory, restoreMovementCount, historyCount, refundCount] = await Promise.all([
       database.inventory.findUniqueOrThrow({ where: { id: draft.inventory.id } }),
       database.inventoryMovement.count({
-        where: { inventoryId: draft.inventory.id, type: "RETURN_RESTORE", referenceId: returnRequest.id },
+        where: {
+          inventoryId: draft.inventory.id,
+          type: "RETURN_RESTORE",
+          referenceId: returnRequest.id,
+        },
       }),
       database.returnStatusHistory.count({ where: { returnRequestId: returnRequest.id } }),
       database.refund.count({ where: { returnRequestId: returnRequest.id } }),
@@ -471,9 +478,21 @@ describe("Faz 4B gerçek PostgreSQL iade ve refund", () => {
         where: { inventoryId: draft.inventory.id, type: "SALE", referenceId: draft.order.id },
       }),
     ).toBe(1);
-    expect(await database.auditLog.count({ where: { targetId: returnRequest.id, action: "return.requested" } })).toBe(1);
-    expect(await database.auditLog.count({ where: { targetId: returnRequest.id, action: "return.accepted" } })).toBe(1);
-    expect(await database.auditLog.count({ where: { targetId: returnRequest.id, action: "return.received" } })).toBe(1);
+    expect(
+      await database.auditLog.count({
+        where: { targetId: returnRequest.id, action: "return.requested" },
+      }),
+    ).toBe(1);
+    expect(
+      await database.auditLog.count({
+        where: { targetId: returnRequest.id, action: "return.accepted" },
+      }),
+    ).toBe(1);
+    expect(
+      await database.auditLog.count({
+        where: { targetId: returnRequest.id, action: "return.received" },
+      }),
+    ).toBe(1);
   });
 
   it("ret iade için refund veya stok artışı oluşturmaz; teslim edilmemiş sipariş reddedilir", async () => {
@@ -496,12 +515,14 @@ describe("Faz 4B gerçek PostgreSQL iade ve refund", () => {
       "REJECTED",
     );
     expect(rejected.status).toBe(200);
-    expect(
-      await database.refund.count({ where: { returnRequestId: returnRequest.id } }),
-    ).toBe(0);
+    expect(await database.refund.count({ where: { returnRequestId: returnRequest.id } })).toBe(0);
     expect(
       await database.inventoryMovement.count({
-        where: { inventoryId: draft.inventory.id, type: "RETURN_RESTORE", referenceId: returnRequest.id },
+        where: {
+          inventoryId: draft.inventory.id,
+          type: "RETURN_RESTORE",
+          referenceId: returnRequest.id,
+        },
       }),
     ).toBe(0);
 
@@ -517,6 +538,8 @@ describe("Faz 4B gerçek PostgreSQL iade ve refund", () => {
         )
       ).status,
     ).toBe(409);
-    expect(await database.returnRequest.count({ where: { orderId: notDelivered.order.id } })).toBe(0);
+    expect(await database.returnRequest.count({ where: { orderId: notDelivered.order.id } })).toBe(
+      0,
+    );
   });
 });

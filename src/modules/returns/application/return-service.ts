@@ -144,7 +144,10 @@ async function findCreateReplay(
 ): Promise<ReturnResult | null> {
   const existing = await transaction.returnRequest.findUnique({
     where: {
-      buyerOrganizationId_createIdempotencyKey: { buyerOrganizationId, createIdempotencyKey: idempotencyKey },
+      buyerOrganizationId_createIdempotencyKey: {
+        buyerOrganizationId,
+        createIdempotencyKey: idempotencyKey,
+      },
     },
     select: { ...returnSelect, createRequestHash: true },
   });
@@ -301,7 +304,11 @@ export async function createReturnRequest(input: CreateReturnInput): Promise<Ret
             action: "return.requested",
             targetType: "ReturnRequest",
             targetId: returnRequest.id,
-            after: { status: returnRequest.status, reason: returnRequest.reason, itemCount: items.length },
+            after: {
+              status: returnRequest.status,
+              reason: returnRequest.reason,
+              itemCount: items.length,
+            },
             requestId: input.requestId,
             ...(input.network ? { network: input.network } : {}),
           }),
@@ -368,7 +375,11 @@ export async function decideReturnRequest(input: DecideReturnInput): Promise<Ret
           throw new HttpError(404, "İade talebi bulunamadı.", "RETURN_REQUEST_NOT_FOUND");
         }
         const transition = returnDecisionResult(returnRequest.status, input.decision);
-        if (transition === "REPLAY") return transaction.returnRequest.findUniqueOrThrow({ where: { id: returnRequest.id }, select: returnSelect });
+        if (transition === "REPLAY")
+          return transaction.returnRequest.findUniqueOrThrow({
+            where: { id: returnRequest.id },
+            select: returnSelect,
+          });
         if (transition !== "APPLY") throw returnDecisionConflict(returnRequest.status);
         if (returnRequest.order.status !== "DELIVERED") {
           throw returnCreateConflict(returnRequest.order.status);
@@ -388,7 +399,8 @@ export async function decideReturnRequest(input: DecideReturnInput): Promise<Ret
             where: { id: returnRequest.id, supplierOrganizationId: input.supplierOrganizationId },
             select: returnSelect,
           });
-          if (!current) throw new HttpError(404, "İade talebi bulunamadı.", "RETURN_REQUEST_NOT_FOUND");
+          if (!current)
+            throw new HttpError(404, "İade talebi bulunamadı.", "RETURN_REQUEST_NOT_FOUND");
           if (returnDecisionResult(current.status, input.decision) === "REPLAY") return current;
           throw returnDecisionConflict(current.status);
         }
@@ -398,7 +410,11 @@ export async function decideReturnRequest(input: DecideReturnInput): Promise<Ret
         if (input.decision === "ACCEPTED") {
           const payment = returnRequest.order.payments[0];
           if (!payment) {
-            throw new HttpError(409, "İade için tamamlanmış ödeme bulunamadı.", "REFUND_PAYMENT_NOT_FOUND");
+            throw new HttpError(
+              409,
+              "İade için tamamlanmış ödeme bulunamadı.",
+              "REFUND_PAYMENT_NOT_FOUND",
+            );
           }
           const existingRefundItems = await transaction.refundItem.findMany({
             where: { orderItemId: { in: returnRequest.items.map((item) => item.orderItemId) } },
@@ -407,8 +423,14 @@ export async function decideReturnRequest(input: DecideReturnInput): Promise<Ret
           const refundedQuantities = new Map<string, number>();
           const refundedAmounts = new Map<string, number>();
           for (const item of existingRefundItems) {
-            refundedQuantities.set(item.orderItemId, (refundedQuantities.get(item.orderItemId) ?? 0) + item.quantity);
-            refundedAmounts.set(item.orderItemId, (refundedAmounts.get(item.orderItemId) ?? 0) + item.amountMinor);
+            refundedQuantities.set(
+              item.orderItemId,
+              (refundedQuantities.get(item.orderItemId) ?? 0) + item.quantity,
+            );
+            refundedAmounts.set(
+              item.orderItemId,
+              (refundedAmounts.get(item.orderItemId) ?? 0) + item.amountMinor,
+            );
           }
           const refundItems = returnRequest.items.map((item) => {
             const priorQuantity = refundedQuantities.get(item.orderItemId) ?? 0;
@@ -534,7 +556,11 @@ export async function receiveReturnRequest(input: ReceiveReturnInput): Promise<R
           throw new HttpError(404, "İade talebi bulunamadı.", "RETURN_REQUEST_NOT_FOUND");
         }
         const transition = returnReceiptResult(returnRequest.status);
-        if (transition === "REPLAY") return transaction.returnRequest.findUniqueOrThrow({ where: { id: returnRequest.id }, select: returnSelect });
+        if (transition === "REPLAY")
+          return transaction.returnRequest.findUniqueOrThrow({
+            where: { id: returnRequest.id },
+            select: returnSelect,
+          });
         if (transition !== "APPLY") throw returnReceiptConflict(returnRequest.status);
         if (!returnRequest.refund) {
           throw new HttpError(409, "Kabul edilmiş refund kaydı bulunamadı.", "REFUND_NOT_FOUND");
@@ -554,7 +580,8 @@ export async function receiveReturnRequest(input: ReceiveReturnInput): Promise<R
             where: { id: returnRequest.id, supplierOrganizationId: input.supplierOrganizationId },
             select: returnSelect,
           });
-          if (!current) throw new HttpError(404, "İade talebi bulunamadı.", "RETURN_REQUEST_NOT_FOUND");
+          if (!current)
+            throw new HttpError(404, "İade talebi bulunamadı.", "RETURN_REQUEST_NOT_FOUND");
           if (returnReceiptResult(current.status) === "REPLAY") return current;
           throw returnReceiptConflict(current.status);
         }
@@ -580,7 +607,11 @@ export async function receiveReturnRequest(input: ReceiveReturnInput): Promise<R
           `);
           const inventory = inventories[0];
           if (!inventory) {
-            throw new HttpError(409, "İade ürünü için stok kaydı bulunamadı.", "INVENTORY_NOT_FOUND");
+            throw new HttpError(
+              409,
+              "İade ürünü için stok kaydı bulunamadı.",
+              "INVENTORY_NOT_FOUND",
+            );
           }
           await transaction.inventoryMovement.create({
             data: {

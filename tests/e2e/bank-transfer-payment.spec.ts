@@ -28,17 +28,23 @@ test("alıcı banka transferi bildirir, admin tek onayla siparişi PAID yapar", 
   await page.getByRole("link", { name: "Checkout'a geç" }).click();
   await page.getByRole("button", { name: "Checkout taslağı oluştur" }).click();
   await page.getByRole("link", { name: "Sipariş ve ödeme detayına git" }).click();
-  const start = page.waitForResponse((response) => response.url().endsWith("/payments/bank-transfer"));
+  const start = page.waitForResponse((response) =>
+    response.url().endsWith("/payments/bank-transfer"),
+  );
   await page.getByRole("button", { name: "Banka transferi bildirimi oluştur" }).click();
   expect((await start).status()).toBe(201);
-  await expect(page.getByText("Transfer bildirimi alındı; operasyon onayı bekleniyor.")).toBeVisible();
+  await expect(
+    page.getByText("Transfer bildirimi alındı; operasyon onayı bekleniyor."),
+  ).toBeVisible();
   const orderUrl = page.url();
   await logout(page);
 
   await login(page, "admin@demo.tedarikkopru.local", demoAdminPassword);
   await page.goto("/admin/odemeler");
   await page.getByRole("link", { name: "Ödeme detayını aç" }).first().click();
-  const approve = page.waitForResponse((response) => response.url().includes("/bank-transfer-decision"));
+  const approve = page.waitForResponse((response) =>
+    response.url().includes("/bank-transfer-decision"),
+  );
   await page.getByRole("button", { name: "Transferi onayla" }).click();
   expect((await approve).status()).toBe(200);
   await logout(page);
@@ -46,5 +52,9 @@ test("alıcı banka transferi bildirir, admin tek onayla siparişi PAID yapar", 
   await login(page, "alici@demo.tedarikkopru.local", demoUserPassword);
   await page.goto(orderUrl);
   await expect(page.getByText("PAID", { exact: true }).first()).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    ),
+  ).toBe(false);
 });

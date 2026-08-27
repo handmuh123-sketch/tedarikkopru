@@ -80,7 +80,8 @@ export default async function SupplierReturnDetailPage({ params }: Props) {
               <p>Toplam: {formatTryMinor(returnRequest.refund.amountMinor)}</p>
               {returnRequest.refund.items.map((item) => (
                 <p key={item.id}>
-                  {item.orderItem.skuSnapshot} · {item.quantity} adet · {formatTryMinor(item.amountMinor)}
+                  {item.orderItem.skuSnapshot} · {item.quantity} adet ·{" "}
+                  {formatTryMinor(item.amountMinor)}
                 </p>
               ))}
             </>
@@ -131,7 +132,7 @@ export default async function SupplierReturnDetailPage({ params }: Props) {
             <li key={entry.id}>
               <strong>{entry.toStatus}</strong>
               <span>
-                {entry.reasonCode} · {" "}
+                {entry.reasonCode} ·{" "}
                 {entry.createdAt.toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" })}
               </span>
             </li>
