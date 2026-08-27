@@ -4,18 +4,23 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { useHydrated } from "@/lib/react/use-hydrated";
+import { marketplaceProviderByChannel } from "@/modules/marketplace/domain/providers";
+import type { MarketplaceChannel } from "@/modules/marketplace/domain/types";
 
 type Connection = { id: string; displayName: string; credentialsConfigured: boolean } | null;
 
 export function MarketplaceConnectionForm({
   organizationId,
   connection,
+  channel = "TRENDYOL",
 }: {
   organizationId: string;
   connection: Connection;
+  channel?: MarketplaceChannel;
 }) {
   const hydrated = useHydrated();
   const router = useRouter();
+  const provider = marketplaceProviderByChannel(channel);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -30,10 +35,11 @@ export function MarketplaceConnectionForm({
       apiKey: String(form.get("apiKey") ?? "").trim() || undefined,
       apiSecret: String(form.get("apiSecret") ?? "").trim() || undefined,
       webhookApiKey: String(form.get("webhookApiKey") ?? "").trim() || undefined,
+      refreshToken: String(form.get("refreshToken") ?? "").trim() || undefined,
       environment: String(form.get("environment") ?? "STAGE"),
     };
     const body = {
-      displayName: String(form.get("displayName") ?? "Trendyol").trim(),
+      displayName: String(form.get("displayName") ?? provider.name).trim(),
       ...(connection
         ? {
             credentials: Object.values(credentials).some(
@@ -42,7 +48,7 @@ export function MarketplaceConnectionForm({
               ? credentials
               : undefined,
           }
-        : { channel: "TRENDYOL", credentials }),
+        : { channel, credentials }),
     };
     const url = connection
       ? `/api/v1/organizations/${organizationId}/marketplace-connections/${connection.id}`
@@ -59,7 +65,7 @@ export function MarketplaceConnectionForm({
       return;
     }
     formElement.reset();
-    setMessage("Bağlantı güvenli biçimde kaydedildi. Secret değerler tekrar gösterilmez.");
+    setMessage(`${provider.name} bağlantısı güvenli biçimde kaydedildi. Secret değerler tekrar gösterilmez.`);
     router.refresh();
   }
 
@@ -67,38 +73,41 @@ export function MarketplaceConnectionForm({
     <form className="auth-form" onSubmit={submit}>
       <label>
         Bağlantı adı
-        <input defaultValue={connection?.displayName ?? "Trendyol"} name="displayName" required />
+        <input defaultValue={connection?.displayName ?? provider.name} name="displayName" required />
       </label>
       <label>
         Ortam
         <select defaultValue="STAGE" name="environment">
-          <option value="STAGE">Trendyol stage</option>
-          <option value="PRODUCTION">Trendyol production</option>
+          <option value="STAGE">{provider.stageLabel}</option>
+          <option value="PRODUCTION">{provider.productionLabel}</option>
         </select>
       </label>
       <label>
-        Satıcı kimliği
+        {provider.sellerIdLabel}
         <input autoComplete="off" name="sellerId" required={!connection} />
       </label>
       <label>
-        API anahtarı
+        {provider.apiKeyLabel}
         <input autoComplete="off" name="apiKey" required={!connection} type="password" />
       </label>
       <label>
-        API secret
-        <input
-          autoComplete="new-password"
-          name="apiSecret"
-          required={!connection}
-          type="password"
-        />
+        {provider.apiSecretLabel}
+        <input autoComplete="new-password" name="apiSecret" required={!connection} type="password" />
       </label>
-      <label>
-        Webhook API anahtarı
-        <input autoComplete="new-password" name="webhookApiKey" type="password" />
-      </label>
+      {channel === "AMAZON_TR" ? (
+        <label>
+          LWA Refresh Token
+          <input autoComplete="new-password" name="refreshToken" type="password" />
+        </label>
+      ) : null}
+      {channel === "TRENDYOL" ? (
+        <label>
+          Webhook API anahtarı
+          <input autoComplete="new-password" name="webhookApiKey" type="password" />
+        </label>
+      ) : null}
       {connection?.credentialsConfigured && (
-        <p>Mevcut credential kayıtlıdır; boş alanlar eski secret’ı korur.</p>
+        <p>Mevcut credential kayıtlıdır; boş alanlar eski secret değerlerini korur.</p>
       )}
       <button className="button button-primary" disabled={!hydrated || busy} type="submit">
         {busy ? "Kaydediliyor…" : connection ? "Bağlantıyı güncelle" : "Bağlantıyı yapılandır"}
