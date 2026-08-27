@@ -1,0 +1,639 @@
+/* Competitive moat: buyer intelligence, opportunity radar and profit simulation */
+
+.opportunity-page {
+  position: relative;
+}
+
+.opportunity-page::before {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  background:
+    radial-gradient(circle at 78% 12%, rgba(83, 92, 255, 0.11), transparent 27rem),
+    radial-gradient(circle at 18% 72%, rgba(24, 214, 184, 0.09), transparent 30rem);
+  content: "";
+  pointer-events: none;
+}
+
+.opportunity-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2rem;
+  overflow: hidden;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 2rem;
+  background:
+    radial-gradient(circle at 82% 24%, rgba(92, 98, 255, 0.36), transparent 18rem),
+    radial-gradient(circle at 18% 88%, rgba(27, 220, 184, 0.2), transparent 22rem),
+    linear-gradient(135deg, #071321 0%, #0b2440 54%, #12395f 100%);
+  color: #f7fbff;
+  box-shadow: 0 34px 80px rgba(7, 19, 33, 0.23);
+}
+
+.opportunity-hero::after {
+  position: absolute;
+  top: -7rem;
+  right: 10%;
+  width: 18rem;
+  height: 18rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  box-shadow:
+    0 0 0 2.3rem rgba(255, 255, 255, 0.025),
+    0 0 0 4.8rem rgba(255, 255, 255, 0.018);
+  content: "";
+  animation: radarOrbit 11s linear infinite;
+}
+
+.opportunity-hero h1 {
+  max-width: 820px;
+  margin: 0.4rem 0 0.8rem;
+  color: white;
+  font-size: clamp(2.2rem, 6vw, 4.7rem);
+  letter-spacing: -0.055em;
+  line-height: 0.98;
+}
+
+.opportunity-hero p:not(.eyebrow) {
+  max-width: 760px;
+  color: rgba(236, 246, 255, 0.78);
+  line-height: 1.75;
+}
+
+.opportunity-hero .eyebrow {
+  color: #6fffe1;
+}
+
+.opportunity-hero-score {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  min-width: 11rem;
+  place-items: center;
+  padding: 1.35rem 1.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  border-radius: 1.55rem;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+}
+
+.opportunity-hero-score strong {
+  font-size: clamp(2.6rem, 6vw, 4.6rem);
+  letter-spacing: -0.06em;
+}
+
+.opportunity-hero-score span {
+  color: rgba(236, 246, 255, 0.68);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.opportunity-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.opportunity-summary-grid article {
+  display: grid;
+  gap: 0.3rem;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid rgba(15, 47, 78, 0.08);
+  border-radius: 1.25rem;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(241, 248, 255, 0.9));
+  box-shadow: 0 14px 35px rgba(10, 31, 54, 0.065);
+}
+
+.opportunity-summary-grid span,
+.opportunity-kpis span,
+.opportunity-card-footer span,
+.profit-calculator-result span {
+  color: #6d8294;
+  font-size: 0.74rem;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.opportunity-summary-grid strong {
+  color: #0a2038;
+  font-size: 2rem;
+  letter-spacing: -0.04em;
+}
+
+.opportunity-summary-grid small {
+  color: #718397;
+  line-height: 1.45;
+}
+
+.opportunity-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.15rem;
+}
+
+.opportunity-card {
+  overflow: hidden;
+  border: 1px solid rgba(12, 43, 70, 0.08);
+  border-radius: 1.55rem;
+  background: rgba(255, 255, 255, 0.93);
+  box-shadow: 0 16px 46px rgba(9, 31, 52, 0.08);
+  transition:
+    transform 190ms ease,
+    box-shadow 190ms ease,
+    border-color 190ms ease;
+}
+
+.opportunity-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(47, 179, 166, 0.24);
+  box-shadow: 0 26px 62px rgba(8, 31, 54, 0.13);
+}
+
+.opportunity-card-media {
+  position: relative;
+  min-height: 15rem;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 75% 22%, rgba(88, 106, 255, 0.2), transparent 44%),
+    linear-gradient(145deg, #edf7ff, #f7fffd);
+}
+
+.opportunity-card-media img {
+  object-fit: cover;
+  transition: transform 420ms ease;
+}
+
+.opportunity-card:hover .opportunity-card-media img {
+  transform: scale(1.035);
+}
+
+.opportunity-rank,
+.catalog-opportunity-score,
+.product-detail-radar {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(7, 22, 39, 0.78);
+  color: white;
+  backdrop-filter: blur(10px);
+}
+
+.opportunity-rank {
+  top: 0.9rem;
+  left: 0.9rem;
+  min-width: 2.5rem;
+  height: 2.5rem;
+  padding: 0 0.65rem;
+  border-radius: 999px;
+  font-weight: 950;
+}
+
+.opportunity-score {
+  position: absolute;
+  z-index: 2;
+  right: 0.9rem;
+  bottom: 0.9rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.15rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 1rem;
+  color: white;
+  box-shadow: 0 12px 28px rgba(7, 22, 39, 0.18);
+  backdrop-filter: blur(12px);
+}
+
+.score-excellent {
+  background: linear-gradient(135deg, rgba(5, 111, 91, 0.92), rgba(36, 182, 146, 0.88));
+}
+
+.score-strong {
+  background: linear-gradient(135deg, rgba(29, 78, 216, 0.9), rgba(93, 92, 222, 0.88));
+}
+
+.score-developing {
+  background: linear-gradient(135deg, rgba(126, 82, 22, 0.9), rgba(220, 147, 45, 0.87));
+}
+
+.opportunity-score strong {
+  font-size: 1.45rem;
+}
+
+.opportunity-score span {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.opportunity-card-body {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.opportunity-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.opportunity-card-heading h2 {
+  margin: 0.25rem 0 0;
+  color: #0a2038;
+  font-size: 1.35rem;
+  letter-spacing: -0.025em;
+}
+
+.opportunity-level {
+  flex: 0 0 auto;
+  padding: 0.42rem 0.62rem;
+  border-radius: 999px;
+  font-size: 0.69rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.level-excellent {
+  background: rgba(24, 188, 151, 0.12);
+  color: #0d735e;
+}
+
+.level-strong {
+  background: rgba(80, 102, 239, 0.11);
+  color: #3448a8;
+}
+
+.level-developing {
+  background: rgba(226, 158, 61, 0.13);
+  color: #8c5c17;
+}
+
+.opportunity-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.opportunity-kpis > div {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.65rem;
+  border-radius: 0.85rem;
+  background: #f5f9fc;
+}
+
+.opportunity-kpis strong {
+  color: #102a43;
+  font-size: 0.95rem;
+}
+
+.opportunity-reasons,
+.opportunity-channel-list,
+.catalog-opportunity-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.opportunity-reasons span,
+.opportunity-channel-list span,
+.catalog-opportunity-meta span {
+  padding: 0.42rem 0.58rem;
+  border: 1px solid rgba(28, 161, 145, 0.12);
+  border-radius: 999px;
+  background: rgba(28, 206, 173, 0.065);
+  color: #376c67;
+  font-size: 0.72rem;
+  font-weight: 830;
+}
+
+.opportunity-channels,
+.product-channel-readiness {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid rgba(64, 91, 219, 0.09);
+  border-radius: 1rem;
+  background: linear-gradient(145deg, rgba(244, 247, 255, 0.92), rgba(245, 255, 252, 0.88));
+}
+
+.opportunity-channels > div:first-child,
+.product-channel-readiness > div:first-child {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.opportunity-channels strong,
+.product-channel-readiness strong {
+  color: #142d48;
+}
+
+.opportunity-channels > div:first-child span,
+.product-channel-readiness > div:first-child span,
+.opportunity-channels small,
+.product-channel-readiness small {
+  color: #71859a;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.opportunity-card-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid rgba(14, 45, 72, 0.07);
+}
+
+.opportunity-card-footer > div:first-child {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.opportunity-card-footer strong {
+  color: #19334d;
+}
+
+.opportunity-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.opportunity-methodology {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 2rem;
+  align-items: center;
+}
+
+.opportunity-method-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.opportunity-method-grid span {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.85rem;
+  border-radius: 1rem;
+  background: #f4f8fb;
+  color: #5c7388;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.opportunity-method-grid strong {
+  color: #0e2a46;
+  font-size: 1.35rem;
+}
+
+.catalog-opportunity-score {
+  top: 0.75rem;
+  right: 0.75rem;
+  min-width: 3.6rem;
+  padding: 0.48rem 0.6rem;
+  border-radius: 0.9rem;
+}
+
+.catalog-opportunity-score strong {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.catalog-opportunity-score span {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.6rem;
+  font-weight: 850;
+}
+
+.catalog-opportunity-meta {
+  margin: 0.1rem 0;
+}
+
+.catalog-opportunity-meta span {
+  padding: 0.34rem 0.48rem;
+  font-size: 0.66rem;
+}
+
+.product-detail-media {
+  overflow: hidden;
+}
+
+.product-detail-radar {
+  right: 1rem;
+  bottom: 1rem;
+  min-width: 6.2rem;
+  padding: 0.85rem;
+  border-radius: 1rem;
+}
+
+.product-detail-radar strong {
+  font-size: 1.65rem;
+  line-height: 1;
+}
+
+.product-detail-radar span {
+  margin-top: 0.25rem;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.product-opportunity-panel,
+.profit-calculator {
+  display: grid;
+  gap: 1rem;
+  margin: 1rem 0;
+  padding: 1.15rem;
+  border: 1px solid rgba(30, 83, 118, 0.09);
+  border-radius: 1.3rem;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(85, 98, 242, 0.11), transparent 12rem),
+    linear-gradient(145deg, #ffffff, #f5fbff);
+  box-shadow: 0 16px 42px rgba(9, 35, 58, 0.07);
+}
+
+.product-opportunity-heading,
+.profit-calculator-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.product-opportunity-heading h2,
+.profit-calculator-heading h2 {
+  margin: 0.25rem 0 0;
+  color: #102941;
+  font-size: 1.35rem;
+}
+
+.product-opportunity-number,
+.profit-calculator-cost {
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.profit-calculator-cost {
+  background: rgba(15, 159, 145, 0.09);
+  color: #126d64;
+}
+
+.profit-calculator-lead {
+  margin: 0;
+  color: #6b8192;
+  font-size: 0.84rem;
+  line-height: 1.65;
+}
+
+.profit-calculator-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.profit-calculator-fields label {
+  display: grid;
+  gap: 0.4rem;
+  color: #395269;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.profit-calculator-fields input {
+  width: 100%;
+  padding: 0.72rem 0.8rem;
+  border: 1px solid rgba(20, 64, 94, 0.13);
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.94);
+  color: #0d2841;
+  font: inherit;
+  outline: none;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.profit-calculator-fields input:focus {
+  border-color: rgba(33, 177, 159, 0.5);
+  box-shadow: 0 0 0 4px rgba(33, 177, 159, 0.09);
+}
+
+.profit-calculator-result {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.profit-calculator-result > div {
+  display: grid;
+  gap: 0.22rem;
+  padding: 0.85rem;
+  border-radius: 1rem;
+  background: #f3f8fc;
+}
+
+.profit-calculator-result strong {
+  color: #142e48;
+  font-size: 1.15rem;
+}
+
+.profit-calculator-result small {
+  color: #72869a;
+}
+
+.profit-calculator-result .profit-positive {
+  background: linear-gradient(145deg, rgba(21, 187, 145, 0.11), rgba(64, 220, 188, 0.07));
+}
+
+.profit-calculator-result .profit-positive strong {
+  color: #0f735d;
+}
+
+.profit-calculator-result .profit-negative {
+  background: rgba(220, 76, 76, 0.08);
+}
+
+.profit-calculator-result .profit-negative strong {
+  color: #a43b3b;
+}
+
+@keyframes radarOrbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 980px) {
+  .opportunity-summary-grid,
+  .opportunity-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .opportunity-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .opportunity-methodology {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .opportunity-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .opportunity-hero-score {
+    display: flex;
+    min-width: 0;
+    justify-content: space-between;
+  }
+
+  .opportunity-summary-grid,
+  .profit-calculator-fields,
+  .profit-calculator-result,
+  .opportunity-method-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .opportunity-card-heading,
+  .opportunity-card-footer,
+  .product-opportunity-heading,
+  .profit-calculator-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .opportunity-card-actions {
+    justify-content: space-between;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opportunity-hero::after,
+  .opportunity-card,
+  .opportunity-card-media img {
+    animation: none;
+    transition: none;
+  }
+
+  .opportunity-card:hover,
+  .opportunity-card:hover .opportunity-card-media img {
+    transform: none;
+  }
+}
