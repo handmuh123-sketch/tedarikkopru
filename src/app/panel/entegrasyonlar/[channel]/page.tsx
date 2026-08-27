@@ -98,14 +98,14 @@ export default async function MarketplaceChannelPage({ params }: PageProps) {
           label={
             connection?.status === "CONNECTED"
               ? "Bağlı"
-              : connection?.credentialsConfigured
+              : Boolean(connection?.credentialCiphertext)
                 ? "Kimlik bilgileri kayıtlı"
                 : "Kurulum gerekli"
           }
           tone={
             connection?.status === "CONNECTED"
               ? "ready"
-              : connection?.credentialsConfigured
+              : Boolean(connection?.credentialCiphertext)
                 ? "test"
                 : "missing"
           }
