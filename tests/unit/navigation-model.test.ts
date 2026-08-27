@@ -8,6 +8,7 @@ describe("UX-1 workspace navigation", () => {
 
     expect(navigation.primary.map(({ href }) => href)).toEqual([
       "/panel",
+      "/panel/firsatlar",
       "/urunler",
       "/panel/favoriler",
       "/panel/siparisler",

@@ -17,7 +17,8 @@ export type NavigationItem = {
     | "system"
     | "payments"
     | "quotes"
-    | "returns";
+    | "returns"
+    | "radar";
 };
 
 type NavigationInput = {
@@ -94,6 +95,7 @@ export function workspaceNavigation({ area, platformRole }: NavigationInput): {
   return {
     primary: [
       { href: "/panel", label: "Ana sayfa", icon: "home" },
+      { href: "/panel/firsatlar", label: "Akıllı Ürün Radarı", icon: "radar" },
       { href: "/urunler", label: "Ürünler", icon: "products" },
       { href: "/panel/favoriler", label: "Favorilerim", icon: "favorites" },
       { href: "/panel/siparisler", label: "Siparişlerim", icon: "orders" },

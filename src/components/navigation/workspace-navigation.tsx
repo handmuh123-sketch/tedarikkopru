@@ -44,6 +44,7 @@ function Icon({ name }: { name: NavigationItem["icon"] }) {
     payments: "M4 6h16v12H4V6Zm0 4h16M7 15h3",
     quotes: "M5 4h14v12H9l-4 4V4Zm4 5h6",
     returns: "M8 7 4 11l4 4M4 11h10a4 4 0 0 1 4 4v2",
+    radar: "M12 12 19 5M12 3a9 9 0 1 0 9 9M12 7a5 5 0 1 0 5 5M12 12h.01",
   };
   return (
     <svg aria-hidden="true" className="workspace-nav-icon" viewBox="0 0 24 24">

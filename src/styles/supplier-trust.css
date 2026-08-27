@@ -1,0 +1,120 @@
+.supplier-trust-strip,
+.supplier-trust-panel {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(40, 95, 126, 0.1);
+  border-radius: 1rem;
+  background:
+    radial-gradient(circle at 92% 14%, rgba(41, 203, 174, 0.1), transparent 10rem),
+    linear-gradient(145deg, rgba(249, 253, 255, 0.98), rgba(243, 251, 249, 0.94));
+}
+
+.supplier-trust-strip {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.supplier-trust-strip > div:first-child {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.supplier-trust-strip > div:first-child span,
+.supplier-trust-panel .eyebrow {
+  color: #648096;
+  font-size: 0.69rem;
+  font-weight: 900;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.supplier-trust-strip > div:first-child strong,
+.supplier-trust-panel h2 {
+  color: #102d46;
+}
+
+.supplier-trust-strip small {
+  grid-column: 1 / -1;
+  color: #71879a;
+  line-height: 1.5;
+}
+
+.supplier-trust-panel {
+  margin: 1rem 0;
+  padding: 1.15rem;
+  border-radius: 1.3rem;
+  box-shadow: 0 16px 42px rgba(9, 35, 58, 0.065);
+}
+
+.supplier-trust-panel p {
+  margin: 0;
+  color: #6a8194;
+  font-size: 0.84rem;
+  line-height: 1.65;
+}
+
+.supplier-trust-score {
+  display: inline-grid;
+  min-width: 4.5rem;
+  place-items: center;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.85rem;
+  font-weight: 950;
+}
+
+.trust-excellent {
+  background: rgba(22, 183, 143, 0.13);
+  color: #0c715a;
+}
+
+.trust-strong {
+  background: rgba(67, 105, 225, 0.11);
+  color: #344aa5;
+}
+
+.trust-developing {
+  background: rgba(221, 153, 53, 0.14);
+  color: #855711;
+}
+
+.trust-insufficient {
+  background: rgba(93, 113, 132, 0.1);
+  color: #627588;
+}
+
+.supplier-trust-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.supplier-trust-metrics span {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.7rem;
+  border-radius: 0.8rem;
+  background: rgba(237, 246, 250, 0.85);
+  color: #6a8092;
+  font-size: 0.72rem;
+  font-weight: 820;
+}
+
+.supplier-trust-metrics strong {
+  color: #153650;
+  font-size: 1rem;
+}
+
+@media (max-width: 720px) {
+  .supplier-trust-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .supplier-trust-strip small {
+    grid-column: auto;
+  }
+
+  .supplier-trust-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
