@@ -29,7 +29,11 @@ const rolePaths = [
     title: "Ürün bulmaktan satışa hazırlığa kadar daha kısa yol.",
     detail:
       "Dağınık Excel dosyaları ve mesaj trafiği yerine; ürün, fiyat, stok, favori, sipariş ve pazaryeri hazırlığını aynı panelde yönetin.",
-    points: ["Stokta olan ürünleri keşfedin", "Favori listenizi satış havuzuna dönüştürün", "Pazaryeri veri eksiklerini yayından önce görün"],
+    points: [
+      "Stokta olan ürünleri keşfedin",
+      "Favori listenizi satış havuzuna dönüştürün",
+      "Pazaryeri veri eksiklerini yayından önce görün",
+    ],
     href: "/urunler",
     action: "Kataloğu incele",
     tone: "buyer",
@@ -39,7 +43,11 @@ const rolePaths = [
     title: "Kataloğunuzu daha düzenli ve erişilebilir yönetin.",
     detail:
       "Ürünleri, varyantları ve stokları tek merkezden yönetin; onaylı alıcılara kontrollü biçimde açın ve sipariş operasyonunu takip edin.",
-    points: ["Ürün ve varyant kataloğu", "Stok hareketleri ve güvenli rezervasyon", "Sipariş, teklif, kargo ve iade akışları"],
+    points: [
+      "Ürün ve varyant kataloğu",
+      "Stok hareketleri ve güvenli rezervasyon",
+      "Sipariş, teklif, kargo ve iade akışları",
+    ],
     href: "/kayit",
     action: "Tedarikçi hesabı oluştur",
     tone: "supplier",
@@ -218,11 +226,17 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="marketplace-showcase" id="nasil-calisir" aria-labelledby="marketplace-title">
+        <section
+          className="marketplace-showcase"
+          id="nasil-calisir"
+          aria-labelledby="marketplace-title"
+        >
           <div className="page-shell marketplace-showcase-inner">
             <div className="marketplace-copy">
               <p className="eyebrow">Pazaryeri hazırlığı</p>
-              <h2 id="marketplace-title">Ürünü seçtikten sonra ne eksik olduğunu tahmin etmeyin.</h2>
+              <h2 id="marketplace-title">
+                Ürünü seçtikten sonra ne eksik olduğunu tahmin etmeyin.
+              </h2>
               <p>
                 Favorileriniz satış havuzunuz olur. TedarikKöprü, ürün verisini pazaryeri hazırlığı
                 açısından kontrol eder ve eksikleri yayın aşamasına gelmeden görünür kılar.
@@ -309,7 +323,9 @@ export default function HomePage() {
           <div>
             <p className="eyebrow">Tedarik operasyonunu sadeleştirin</p>
             <h2 id="final-cta-title">Bir sonraki satılabilir ürününüz katalogda olabilir.</h2>
-            <p>Ürünleri inceleyin veya işletme hesabınızı oluşturup kendi çalışma alanınızı açın.</p>
+            <p>
+              Ürünleri inceleyin veya işletme hesabınızı oluşturup kendi çalışma alanınızı açın.
+            </p>
           </div>
           <div className="final-cta-actions">
             <Link className="button button-primary" href="/urunler">
@@ -326,7 +342,9 @@ export default function HomePage() {
         <div className="page-shell premium-footer-grid">
           <div>
             <span className="brand footer-brand">
-              <span className="brand-mark" aria-hidden="true">TK</span>
+              <span className="brand-mark" aria-hidden="true">
+                TK
+              </span>
               <span>TedarikKöprü</span>
             </span>
             <p>Toptancı ile pazaryeri satıcısı arasında daha düzenli bir ticaret köprüsü.</p>
