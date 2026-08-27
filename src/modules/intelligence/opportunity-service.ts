@@ -4,6 +4,7 @@ import { database } from "@/lib/db/client";
 import { availableStock } from "@/modules/inventory/domain/inventory-rules";
 
 import { calculateProductOpportunity } from "./opportunity-score";
+import { getSupplierTrustScores } from "./supplier-trust-service";
 
 export async function findProductOpportunities(limit = 24) {
   const products = await database.product.findMany({
@@ -40,6 +41,9 @@ export async function findProductOpportunities(limit = 24) {
     orderBy: [{ publishedAt: "desc" }, { id: "desc" }],
     take: 120,
   });
+  const trustScores = await getSupplierTrustScores(
+    products.map((product) => product.supplierOrganizationId),
+  );
 
   return products
     .flatMap((product) => {
@@ -79,6 +83,8 @@ export async function findProductOpportunities(limit = 24) {
           brandName: product.brand.name,
           categoryName: product.category.name,
           supplierName: product.supplierOrganization.tradeName,
+          supplierOrganizationId: product.supplierOrganizationId,
+          supplierTrust: trustScores.get(product.supplierOrganizationId) ?? null,
           handlingDays: product.handlingDays,
           image: product.images[0] ?? null,
           variant: {
@@ -96,6 +102,9 @@ export async function findProductOpportunities(limit = 24) {
     })
     .sort((a, b) => {
       if (b.opportunity.score !== a.opportunity.score) return b.opportunity.score - a.opportunity.score;
+      const trustA = a.supplierTrust?.score ?? -1;
+      const trustB = b.supplierTrust?.score ?? -1;
+      if (trustB !== trustA) return trustB - trustA;
       if (b.opportunity.readyChannelCount !== a.opportunity.readyChannelCount)
         return b.opportunity.readyChannelCount - a.opportunity.readyChannelCount;
       return b.variant.availableStock - a.variant.availableStock;
