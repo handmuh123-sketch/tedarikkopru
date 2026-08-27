@@ -2,14 +2,14 @@ name: Format UX2
 
 on:
   push:
-    branches: [feat/ux-2-premium-polish]
+    branches:
+      - feat/ux-2-premium-polish
 
 permissions:
   contents: write
 
 jobs:
   format:
-    if: ${{ !contains(github.event.head_commit.message, 'chore: format UX2') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
