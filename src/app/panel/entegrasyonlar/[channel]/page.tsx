@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { MarketplaceConnectionTestButton } from "@/components/marketplace/marketplace-actions";
+import {
+  MarketplaceConnectionTestButton,
+  MarketplacePublishButton,
+} from "@/components/marketplace/marketplace-actions";
 import { MarketplaceConnectionForm } from "@/components/marketplace/marketplace-connection-form";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -70,6 +73,9 @@ export default async function MarketplaceChannelPage({ params }: PageProps) {
   const canManage = managerRoles.has(role);
   const approved =
     organization.status === "ACTIVE" && organization.verificationStatus === "APPROVED";
+  const directLivePublish = provider.channel === "PTTAVM" || provider.channel === "IDEFIX";
+  const liveReady =
+    directLivePublish && connection?.status === "CONNECTED" && preview.validation.invalidCount === 0;
 
   return (
     <main id="ana-icerik" className="dashboard-page" tabIndex={-1}>
@@ -87,8 +93,8 @@ export default async function MarketplaceChannelPage({ params }: PageProps) {
           <p>{provider.shortDescription}</p>
         </div>
         <StatusBadge
-          label={connection?.credentialsConfigured ? "Kimlik bilgileri kayıtlı" : "Kurulum gerekli"}
-          tone={connection?.credentialsConfigured ? "test" : "missing"}
+          label={connection?.status === "CONNECTED" ? "Bağlı" : connection?.credentialsConfigured ? "Kimlik bilgileri kayıtlı" : "Kurulum gerekli"}
+          tone={connection?.status === "CONNECTED" ? "ready" : connection?.credentialsConfigured ? "test" : "missing"}
         />
       </header>
 
@@ -125,7 +131,16 @@ export default async function MarketplaceChannelPage({ params }: PageProps) {
                 <MarketplaceConnectionTestButton
                   connectionId={connection.id}
                   organizationId={organization.id}
+                  providerName={provider.name}
                 />
+                {directLivePublish ? (
+                  <MarketplacePublishButton
+                    connectionId={connection.id}
+                    liveEnabled={liveReady}
+                    organizationId={organization.id}
+                    providerName={provider.name}
+                  />
+                ) : null}
               </div>
             ) : null}
           </>
@@ -166,8 +181,9 @@ export default async function MarketplaceChannelPage({ params }: PageProps) {
           </Link>
         </div>
         <p className="marketplace-provider-note">
-          Canlı gönderim yalnız resmi sağlayıcı API yetkisi ve gerçek mağaza kimlik bilgileri ile açılır;
-          hazırlık ve eşleme ekranı bunlardan bağımsız çalışır.
+          {directLivePublish
+            ? `${provider.name} için resmi canlı ürün API akışı hazırdır. Gönderim butonu yalnız bağlantı testi ve ürün eşlemeleri başarılı olduğunda açılır.`
+            : "Bağlantı testi resmi sağlayıcı kimlik doğrulamasını kullanır. Canlı ürün gönderimi, sağlayıcının ürün endpointi için mağaza/entegratör yetkisi tamamlandığında açılır; hazırlık ve eşleme ekranı şimdiden kullanılabilir."}
         </p>
       </section>
     </main>
