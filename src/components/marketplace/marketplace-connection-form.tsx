@@ -30,10 +30,12 @@ export function MarketplaceConnectionForm({
     setBusy(true);
     setMessage("");
     const form = new FormData(formElement);
+    const apiKey = String(form.get("apiKey") ?? "").trim() || undefined;
+    const apiSecretInput = String(form.get("apiSecret") ?? "").trim() || undefined;
     const credentials = {
       sellerId: String(form.get("sellerId") ?? "").trim() || undefined,
-      apiKey: String(form.get("apiKey") ?? "").trim() || undefined,
-      apiSecret: String(form.get("apiSecret") ?? "").trim() || undefined,
+      apiKey,
+      apiSecret: channel === "CICEKSEPETI" ? apiKey : apiSecretInput,
       webhookApiKey: String(form.get("webhookApiKey") ?? "").trim() || undefined,
       refreshToken: String(form.get("refreshToken") ?? "").trim() || undefined,
       environment: String(form.get("environment") ?? "STAGE"),
@@ -65,7 +67,9 @@ export function MarketplaceConnectionForm({
       return;
     }
     formElement.reset();
-    setMessage(`${provider.name} bağlantısı güvenli biçimde kaydedildi. Secret değerler tekrar gösterilmez.`);
+    setMessage(
+      `${provider.name} bağlantısı güvenli biçimde kaydedildi. Secret değerler tekrar gösterilmez.`,
+    );
     router.refresh();
   }
 
@@ -90,14 +94,23 @@ export function MarketplaceConnectionForm({
         {provider.apiKeyLabel}
         <input autoComplete="off" name="apiKey" required={!connection} type="password" />
       </label>
-      <label>
-        {provider.apiSecretLabel}
-        <input autoComplete="new-password" name="apiSecret" required={!connection} type="password" />
-      </label>
+      {channel !== "CICEKSEPETI" ? (
+        <label>
+          {provider.apiSecretLabel}
+          <input autoComplete="new-password" name="apiSecret" required={!connection} type="password" />
+        </label>
+      ) : (
+        <p>ÇiçekSepeti bağlantısı resmi x-api-key değeri ile doğrulanır.</p>
+      )}
       {channel === "AMAZON_TR" ? (
         <label>
           LWA Refresh Token
-          <input autoComplete="new-password" name="refreshToken" type="password" />
+          <input
+            autoComplete="new-password"
+            name="refreshToken"
+            required={!connection}
+            type="password"
+          />
         </label>
       ) : null}
       {channel === "TRENDYOL" ? (
