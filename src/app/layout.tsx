@@ -9,6 +9,7 @@ import "@/styles/home-entry.css";
 import "@/styles/marketplace-hub.css";
 import "@/styles/showcase-luxury.css";
 import "@/styles/competitive-moat.css";
+import "@/styles/supplier-trust.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://tedarikkopru.onrender.com"),
