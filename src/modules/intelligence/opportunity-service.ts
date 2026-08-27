@@ -71,7 +71,9 @@ export async function findProductOpportunities(limit = 24) {
         hasBarcode: Boolean(variant.barcode),
         verifiedSupplier: product.supplierOrganization.verificationStatus === "APPROVED",
         warrantyMonths: product.warrantyMonths,
-        categoryChannels: product.category.marketplaceCategoryMappings.map((mapping) => mapping.channel),
+        categoryChannels: product.category.marketplaceCategoryMappings.map(
+          (mapping) => mapping.channel,
+        ),
         brandChannels: product.brand.marketplaceBrandMappings.map((mapping) => mapping.channel),
       });
       return [
@@ -101,7 +103,8 @@ export async function findProductOpportunities(limit = 24) {
       ];
     })
     .sort((a, b) => {
-      if (b.opportunity.score !== a.opportunity.score) return b.opportunity.score - a.opportunity.score;
+      if (b.opportunity.score !== a.opportunity.score)
+        return b.opportunity.score - a.opportunity.score;
       const trustA = a.supplierTrust?.score ?? -1;
       const trustB = b.supplierTrust?.score ?? -1;
       if (trustB !== trustA) return trustB - trustA;

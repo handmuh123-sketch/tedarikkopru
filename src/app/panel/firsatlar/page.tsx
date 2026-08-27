@@ -38,7 +38,9 @@ export default async function OpportunitiesPage() {
   const excellent = opportunities.filter((item) => item.opportunity.score >= 80).length;
   const lowMoq = opportunities.filter((item) => item.variant.moq <= 3).length;
   const fast = opportunities.filter((item) => item.handlingDays <= 2).length;
-  const marketplaceReady = opportunities.filter((item) => item.opportunity.readyChannelCount > 0).length;
+  const marketplaceReady = opportunities.filter(
+    (item) => item.opportunity.readyChannelCount > 0,
+  ).length;
 
   return (
     <main id="ana-icerik" className="dashboard-page opportunity-page" tabIndex={-1}>
@@ -218,17 +220,29 @@ export default async function OpportunitiesPage() {
           <h2>Radar neye bakıyor?</h2>
           <p>
             Gizli bir “satış tahmini” üretmiyoruz. Skor yalnız TedarikKöprü’de doğrulanabilen
-            operasyon sinyallerinden oluşur ve yeni veri geldikçe değişir. Tedarikçi güven puanı
-            ise en az 5 gerçek operasyon olmadan yayınlanmaz.
+            operasyon sinyallerinden oluşur ve yeni veri geldikçe değişir. Tedarikçi güven puanı ise
+            en az 5 gerçek operasyon olmadan yayınlanmaz.
           </p>
         </div>
         <div className="opportunity-method-grid">
-          <span><strong>20</strong> Stok derinliği</span>
-          <span><strong>15</strong> Düşük MOQ</span>
-          <span><strong>15</strong> Hazırlık hızı</span>
-          <span><strong>15</strong> Görsel + barkod</span>
-          <span><strong>20</strong> Pazaryeri eşlemeleri</span>
-          <span><strong>10</strong> Doğrulanmış tedarikçi</span>
+          <span>
+            <strong>20</strong> Stok derinliği
+          </span>
+          <span>
+            <strong>15</strong> Düşük MOQ
+          </span>
+          <span>
+            <strong>15</strong> Hazırlık hızı
+          </span>
+          <span>
+            <strong>15</strong> Görsel + barkod
+          </span>
+          <span>
+            <strong>20</strong> Pazaryeri eşlemeleri
+          </span>
+          <span>
+            <strong>10</strong> Doğrulanmış tedarikçi
+          </span>
         </div>
       </section>
     </main>

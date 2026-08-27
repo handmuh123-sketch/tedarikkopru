@@ -44,8 +44,12 @@ export function calculateSupplierTrust(orders: SupplierTrustOrder[]): SupplierTr
   const eligible = orders.filter((order) => operationalStatuses.has(order.status));
   const sampleSize = eligible.length;
   const accepted = eligible.filter((order) => !["REJECTED", "CANCELLED"].includes(order.status));
-  const fulfilled = eligible.filter((order) => order.shipment !== null || order.status === "DELIVERED");
-  const delivered = eligible.filter((order) => order.status === "DELIVERED" || order.shipment?.status === "DELIVERED");
+  const fulfilled = eligible.filter(
+    (order) => order.shipment !== null || order.status === "DELIVERED",
+  );
+  const delivered = eligible.filter(
+    (order) => order.status === "DELIVERED" || order.shipment?.status === "DELIVERED",
+  );
   const timedDeliveries = delivered.filter(
     (order) => order.shipment?.deliveredAt && order.shipment.estimatedDeliveryAt,
   );
@@ -82,11 +86,15 @@ export function calculateSupplierTrust(orders: SupplierTrustOrder[]): SupplierTr
   const fulfillmentPoints = (fulfillmentRate ?? 0) * 30;
   const deliveryPoints = (onTimeDeliveryRate ?? 0.75) * 20;
   const returnPoints = (1 - Math.min(returnRate ?? 0, 1)) * 15;
-  const score = Math.max(0, Math.min(100, Math.round(acceptancePoints + fulfillmentPoints + deliveryPoints + returnPoints)));
+  const score = Math.max(
+    0,
+    Math.min(100, Math.round(acceptancePoints + fulfillmentPoints + deliveryPoints + returnPoints)),
+  );
   const reasons: string[] = [];
   if ((acceptanceRate ?? 0) >= 0.95) reasons.push("Yüksek sipariş kabul oranı");
   if ((fulfillmentRate ?? 0) >= 0.9) reasons.push("Güçlü sevkiyat tamamlama oranı");
-  if (onTimeDeliveryRate !== null && onTimeDeliveryRate >= 0.9) reasons.push("Zamanında teslimat geçmişi güçlü");
+  if (onTimeDeliveryRate !== null && onTimeDeliveryRate >= 0.9)
+    reasons.push("Zamanında teslimat geçmişi güçlü");
   if (returnRate !== null && returnRate <= 0.05) reasons.push("Düşük iade oranı");
   if (reasons.length === 0) reasons.push("Operasyon geçmişi gelişmeye devam ediyor");
 

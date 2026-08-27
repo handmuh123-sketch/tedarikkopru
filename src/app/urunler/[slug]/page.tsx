@@ -115,7 +115,9 @@ export default async function ProductDetailPage({ params }: Props) {
               <div className="product-opportunity-heading">
                 <div>
                   <p className="eyebrow">TedarikKöprü Radar</p>
-                  <h2 id="product-radar-title">{opportunityLevelLabel(product.opportunity.level)}</h2>
+                  <h2 id="product-radar-title">
+                    {opportunityLevelLabel(product.opportunity.level)}
+                  </h2>
                 </div>
                 <div className={`product-opportunity-number level-${product.opportunity.level}`}>
                   {product.opportunity.score}/100
@@ -166,10 +168,18 @@ export default async function ProductDetailPage({ params }: Props) {
             </p>
             {supplierTrust.available ? (
               <div className="supplier-trust-metrics">
-                <span>Kabul <strong>%{supplierTrust.metrics.acceptanceRate ?? 0}</strong></span>
-                <span>Sevkiyat <strong>%{supplierTrust.metrics.fulfillmentRate ?? 0}</strong></span>
-                <span>Zamanında <strong>%{supplierTrust.metrics.onTimeDeliveryRate ?? 0}</strong></span>
-                <span>İade <strong>%{supplierTrust.metrics.returnRate ?? 0}</strong></span>
+                <span>
+                  Kabul <strong>%{supplierTrust.metrics.acceptanceRate ?? 0}</strong>
+                </span>
+                <span>
+                  Sevkiyat <strong>%{supplierTrust.metrics.fulfillmentRate ?? 0}</strong>
+                </span>
+                <span>
+                  Zamanında <strong>%{supplierTrust.metrics.onTimeDeliveryRate ?? 0}</strong>
+                </span>
+                <span>
+                  İade <strong>%{supplierTrust.metrics.returnRate ?? 0}</strong>
+                </span>
               </div>
             ) : null}
           </section>
@@ -186,8 +196,8 @@ export default async function ProductDetailPage({ params }: Props) {
                 quantityStep={variant.quantityStep}
                 supplierConflict={Boolean(
                   buyerMembership.organization.buyerCart?.supplierOrganizationId &&
-                    buyerMembership.organization.buyerCart.supplierOrganizationId !==
-                      product.supplierOrganizationId,
+                  buyerMembership.organization.buyerCart.supplierOrganizationId !==
+                    product.supplierOrganizationId,
                 )}
               />
               <RfqCreateForm

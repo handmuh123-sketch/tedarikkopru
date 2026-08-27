@@ -95,7 +95,9 @@ function opportunityForProduct(product: {
     hasBarcode: Boolean(variant.barcode),
     verifiedSupplier: product.supplierOrganization.verificationStatus === "APPROVED",
     warrantyMonths: product.warrantyMonths,
-    categoryChannels: product.category.marketplaceCategoryMappings.map((mapping) => mapping.channel),
+    categoryChannels: product.category.marketplaceCategoryMappings.map(
+      (mapping) => mapping.channel,
+    ),
     brandChannels: product.brand.marketplaceBrandMappings.map((mapping) => mapping.channel),
   });
 }

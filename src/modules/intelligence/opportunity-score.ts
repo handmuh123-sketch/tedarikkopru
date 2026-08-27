@@ -77,7 +77,9 @@ export function calculateProductOpportunity(input: ProductOpportunityInput): Pro
       categoryChannels.has(channel) &&
       brandChannels.has(channel),
   );
-  const marketplaceScore = Math.round((readyChannels.length / opportunityMarketplaceChannels.length) * 20);
+  const marketplaceScore = Math.round(
+    (readyChannels.length / opportunityMarketplaceChannels.length) * 20,
+  );
   const supplierScore = input.verifiedSupplier ? 10 : 0;
 
   const score = clamp(
