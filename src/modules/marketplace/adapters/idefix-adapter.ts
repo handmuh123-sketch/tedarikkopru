@@ -60,17 +60,29 @@ export class IdefixMarketplaceAdapter implements MarketplaceChannelAdapter {
   ): CanonicalMarketplaceValidationResult {
     const errors: MarketplaceValidationIssue[] = [];
     if (!mapping.externalCategoryId || !Number.isFinite(Number(mapping.externalCategoryId))) {
-      errors.push(validationIssue("category", "CATEGORY_MAPPING_REQUIRED", "idefix kategori ID eşlemesi gerekli."));
+      errors.push(
+        validationIssue(
+          "category",
+          "CATEGORY_MAPPING_REQUIRED",
+          "idefix kategori ID eşlemesi gerekli.",
+        ),
+      );
     }
     if (!mapping.externalBrandId || !Number.isFinite(Number(mapping.externalBrandId))) {
-      errors.push(validationIssue("brand", "BRAND_MAPPING_REQUIRED", "idefix marka ID eşlemesi gerekli."));
+      errors.push(
+        validationIssue("brand", "BRAND_MAPPING_REQUIRED", "idefix marka ID eşlemesi gerekli."),
+      );
     }
     if (!product.images.length) {
-      errors.push(validationIssue("images", "IMAGE_REQUIRED", "idefix için en az bir görsel gerekli."));
+      errors.push(
+        validationIssue("images", "IMAGE_REQUIRED", "idefix için en az bir görsel gerekli."),
+      );
     }
     for (const variant of product.variants) {
       if (!variant.barcode) {
-        errors.push(validationIssue("barcode", "BARCODE_REQUIRED", `${variant.sku} için barkod gerekli.`));
+        errors.push(
+          validationIssue("barcode", "BARCODE_REQUIRED", `${variant.sku} için barkod gerekli.`),
+        );
       }
     }
     return validationResult(errors);
@@ -84,7 +96,9 @@ export class IdefixMarketplaceAdapter implements MarketplaceChannelAdapter {
     const attributes = mapping.attributes.map((attribute) => ({
       attributeId: Number(attribute.externalAttributeId),
       attributeValueId: attribute.externalValueId ? Number(attribute.externalValueId) : null,
-      customAttributeValue: attribute.externalValueId ? null : String(product.attributes[attribute.sourceAttributeKey] ?? ""),
+      customAttributeValue: attribute.externalValueId
+        ? null
+        : String(product.attributes[attribute.sourceAttributeKey] ?? ""),
     }));
     return product.variants.map((variant) => ({
       productId: product.productId,
@@ -150,12 +164,22 @@ export class IdefixMarketplaceAdapter implements MarketplaceChannelAdapter {
       return {
         success: true,
         mode: "LIVE",
-        batchRequestId: responses.map(({ body }) => batchId(body)).filter(Boolean).join(",") || null,
+        batchRequestId:
+          responses
+            .map(({ body }) => batchId(body))
+            .filter(Boolean)
+            .join(",") || null,
         errors: [],
         warnings: [],
       };
     } catch (error) {
-      return { success: false, mode: "LIVE", batchRequestId: null, errors: [this.normalizeProviderError(error)], warnings: [] };
+      return {
+        success: false,
+        mode: "LIVE",
+        batchRequestId: null,
+        errors: [this.normalizeProviderError(error)],
+        warnings: [],
+      };
     }
   }
 
@@ -195,9 +219,21 @@ export class IdefixMarketplaceAdapter implements MarketplaceChannelAdapter {
       const body = (await response.json().catch(() => null)) as unknown;
       return response.ok
         ? { success: true, mode: "LIVE", batchRequestId: batchId(body), errors: [], warnings: [] }
-        : { success: false, mode: "LIVE", batchRequestId: batchId(body), errors: [this.normalizeProviderError(body ?? `HTTP ${response.status}`)], warnings: [] };
+        : {
+            success: false,
+            mode: "LIVE",
+            batchRequestId: batchId(body),
+            errors: [this.normalizeProviderError(body ?? `HTTP ${response.status}`)],
+            warnings: [],
+          };
     } catch (error) {
-      return { success: false, mode: "LIVE", batchRequestId: null, errors: [this.normalizeProviderError(error)], warnings: [] };
+      return {
+        success: false,
+        mode: "LIVE",
+        batchRequestId: null,
+        errors: [this.normalizeProviderError(error)],
+        warnings: [],
+      };
     }
   }
 
@@ -222,9 +258,21 @@ export class IdefixMarketplaceAdapter implements MarketplaceChannelAdapter {
       const body = (await response.json().catch(() => null)) as unknown;
       return response.ok
         ? { success: true, mode: "LIVE", batchRequestId, errors: [], warnings: [] }
-        : { success: false, mode: "LIVE", batchRequestId, errors: [this.normalizeProviderError(body ?? `HTTP ${response.status}`)], warnings: [] };
+        : {
+            success: false,
+            mode: "LIVE",
+            batchRequestId,
+            errors: [this.normalizeProviderError(body ?? `HTTP ${response.status}`)],
+            warnings: [],
+          };
     } catch (error) {
-      return { success: false, mode: "LIVE", batchRequestId, errors: [this.normalizeProviderError(error)], warnings: [] };
+      return {
+        success: false,
+        mode: "LIVE",
+        batchRequestId,
+        errors: [this.normalizeProviderError(error)],
+        warnings: [],
+      };
     }
   }
 

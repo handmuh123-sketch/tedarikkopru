@@ -115,7 +115,11 @@ export async function publishFavoriteProducts(
     where: { id: connectionId, organizationId: audit.organizationId },
   });
   if (!connection) {
-    throw new HttpError(404, "Pazaryeri bağlantısı bulunamadı.", "MARKETPLACE_CONNECTION_NOT_FOUND");
+    throw new HttpError(
+      404,
+      "Pazaryeri bağlantısı bulunamadı.",
+      "MARKETPLACE_CONNECTION_NOT_FOUND",
+    );
   }
   if (connection.status === "DISCONNECTED") {
     throw new HttpError(

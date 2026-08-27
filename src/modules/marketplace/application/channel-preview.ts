@@ -12,7 +12,10 @@ import type {
 import { loadFavoriteMarketplaceProducts } from "./favorite-product-loader";
 
 type MappingRows = {
-  categories: Map<string, { externalCategoryId: string; attributes: MarketplaceProductMapping["attributes"] }>;
+  categories: Map<
+    string,
+    { externalCategoryId: string; attributes: MarketplaceProductMapping["attributes"] }
+  >;
   brands: Map<string, { externalBrandId: string }>;
 };
 
@@ -94,7 +97,9 @@ export async function buildMarketplaceChannelPreview(
         attributes: category?.attributes ?? [],
       })
       .map((item) => {
-        const variant = product.variants.find((candidate) => candidate.variantId === item.variantId);
+        const variant = product.variants.find(
+          (candidate) => candidate.variantId === item.variantId,
+        );
         return {
           ...item,
           display: {

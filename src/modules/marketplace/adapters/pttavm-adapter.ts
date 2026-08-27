@@ -56,17 +56,29 @@ export class PttAvmMarketplaceAdapter implements MarketplaceChannelAdapter {
   ): CanonicalMarketplaceValidationResult {
     const errors: MarketplaceValidationIssue[] = [];
     if (!mapping.externalCategoryId) {
-      errors.push(validationIssue("category", "CATEGORY_MAPPING_REQUIRED", "PttAVM kategori ID eşlemesi gerekli."));
+      errors.push(
+        validationIssue(
+          "category",
+          "CATEGORY_MAPPING_REQUIRED",
+          "PttAVM kategori ID eşlemesi gerekli.",
+        ),
+      );
     }
     if (!product.images.length) {
-      errors.push(validationIssue("images", "IMAGE_REQUIRED", "PttAVM için en az bir görsel gerekli."));
+      errors.push(
+        validationIssue("images", "IMAGE_REQUIRED", "PttAVM için en az bir görsel gerekli."),
+      );
     }
     for (const variant of product.variants) {
       if (!variant.barcode) {
-        errors.push(validationIssue("barcode", "BARCODE_REQUIRED", `${variant.sku} için barkod gerekli.`));
+        errors.push(
+          validationIssue("barcode", "BARCODE_REQUIRED", `${variant.sku} için barkod gerekli.`),
+        );
       }
       if (variant.availableStock < 0) {
-        errors.push(validationIssue("stock", "STOCK_INVALID", `${variant.sku} stok değeri negatif olamaz.`));
+        errors.push(
+          validationIssue("stock", "STOCK_INVALID", `${variant.sku} stok değeri negatif olamaz.`),
+        );
       }
     }
     return validationResult(errors);
@@ -149,12 +161,15 @@ export class PttAvmMarketplaceAdapter implements MarketplaceChannelAdapter {
       productCode: product.productCode,
     }));
     try {
-      const response = await fetch("https://integration-api.pttavm.com/api/v1/products/stock-prices", {
-        method: "POST",
-        headers: requestHeaders(credentials),
-        body: JSON.stringify({ items }),
-        cache: "no-store",
-      });
+      const response = await fetch(
+        "https://integration-api.pttavm.com/api/v1/products/stock-prices",
+        {
+          method: "POST",
+          headers: requestHeaders(credentials),
+          body: JSON.stringify({ items }),
+          cache: "no-store",
+        },
+      );
       const payload = (await response.json().catch(() => null)) as unknown;
       return response.ok
         ? {

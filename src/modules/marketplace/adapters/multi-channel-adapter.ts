@@ -141,7 +141,11 @@ export class MultiChannelMarketplaceAdapter implements MarketplaceChannelAdapter
 
     if (!mapping.externalCategoryId) {
       errors.push(
-        validationIssue("category", "CATEGORY_MAPPING_REQUIRED", "Pazaryeri kategori eşlemesi gerekli."),
+        validationIssue(
+          "category",
+          "CATEGORY_MAPPING_REQUIRED",
+          "Pazaryeri kategori eşlemesi gerekli.",
+        ),
       );
     }
     if (!product.images.length) {
@@ -160,7 +164,9 @@ export class MultiChannelMarketplaceAdapter implements MarketplaceChannelAdapter
       );
     }
     if (product.variants.some((variant) => !variant.barcode)) {
-      errors.push(validationIssue("barcode", "BARCODE_REQUIRED", "Tüm varyantlarda barkod gerekli."));
+      errors.push(
+        validationIssue("barcode", "BARCODE_REQUIRED", "Tüm varyantlarda barkod gerekli."),
+      );
     }
 
     return validationResult(errors, warnings);

@@ -19,7 +19,8 @@ export const marketplaceProviders: readonly MarketplaceProviderDefinition[] = [
     channel: "TRENDYOL",
     slug: "trendyol",
     name: "Trendyol",
-    shortDescription: "Kategori/marka eşleme, ürün önizleme, JSON aktarımı ve kontrollü canlı yayın.",
+    shortDescription:
+      "Kategori/marka eşleme, ürün önizleme, JSON aktarımı ve kontrollü canlı yayın.",
     sellerIdLabel: "Satıcı ID",
     apiKeyLabel: "API Key",
     apiSecretLabel: "API Secret",
@@ -32,7 +33,8 @@ export const marketplaceProviders: readonly MarketplaceProviderDefinition[] = [
     channel: "HEPSIBURADA",
     slug: "hepsiburada",
     name: "Hepsiburada",
-    shortDescription: "Merchant bağlantısı, katalog hazırlığı, listing ve stok/fiyat entegrasyon altyapısı.",
+    shortDescription:
+      "Merchant bağlantısı, katalog hazırlığı, listing ve stok/fiyat entegrasyon altyapısı.",
     sellerIdLabel: "Merchant ID",
     apiKeyLabel: "API kullanıcı / servis anahtarı",
     apiSecretLabel: "API şifresi",
@@ -45,7 +47,8 @@ export const marketplaceProviders: readonly MarketplaceProviderDefinition[] = [
     channel: "AMAZON_TR",
     slug: "amazon-tr",
     name: "Amazon Türkiye",
-    shortDescription: "Amazon SP-API LWA yetkilendirmesi, ürün hazırlığı, fiyat, stok ve sipariş altyapısı.",
+    shortDescription:
+      "Amazon SP-API LWA yetkilendirmesi, ürün hazırlığı, fiyat, stok ve sipariş altyapısı.",
     sellerIdLabel: "Seller / Merchant ID",
     apiKeyLabel: "LWA Client ID",
     apiSecretLabel: "LWA Client Secret",
@@ -58,7 +61,8 @@ export const marketplaceProviders: readonly MarketplaceProviderDefinition[] = [
     channel: "N11",
     slug: "n11",
     name: "n11",
-    shortDescription: "Resmi REST API hesabı, kategori eşleme, ürün hazırlığı ve stok/fiyat aktarım altyapısı.",
+    shortDescription:
+      "Resmi REST API hesabı, kategori eşleme, ürün hazırlığı ve stok/fiyat aktarım altyapısı.",
     sellerIdLabel: "Mağaza ID / adı",
     apiKeyLabel: "appkey",
     apiSecretLabel: "appsecret",
@@ -71,7 +75,8 @@ export const marketplaceProviders: readonly MarketplaceProviderDefinition[] = [
     channel: "PAZARAMA",
     slug: "pazarama",
     name: "Pazarama",
-    shortDescription: "OAuth client_credentials bağlantısı, ürün hazırlığı, kategori, fiyat ve stok altyapısı.",
+    shortDescription:
+      "OAuth client_credentials bağlantısı, ürün hazırlığı, kategori, fiyat ve stok altyapısı.",
     sellerIdLabel: "Satıcı / mağaza ID",
     apiKeyLabel: "Client ID",
     apiSecretLabel: "Client Secret",
@@ -97,7 +102,8 @@ export const marketplaceProviders: readonly MarketplaceProviderDefinition[] = [
     channel: "CICEKSEPETI",
     slug: "ciceksepeti",
     name: "ÇiçekSepeti",
-    shortDescription: "x-api-key mağaza bağlantısı ile ürün, fiyat, stok ve sipariş kanal altyapısı.",
+    shortDescription:
+      "x-api-key mağaza bağlantısı ile ürün, fiyat, stok ve sipariş kanal altyapısı.",
     sellerIdLabel: "Supplier ID",
     apiKeyLabel: "API Key",
     apiSecretLabel: "API Key doğrulaması",

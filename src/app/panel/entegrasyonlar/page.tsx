@@ -135,8 +135,9 @@ export default async function MarketplaceIntegrationsPage() {
         <p className="eyebrow">Güvenli kanal açılışı</p>
         <h2>Canlı mağaza işlemleri gerçek API yetkisi olmadan çalışmaz.</h2>
         <p>
-          Her kanal aynı katalog ve favori kaynağını kullanır. Önce ürün hazırlığı ve eşleme yapılır;
-          canlı ürün, fiyat ve stok gönderimi yalnız ilgili pazaryerinin resmi API erişimi ile açılır.
+          Her kanal aynı katalog ve favori kaynağını kullanır. Önce ürün hazırlığı ve eşleme
+          yapılır; canlı ürün, fiyat ve stok gönderimi yalnız ilgili pazaryerinin resmi API erişimi
+          ile açılır.
         </p>
       </section>
     </main>

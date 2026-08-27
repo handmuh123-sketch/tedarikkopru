@@ -99,7 +99,9 @@ export default async function TrendyolIntegrationPage() {
             <h2>Trendyol API bağlantısı</h2>
           </div>
           <StatusBadge
-            label={connection?.credentialCiphertext ? "Kimlik bilgileri kayıtlı" : "Kurulum gerekli"}
+            label={
+              connection?.credentialCiphertext ? "Kimlik bilgileri kayıtlı" : "Kurulum gerekli"
+            }
             tone={connection?.credentialCiphertext ? "test" : "missing"}
           />
         </div>
@@ -140,7 +142,8 @@ export default async function TrendyolIntegrationPage() {
           </>
         ) : (
           <p>
-            Bağlantı kimlik bilgilerini yalnız işletme sahibi veya işletme yöneticisi değiştirebilir.
+            Bağlantı kimlik bilgilerini yalnız işletme sahibi veya işletme yöneticisi
+            değiştirebilir.
           </p>
         )}
       </section>
@@ -157,10 +160,12 @@ export default async function TrendyolIntegrationPage() {
           />
         </div>
         <p>
-          Varyant {preview.products.length} · Hazır {preview.validation.validCount} · Eksik {" "}
+          Varyant {preview.products.length} · Hazır {preview.validation.validCount} · Eksik{" "}
           {preview.validation.invalidCount}
         </p>
-        {readiness?.reasons.map((reason) => <p key={reason.code}>{reason.message}</p>)}
+        {readiness?.reasons.map((reason) => (
+          <p key={reason.code}>{reason.message}</p>
+        ))}
         <div className="dashboard-actions">
           <Link className="button button-primary" href="/panel/entegrasyonlar/trendyol/onizleme">
             Ürün önizlemesini aç

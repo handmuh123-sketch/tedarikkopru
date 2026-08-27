@@ -77,7 +77,11 @@ export function MarketplaceConnectionForm({
     <form className="auth-form" onSubmit={submit}>
       <label>
         Bağlantı adı
-        <input defaultValue={connection?.displayName ?? provider.name} name="displayName" required />
+        <input
+          defaultValue={connection?.displayName ?? provider.name}
+          name="displayName"
+          required
+        />
       </label>
       <label>
         Ortam
@@ -97,7 +101,12 @@ export function MarketplaceConnectionForm({
       {channel !== "CICEKSEPETI" ? (
         <label>
           {provider.apiSecretLabel}
-          <input autoComplete="new-password" name="apiSecret" required={!connection} type="password" />
+          <input
+            autoComplete="new-password"
+            name="apiSecret"
+            required={!connection}
+            type="password"
+          />
         </label>
       ) : (
         <p>ÇiçekSepeti bağlantısı resmi x-api-key değeri ile doğrulanır.</p>

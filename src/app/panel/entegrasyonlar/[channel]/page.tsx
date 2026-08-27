@@ -75,7 +75,9 @@ export default async function MarketplaceChannelPage({ params }: PageProps) {
     organization.status === "ACTIVE" && organization.verificationStatus === "APPROVED";
   const directLivePublish = provider.channel === "PTTAVM" || provider.channel === "IDEFIX";
   const liveReady =
-    directLivePublish && connection?.status === "CONNECTED" && preview.validation.invalidCount === 0;
+    directLivePublish &&
+    connection?.status === "CONNECTED" &&
+    preview.validation.invalidCount === 0;
 
   return (
     <main id="ana-icerik" className="dashboard-page" tabIndex={-1}>
@@ -93,8 +95,20 @@ export default async function MarketplaceChannelPage({ params }: PageProps) {
           <p>{provider.shortDescription}</p>
         </div>
         <StatusBadge
-          label={connection?.status === "CONNECTED" ? "Bağlı" : connection?.credentialsConfigured ? "Kimlik bilgileri kayıtlı" : "Kurulum gerekli"}
-          tone={connection?.status === "CONNECTED" ? "ready" : connection?.credentialsConfigured ? "test" : "missing"}
+          label={
+            connection?.status === "CONNECTED"
+              ? "Bağlı"
+              : connection?.credentialsConfigured
+                ? "Kimlik bilgileri kayıtlı"
+                : "Kurulum gerekli"
+          }
+          tone={
+            connection?.status === "CONNECTED"
+              ? "ready"
+              : connection?.credentialsConfigured
+                ? "test"
+                : "missing"
+          }
         />
       </header>
 
@@ -110,7 +124,9 @@ export default async function MarketplaceChannelPage({ params }: PageProps) {
           />
         </div>
         {!approved ? (
-          <p>Canlı API kimlik bilgileri, işletme doğrulaması tamamlandıktan sonra kaydedilebilir.</p>
+          <p>
+            Canlı API kimlik bilgileri, işletme doğrulaması tamamlandıktan sonra kaydedilebilir.
+          </p>
         ) : canManage ? (
           <>
             <MarketplaceConnectionForm
@@ -145,7 +161,10 @@ export default async function MarketplaceChannelPage({ params }: PageProps) {
             ) : null}
           </>
         ) : (
-          <p>Bağlantı kimlik bilgilerini yalnız işletme sahibi veya işletme yöneticisi değiştirebilir.</p>
+          <p>
+            Bağlantı kimlik bilgilerini yalnız işletme sahibi veya işletme yöneticisi
+            değiştirebilir.
+          </p>
         )}
       </section>
 
@@ -161,7 +180,7 @@ export default async function MarketplaceChannelPage({ params }: PageProps) {
           />
         </div>
         <p>
-          Varyant {preview.products.length} · Hazır {preview.validation.validCount} · Eksik {" "}
+          Varyant {preview.products.length} · Hazır {preview.validation.validCount} · Eksik{" "}
           {preview.validation.invalidCount}
         </p>
         <div className="marketplace-capability-list" aria-label={`${provider.name} özellikleri`}>
