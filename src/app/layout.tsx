@@ -5,6 +5,7 @@ import "@/styles/globals.css";
 import "@/styles/vibrant-ui.css";
 import "@/styles/ux-polish.css";
 import "@/styles/ux-premium.css";
+import "@/styles/home-entry.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://tedarikkopru.onrender.com"),
