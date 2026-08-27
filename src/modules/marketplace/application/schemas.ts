@@ -1,11 +1,13 @@
 import { z } from "zod";
 
+import { marketplaceChannels } from "../domain/types";
+
 const optionalText = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
   z.string().trim().min(1).optional(),
 );
 
-export const marketplaceChannelSchema = z.enum(["TRENDYOL", "HEPSIBURADA", "AMAZON_TR"]);
+export const marketplaceChannelSchema = z.enum(marketplaceChannels);
 
 export const marketplaceCredentialsSchema = z.object({
   sellerId: optionalText,
@@ -15,6 +17,7 @@ export const marketplaceCredentialsSchema = z.object({
   shipmentAddressId: z.coerce.number().int().positive().optional(),
   returningAddressId: z.coerce.number().int().positive().optional(),
   webhookApiKey: optionalText,
+  refreshToken: optionalText,
 });
 
 export const marketplaceConnectionCreateSchema = z.object({
