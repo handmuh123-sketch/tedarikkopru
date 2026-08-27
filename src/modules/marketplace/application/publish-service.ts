@@ -1,14 +1,19 @@
 import "server-only";
 
 import { Prisma } from "@/generated/prisma/client";
+import { database } from "@/lib/db/client";
 import { serverEnvironment } from "@/lib/env/server";
 import { HttpError } from "@/lib/http/errors";
 import { buildAuditLogData } from "@/modules/audit/audit-service";
-import { database } from "@/lib/db/client";
 
 import { marketplaceAdapter } from "../adapters/registry";
 import { stableMarketplaceRequestHash } from "../domain/marketplace-rules";
-import type { MarketplacePublishResult } from "../domain/types";
+import type {
+  MarketplaceChannel,
+  MarketplaceConnectionCredentials,
+  MarketplacePublishResult,
+} from "../domain/types";
+import { buildMarketplaceChannelPreview } from "./channel-preview";
 import { readMarketplaceCredentials } from "./connection-service";
 import { buildTrendyolPreview } from "./trendyol-preview";
 import { evaluateTrendyolLiveReadiness } from "./trendyol-readiness";
@@ -87,23 +92,42 @@ async function publishWithRetry(
   return result;
 }
 
+function livePublishingEnabled(channel: MarketplaceChannel): boolean {
+  if (channel === "TRENDYOL") return serverEnvironment.FEATURE_MARKETPLACE_TRENDYOL;
+  return channel === "PTTAVM" || channel === "IDEFIX";
+}
+
+function previewCredentials(): MarketplaceConnectionCredentials {
+  return {
+    sellerId: "preview",
+    apiKey: "preview",
+    apiSecret: "preview",
+    environment: "STAGE",
+  };
+}
+
 export async function publishFavoriteProducts(
   connectionId: string,
   idempotencyKey: string,
   audit: PublishAuditContext,
 ): Promise<{ job: MarketplaceSyncJobView; reused: boolean }> {
   const connection = await database.marketplaceConnection.findFirst({
-    where: { id: connectionId, organizationId: audit.organizationId, channel: "TRENDYOL" },
+    where: { id: connectionId, organizationId: audit.organizationId },
   });
-  if (!connection)
-    throw new HttpError(404, "Trendyol bağlantısı bulunamadı.", "MARKETPLACE_CONNECTION_NOT_FOUND");
-  if (connection.status === "DISCONNECTED")
+  if (!connection) {
+    throw new HttpError(404, "Pazaryeri bağlantısı bulunamadı.", "MARKETPLACE_CONNECTION_NOT_FOUND");
+  }
+  if (connection.status === "DISCONNECTED") {
     throw new HttpError(
       409,
-      "Önce Trendyol bağlantısını yapılandırın.",
+      "Önce pazaryeri bağlantısını yapılandırın.",
       "MARKETPLACE_CONNECTION_DISCONNECTED",
     );
-  if (serverEnvironment.FEATURE_MARKETPLACE_TRENDYOL) {
+  }
+
+  const channel = connection.channel as MarketplaceChannel;
+  const liveEnabled = livePublishingEnabled(channel);
+  if (channel === "TRENDYOL" && liveEnabled) {
     const readiness = await evaluateTrendyolLiveReadiness(audit.actorId, audit.organizationId);
     if (readiness.state !== "READY") {
       throw new HttpError(
@@ -113,16 +137,28 @@ export async function publishFavoriteProducts(
       );
     }
   }
+  if (liveEnabled && channel !== "TRENDYOL" && connection.status !== "CONNECTED") {
+    throw new HttpError(
+      409,
+      "Canlı aktarım öncesinde mağaza bağlantısını başarıyla test edin.",
+      "MARKETPLACE_CONNECTION_TEST_REQUIRED",
+    );
+  }
 
-  const preview = await buildTrendyolPreview(audit.actorId);
+  const preview =
+    channel === "TRENDYOL"
+      ? await buildTrendyolPreview(audit.actorId)
+      : await buildMarketplaceChannelPreview(audit.actorId, channel);
   const requestHash = stableMarketplaceRequestHash({
     connectionId,
+    channel,
     products: preview.products.map((item) => ({
       productId: item.productId,
       variantId: item.variantId,
       payload: item.payload,
     })),
   });
+
   const created = await database.$transaction(async (transaction) => {
     const existing = await transaction.marketplaceSyncJob.findUnique({
       where: {
@@ -134,28 +170,30 @@ export async function publishFavoriteProducts(
       },
     });
     if (existing) {
-      if (existing.requestHash !== requestHash)
+      if (existing.requestHash !== requestHash) {
         throw new HttpError(
           409,
           "Bu idempotency anahtarı farklı bir yayın isteğiyle kullanıldı.",
           "MARKETPLACE_IDEMPOTENCY_CONFLICT",
         );
+      }
       await transaction.auditLog.create({
         data: buildAuditLogData({
           ...audit,
           action: "marketplace.publish_replayed",
           targetType: "MarketplaceSyncJob",
           targetId: existing.id,
-          after: { status: existing.status },
+          after: { status: existing.status, channel },
         }),
       });
       return { job: existing, reused: true };
     }
+
     const job = await transaction.marketplaceSyncJob.create({
       data: {
         connectionId,
         organizationId: audit.organizationId,
-        channel: "TRENDYOL",
+        channel,
         type: "PRODUCT_PUBLISH",
         idempotencyKey,
         requestHash,
@@ -187,11 +225,11 @@ export async function publishFavoriteProducts(
         targetType: "MarketplaceSyncJob",
         targetId: job.id,
         after: {
-          channel: "TRENDYOL",
+          channel,
           itemCount: preview.products.length,
           validCount: preview.validation.validCount,
           invalidCount: preview.validation.invalidCount,
-          liveEnabled: serverEnvironment.FEATURE_MARKETPLACE_TRENDYOL,
+          liveEnabled,
         },
       }),
     });
@@ -204,7 +242,7 @@ export async function publishFavoriteProducts(
       item.validation.valid && item.payload !== null,
   );
   const credentials = readMarketplaceCredentials(connection.credentialCiphertext);
-  if (serverEnvironment.FEATURE_MARKETPLACE_TRENDYOL && !credentials) {
+  if (liveEnabled && !credentials) {
     await database.marketplaceSyncJob.update({
       where: { id: created.job.id },
       data: {
@@ -221,19 +259,13 @@ export async function publishFavoriteProducts(
     );
   }
 
-  const adapter = marketplaceAdapter("TRENDYOL");
+  const adapter = marketplaceAdapter(channel);
   const result = await publishWithRetry(
-    () => {
-      if (!credentials)
-        return adapter.publishProducts(
-          { sellerId: "preview", apiKey: "preview", apiSecret: "preview", environment: "STAGE" },
-          validItems.map((item) => item.payload),
-        );
-      return adapter.publishProducts(
-        credentials,
+    () =>
+      adapter.publishProducts(
+        credentials ?? previewCredentials(),
         validItems.map((item) => item.payload),
-      );
-    },
+      ),
     async () => {
       await database.auditLog.create({
         data: buildAuditLogData({
@@ -241,11 +273,12 @@ export async function publishFavoriteProducts(
           action: "marketplace.publish_retry",
           targetType: "MarketplaceSyncJob",
           targetId: created.job.id,
-          after: { channel: "TRENDYOL" },
+          after: { channel },
         }),
       });
     },
   );
+
   const failedCount = preview.validation.invalidCount + (result.success ? 0 : validItems.length);
   const status =
     result.mode === "PREVIEW"
