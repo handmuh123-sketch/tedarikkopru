@@ -8,6 +8,7 @@ import { database } from "@/lib/db/client";
 import { formatTryMinor } from "@/modules/catalog/domain/product-rules";
 import { findProductOpportunities } from "@/modules/intelligence/opportunity-service";
 import { opportunityLevelLabel } from "@/modules/intelligence/opportunity-score";
+import { supplierTrustLabel } from "@/modules/intelligence/supplier-trust";
 
 export const dynamic = "force-dynamic";
 
@@ -176,6 +177,23 @@ export default async function OpportunitiesPage() {
                   )}
                 </div>
 
+                {item.supplierTrust ? (
+                  <div className="supplier-trust-strip">
+                    <div>
+                      <span>Tedarikçi güven sinyali</span>
+                      <strong>{supplierTrustLabel(item.supplierTrust)}</strong>
+                    </div>
+                    <div className={`supplier-trust-score trust-${item.supplierTrust.level}`}>
+                      {item.supplierTrust.score === null ? "—" : `${item.supplierTrust.score}/100`}
+                    </div>
+                    <small>
+                      {item.supplierTrust.available
+                        ? `${item.supplierTrust.sampleSize} gerçek operasyon üzerinden; kabul, sevkiyat, zamanında teslimat ve iade sinyalleri.`
+                        : `${item.supplierTrust.sampleSize}/5 uygun operasyon. Yeterli veri oluşmadan puan yayınlanmaz.`}
+                    </small>
+                  </div>
+                ) : null}
+
                 <div className="opportunity-card-footer">
                   <div>
                     <span>Tedarikçi</span>
@@ -200,7 +218,8 @@ export default async function OpportunitiesPage() {
           <h2>Radar neye bakıyor?</h2>
           <p>
             Gizli bir “satış tahmini” üretmiyoruz. Skor yalnız TedarikKöprü’de doğrulanabilen
-            operasyon sinyallerinden oluşur ve yeni veri geldikçe değişir.
+            operasyon sinyallerinden oluşur ve yeni veri geldikçe değişir. Tedarikçi güven puanı
+            ise en az 5 gerçek operasyon olmadan yayınlanmaz.
           </p>
         </div>
         <div className="opportunity-method-grid">
