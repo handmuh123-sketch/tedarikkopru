@@ -3,8 +3,9 @@ import "server-only";
 import { Prisma } from "@/generated/prisma/client";
 import { database } from "@/lib/db/client";
 import { availableStock } from "@/modules/inventory/domain/inventory-rules";
+import { calculateProductOpportunity } from "@/modules/intelligence/opportunity-score";
 
-export type CatalogSort = "newest" | "price-asc" | "price-desc" | "title";
+export type CatalogSort = "newest" | "price-asc" | "price-desc" | "title" | "opportunity";
 
 export type CatalogFilters = {
   query?: string | undefined;
@@ -25,7 +26,12 @@ export function parseTryFilterMinor(value: string | undefined): number | undefin
 }
 
 export function parseCatalogSort(value: string | undefined): CatalogSort {
-  return value === "price-asc" || value === "price-desc" || value === "title" ? value : "newest";
+  return value === "price-asc" ||
+    value === "price-desc" ||
+    value === "title" ||
+    value === "opportunity"
+    ? value
+    : "newest";
 }
 
 export function publicCatalogWhere(filters: CatalogFilters = {}): Prisma.ProductWhereInput {
@@ -60,12 +66,54 @@ export function publicCatalogWhere(filters: CatalogFilters = {}): Prisma.Product
   };
 }
 
+function opportunityForProduct(product: {
+  handlingDays: number;
+  warrantyMonths: number | null;
+  supplierOrganization: { verificationStatus: string };
+  category: { marketplaceCategoryMappings: Array<{ channel: string }> };
+  brand: { marketplaceBrandMappings: Array<{ channel: string }> };
+  images: Array<unknown>;
+  variants: Array<{
+    barcode: string | null;
+    moq: number;
+    priceAmountMinor: number;
+    inventory: { onHand: number; safetyStock: number; reserved: number } | null;
+  }>;
+}) {
+  const variant = product.variants[0];
+  if (!variant?.inventory) return null;
+  return calculateProductOpportunity({
+    priceAmountMinor: variant.priceAmountMinor,
+    moq: variant.moq,
+    availableStock: availableStock(
+      variant.inventory.onHand,
+      variant.inventory.safetyStock,
+      variant.inventory.reserved,
+    ),
+    handlingDays: product.handlingDays,
+    hasImage: product.images.length > 0,
+    hasBarcode: Boolean(variant.barcode),
+    verifiedSupplier: product.supplierOrganization.verificationStatus === "APPROVED",
+    warrantyMonths: product.warrantyMonths,
+    categoryChannels: product.category.marketplaceCategoryMappings.map((mapping) => mapping.channel),
+    brandChannels: product.brand.marketplaceBrandMappings.map((mapping) => mapping.channel),
+  });
+}
+
 export async function findPublicProducts(filters: CatalogFilters = {}) {
   const candidates = await database.product.findMany({
     where: publicCatalogWhere(filters),
     include: {
-      category: true,
-      brand: true,
+      category: {
+        include: {
+          marketplaceCategoryMappings: { where: { isActive: true }, select: { channel: true } },
+        },
+      },
+      brand: {
+        include: {
+          marketplaceBrandMappings: { where: { isActive: true }, select: { channel: true } },
+        },
+      },
       supplierOrganization: true,
       variants: {
         where: {
@@ -89,9 +137,8 @@ export async function findPublicProducts(filters: CatalogFilters = {}) {
   });
 
   const products = candidates
-    .map((product) => ({
-      ...product,
-      variants: product.variants.filter(
+    .map((product) => {
+      const variants = product.variants.filter(
         (variant) =>
           variant.inventory &&
           availableStock(
@@ -99,8 +146,10 @@ export async function findPublicProducts(filters: CatalogFilters = {}) {
             variant.inventory.safetyStock,
             variant.inventory.reserved,
           ) > 0,
-      ),
-    }))
+      );
+      const item = { ...product, variants };
+      return { ...item, opportunity: opportunityForProduct(item) };
+    })
     .filter((product) => product.variants.length > 0);
 
   const sort = filters.sort ?? "newest";
@@ -112,6 +161,8 @@ export async function findPublicProducts(filters: CatalogFilters = {}) {
       const priceB = Math.min(...b.variants.map((variant) => variant.priceAmountMinor));
       return sort === "price-asc" ? priceA - priceB : priceB - priceA;
     });
+  } else if (sort === "opportunity") {
+    products.sort((a, b) => (b.opportunity?.score ?? 0) - (a.opportunity?.score ?? 0));
   }
 
   return products.slice(0, 48);
@@ -121,8 +172,16 @@ export async function findPublicProductBySlug(slug: string) {
   const product = await database.product.findFirst({
     where: { slug, ...publicCatalogWhere() },
     include: {
-      category: true,
-      brand: true,
+      category: {
+        include: {
+          marketplaceCategoryMappings: { where: { isActive: true }, select: { channel: true } },
+        },
+      },
+      brand: {
+        include: {
+          marketplaceBrandMappings: { where: { isActive: true }, select: { channel: true } },
+        },
+      },
       supplierOrganization: true,
       variants: {
         where: { status: "ACTIVE", inventory: { is: { onHand: { gt: 0 } } } },
@@ -142,5 +201,7 @@ export async function findPublicProductBySlug(slug: string) {
         variant.inventory.reserved,
       ) > 0,
   );
-  return availableVariants.length > 0 ? { ...product, variants: availableVariants } : null;
+  if (availableVariants.length === 0) return null;
+  const item = { ...product, variants: availableVariants };
+  return { ...item, opportunity: opportunityForProduct(item) };
 }
