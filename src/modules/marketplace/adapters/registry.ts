@@ -1,5 +1,6 @@
 import "server-only";
 
+import { IdefixMarketplaceAdapter } from "./idefix-adapter";
 import { MultiChannelMarketplaceAdapter } from "./multi-channel-adapter";
 import { PttAvmMarketplaceAdapter } from "./pttavm-adapter";
 import { TrendyolMarketplaceAdapter } from "./trendyol-adapter";
@@ -13,7 +14,7 @@ const adapters: Record<MarketplaceChannel, MarketplaceChannelAdapter> = {
   PAZARAMA: new MultiChannelMarketplaceAdapter("PAZARAMA"),
   PTTAVM: new PttAvmMarketplaceAdapter(),
   CICEKSEPETI: new MultiChannelMarketplaceAdapter("CICEKSEPETI"),
-  IDEFIX: new MultiChannelMarketplaceAdapter("IDEFIX"),
+  IDEFIX: new IdefixMarketplaceAdapter(),
 };
 
 export function marketplaceAdapter(channel: MarketplaceChannel): MarketplaceChannelAdapter {
