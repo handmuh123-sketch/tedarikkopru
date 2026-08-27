@@ -1,0 +1,212 @@
+/* Homepage-only cinematic entry sequence. Kept CSS-only so the first paint stays fast. */
+
+html:has(.home-main) {
+  background: #07182b;
+}
+
+html:has(.home-main)::before {
+  position: fixed;
+  z-index: 9998;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 44%, rgba(57, 215, 183, 0.18), transparent 16rem),
+    radial-gradient(circle at 64% 32%, rgba(76, 125, 255, 0.18), transparent 23rem),
+    radial-gradient(circle at 36% 70%, rgba(121, 87, 232, 0.12), transparent 24rem),
+    linear-gradient(145deg, #061526 0%, #0b2843 52%, #0b403d 100%);
+  content: "";
+  pointer-events: none;
+  animation: home-entry-curtain 1.95s cubic-bezier(0.72, 0, 0.18, 1) forwards;
+}
+
+html:has(.home-main)::after {
+  position: fixed;
+  z-index: 10000;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: clamp(5.25rem, 11vw, 7.3rem);
+  height: clamp(5.25rem, 11vw, 7.3rem);
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 2rem;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04)),
+    linear-gradient(135deg, var(--tk-blue), var(--tk-teal) 60%, var(--tk-mint));
+  box-shadow:
+    0 0 0 0 rgba(57, 215, 183, 0.18),
+    0 30px 90px rgba(0, 0, 0, 0.34),
+    inset 0 1px rgba(255, 255, 255, 0.3);
+  color: white;
+  content: "TK";
+  font-size: clamp(1.45rem, 4vw, 2.15rem);
+  font-weight: 950;
+  letter-spacing: -0.09em;
+  line-height: 1;
+  pointer-events: none;
+  transform: translate(-50%, -64%) scale(0.64) rotate(-8deg);
+  animation: home-entry-mark 1.82s cubic-bezier(0.2, 0.82, 0.2, 1) forwards;
+}
+
+body:has(.home-main)::after {
+  position: fixed;
+  z-index: 10001;
+  top: calc(50% + clamp(3.9rem, 8vw, 5.3rem));
+  left: 50%;
+  color: rgba(255, 255, 255, 0.94);
+  content: "TedarikKöprü";
+  font-size: clamp(1.05rem, 2.4vw, 1.45rem);
+  font-weight: 900;
+  letter-spacing: -0.035em;
+  pointer-events: none;
+  transform: translate(-50%, 0.8rem);
+  white-space: nowrap;
+  animation: home-entry-wordmark 1.92s cubic-bezier(0.2, 0.82, 0.2, 1) forwards;
+}
+
+html:has(.home-main) .site-header {
+  animation: home-header-reveal 720ms 1.22s cubic-bezier(0.2, 0.82, 0.2, 1) both;
+}
+
+html:has(.home-main) .hero-copy {
+  animation-delay: 1.3s;
+}
+
+html:has(.home-main) .hero-visual {
+  animation-delay: 1.42s;
+}
+
+html:has(.home-main) .home-quick-card {
+  opacity: 0;
+  transform: translateY(18px);
+  animation: home-card-reveal 620ms cubic-bezier(0.2, 0.82, 0.2, 1) forwards;
+}
+
+html:has(.home-main) .home-quick-card:nth-child(1) {
+  animation-delay: 1.52s;
+}
+
+html:has(.home-main) .home-quick-card:nth-child(2) {
+  animation-delay: 1.62s;
+}
+
+html:has(.home-main) .home-quick-card:nth-child(3) {
+  animation-delay: 1.72s;
+}
+
+@keyframes home-entry-curtain {
+  0%,
+  66% {
+    opacity: 1;
+    clip-path: inset(0 0 0 0 round 0);
+  }
+
+  100% {
+    visibility: hidden;
+    opacity: 0;
+    clip-path: inset(0 0 100% 0 round 0 0 2.5rem 2.5rem);
+  }
+}
+
+@keyframes home-entry-mark {
+  0% {
+    opacity: 0;
+    box-shadow:
+      0 0 0 0 rgba(57, 215, 183, 0),
+      0 30px 90px rgba(0, 0, 0, 0.34),
+      inset 0 1px rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -64%) scale(0.64) rotate(-8deg);
+  }
+
+  26% {
+    opacity: 1;
+    transform: translate(-50%, -64%) scale(1.08) rotate(2deg);
+  }
+
+  42% {
+    box-shadow:
+      0 0 0 1.35rem rgba(57, 215, 183, 0),
+      0 30px 90px rgba(0, 0, 0, 0.34),
+      inset 0 1px rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -64%) scale(1) rotate(0deg);
+  }
+
+  72% {
+    opacity: 1;
+    transform: translate(-50%, -64%) scale(1) rotate(0deg);
+  }
+
+  100% {
+    visibility: hidden;
+    opacity: 0;
+    transform: translate(-50%, -92%) scale(0.94);
+  }
+}
+
+@keyframes home-entry-wordmark {
+  0%,
+  18% {
+    opacity: 0;
+    letter-spacing: 0.03em;
+    transform: translate(-50%, 0.8rem);
+  }
+
+  38%,
+  72% {
+    opacity: 1;
+    letter-spacing: -0.035em;
+    transform: translate(-50%, 0);
+  }
+
+  100% {
+    visibility: hidden;
+    opacity: 0;
+    transform: translate(-50%, -0.75rem);
+  }
+}
+
+@keyframes home-header-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-18px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes home-card-reveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 720px) {
+  html:has(.home-main)::after {
+    border-radius: 1.55rem;
+  }
+
+  body:has(.home-main)::after {
+    top: calc(50% + 4.25rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:has(.home-main)::before,
+  html:has(.home-main)::after,
+  body:has(.home-main)::after {
+    display: none;
+    animation: none;
+  }
+
+  html:has(.home-main) .site-header,
+  html:has(.home-main) .hero-copy,
+  html:has(.home-main) .hero-visual,
+  html:has(.home-main) .home-quick-card {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+}
